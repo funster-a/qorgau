@@ -36,6 +36,7 @@ func main() {
 		go anomalyTicker()
 	}
 	go rlCleaner()
+	go blocklistRefresher()
 
 	mux := http.NewServeMux()
 	// публичные
@@ -46,6 +47,13 @@ func main() {
 	mux.HandleFunc("/campaigns/active", withCORS(handleCampaigns))
 	mux.HandleFunc("/threat-feed", withCORS(handleThreatFeed))
 	mux.HandleFunc("/privacy/proof", withCORS(handlePrivacyProof))
+	// Qorǵau Shield: DoH-резолвер + блок-лист + профиль iOS
+	mux.HandleFunc("/dns-query", withCORS(handleDNSQuery))
+	mux.HandleFunc("/shield/blocklist", withCORS(handleShieldBlocklist))
+	mux.HandleFunc("/shield/stats", withCORS(handleShieldStats))
+	mux.HandleFunc("/shield/apple.mobileconfig", withCORS(handleShieldMobileconfig))
+	// проверка пароля по утечкам (HIBP k-anonymity)
+	mux.HandleFunc("/leaks/password/", withCORS(handleLeaksPassword))
 	// служебные для бота (X-Bot-Key, если задан BOT_API_KEY)
 	mux.HandleFunc("/bot/subscribe", withCORS(requireKey("X-Bot-Key", &botAPIKey, handleBotSubscribe)))
 	mux.HandleFunc("/bot/unsubscribe", withCORS(requireKey("X-Bot-Key", &botAPIKey, handleBotUnsubscribe)))

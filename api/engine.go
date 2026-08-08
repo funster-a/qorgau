@@ -188,6 +188,14 @@ func normalize(out *AnalyzeResponse) {
 	if out.IOCs == nil {
 		out.IOCs = []IOC{}
 	}
+	// Тип "url" сводим к "domain" (контракт docs/API.md): маскирование всё равно
+	// оставляет от URL только хост, а блок-лист Shield собирается по type='domain' —
+	// без этого домены из LLM-ответов не попадали бы под блокировку.
+	for i := range out.IOCs {
+		if out.IOCs[i].Type == "url" {
+			out.IOCs[i].Type = "domain"
+		}
+	}
 }
 
 func levelFor(score int) string {

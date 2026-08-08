@@ -103,6 +103,33 @@ chat_id хранится в зоне `pii` (это идентификатор), 
 - `GET /admin/recent?limit=20` — последние сигналы:
   `[ { "created_at": "RFC3339", "scheme": "code", "title":"", "risk_score": 0, "risk_level": "", "region": "", "channel": "", "degraded": false } ]`
 
+## Qorǵau Shield (DNS-защита)
+
+### GET|POST /dns-query
+DoH-резолвер по RFC 8484 (wireformat; GET с `?dns=<base64url>` и POST
+`application/dns-message`). Если запрошенный домен в блок-листе — ответ NXDOMAIN;
+иначе запрос проксируется в вышестоящий DoH (Cloudflare). Клиентские IP НЕ
+логируются — только агрегированные счётчики по доменам.
+
+### GET /shield/blocklist
+`{ "updated_at": "RFC3339", "count": 0, "domains": ["kaspi-secure.xyz"] }`
+Источники: analytics.ioc (домены из жалоб) + сид-файл db/blocklist_seed.txt.
+
+### GET /shield/stats
+`{ "blocked_today": 0, "blocklist_count": 0, "top_blocked": [ { "domain": "...", "count": 0 } ] }`
+
+### GET /shield/apple.mobileconfig
+Генерирует профиль iOS (payload DNSSettings, DNSProtocol=HTTPS, ServerURL —
+наш /dns-query на текущем домене). Content-Type: application/x-apple-aspen-config.
+
+## Проверка пароля по утечкам
+
+### GET /leaks/password/{prefix5}
+Прокси к HIBP range API (k-anonymity). `{prefix5}` — первые 5 hex-символов
+SHA-1 пароля (считается В БРАУЗЕРЕ, сам пароль на сервер не уходит).
+Ответ — текст HIBP как есть: строки `SUFFIX:COUNT`. Кэшируется в памяти 1ч.
+404 от HIBP → пустое тело 200.
+
 ## Статика
 - `/` — чекер (web/index.html)
 - `/demo.html` — пульт управления демо

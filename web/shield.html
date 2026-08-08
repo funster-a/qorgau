@@ -1,0 +1,653 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+<meta name="theme-color" content="#080c16"/>
+<title>Qorǵau Shield — DNS-защита от фишинга</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%235b8cff'/%3E%3Cstop offset='1' stop-color='%232ee6a8'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M16 2 27 6.5v8.2c0 7-4.7 12.3-11 15.3-6.3-3-11-8.3-11-15.3V6.5L16 2z' fill='url(%23g)'/%3E%3Cpath d='M10.5 15.5l4 4 7-7.5' fill='none' stroke='%23080c16' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"/>
+<style>
+  :root{
+    --bg:#080c16; --bg-glow1:rgba(91,140,255,.13); --bg-glow2:rgba(46,230,168,.05);
+    --card:#101a2e; --card-2:#0c1424; --input:#0b1220;
+    --line:rgba(148,166,204,.14); --line-strong:rgba(148,166,204,.26);
+    --txt:#e9eef8; --mut:#8b98b6; --mut-2:#5f6c8a;
+    --acc:#5b8cff; --acc-soft:rgba(91,140,255,.14);
+    --red:#ff5d6c; --red-soft:rgba(255,93,108,.13);
+    --yellow:#ffb224; --yellow-soft:rgba(255,178,36,.13);
+    --green:#2ee6a8; --green-soft:rgba(46,230,168,.12);
+    --r-lg:20px; --r-md:14px; --r-sm:10px;
+    --shadow:0 12px 40px rgba(2,6,16,.55), 0 2px 8px rgba(2,6,16,.4);
+    --ease:cubic-bezier(.22,.9,.3,1);
+    --mono:ui-monospace,SFMono-Regular,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0; color:var(--txt);
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;
+    background:
+      radial-gradient(900px 480px at 85% -8%, var(--bg-glow1), transparent 70%),
+      radial-gradient(700px 420px at -10% 30%, var(--bg-glow2), transparent 70%),
+      var(--bg);
+    min-height:100vh; line-height:1.5;
+  }
+  .wrap{max-width:680px;margin:0 auto;padding:20px 16px calc(28px + env(safe-area-inset-bottom))}
+  @media(min-width:760px){.wrap{padding-top:36px}}
+
+  /* ---------- header + nav ---------- */
+  header{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+  .logo{width:44px;height:44px;flex:none;filter:drop-shadow(0 4px 14px rgba(91,140,255,.35))}
+  .brand h1{font-size:22px;margin:0;line-height:1.15;letter-spacing:.2px;font-weight:800}
+  .brand p{margin:1px 0 0;font-size:12.5px;color:var(--mut)}
+  .lang{margin-left:auto;display:flex;background:var(--card-2);border:1px solid var(--line);
+        border-radius:999px;padding:3px;flex:none}
+  .lang button{border:0;background:transparent;color:var(--mut);font:inherit;font-size:12.5px;
+        font-weight:700;padding:5px 12px;border-radius:999px;cursor:pointer;transition:all .2s var(--ease)}
+  .lang button.on{background:var(--acc-soft);color:var(--acc)}
+  .nav-pages{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 18px}
+  .nav-pages a{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:700;
+        color:var(--mut);background:var(--card-2);border:1px solid var(--line);border-radius:999px;
+        padding:6px 12px;text-decoration:none;transition:all .2s var(--ease)}
+  .nav-pages a:hover{color:var(--txt);border-color:var(--acc);transform:translateY(-1px)}
+  .nav-pages a.on{color:var(--acc);background:var(--acc-soft);border-color:rgba(91,140,255,.4)}
+
+  /* ---------- hero ---------- */
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);
+        padding:18px;box-shadow:var(--shadow)}
+  .hero{text-align:center;padding:26px 18px 20px;
+        background:linear-gradient(180deg,rgba(91,140,255,.10),rgba(16,26,46,0) 55%),var(--card)}
+  .hero-shield{width:86px;height:86px;margin:0 auto 4px;position:relative}
+  .hero-shield svg{width:100%;height:100%;filter:drop-shadow(0 8px 26px rgba(91,140,255,.45))}
+  .hero-shield::after{content:"";position:absolute;inset:-9px;border-radius:50%;
+        border:2px solid rgba(46,230,168,.35);opacity:0;animation:hping 2.4s ease-out infinite}
+  @keyframes hping{0%{transform:scale(.7);opacity:.8}70%,100%{transform:scale(1.25);opacity:0}}
+  .hero h2{font-size:clamp(22px,5.6vw,28px);line-height:1.2;margin:10px 0 8px;letter-spacing:-.3px}
+  .hero .sub{color:var(--mut);font-size:14.5px;line-height:1.6;max-width:460px;margin:0 auto}
+  .hero .sub b{color:var(--txt);font-weight:700}
+
+  /* live stats */
+  .stat-live{display:flex;align-items:center;justify-content:center;gap:7px;margin:18px 0 10px;
+        font-size:10.5px;font-weight:800;letter-spacing:1.6px;color:var(--green)}
+  .live-dot{width:7px;height:7px;border-radius:50%;background:var(--green);position:relative;flex:none}
+  .live-dot::after{content:"";position:absolute;inset:-4px;border-radius:50%;
+        border:2px solid var(--green);opacity:0;animation:ping 1.8s ease-out infinite}
+  @keyframes ping{0%{transform:scale(.4);opacity:.9}80%,100%{transform:scale(1.4);opacity:0}}
+  .stat-grid{display:flex;gap:10px}
+  .stat{flex:1;background:var(--card-2);border:1px solid var(--line);border-radius:var(--r-md);
+        padding:13px 10px}
+  .stat .n{font-size:clamp(22px,6vw,30px);font-weight:800;letter-spacing:-.5px;
+        font-variant-numeric:tabular-nums;line-height:1.1;color:var(--txt)}
+  .stat .l{font-size:11.5px;color:var(--mut);margin-top:3px;line-height:1.35}
+  .top-box{margin-top:10px;text-align:left}
+  .top-box .h{font-size:11px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;
+        color:var(--mut-2);margin:0 0 7px;text-align:center}
+  .dchips{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+  .dchip{display:inline-flex;align-items:center;gap:6px;background:var(--input);
+        border:1px solid var(--line);border-radius:8px;padding:4px 9px;
+        font-family:var(--mono);font-size:12px;color:#cdd6e8}
+  .dchip b{color:var(--red);font-weight:700;font-variant-numeric:tabular-nums}
+
+  /* ---------- sections ---------- */
+  .sect{margin-top:22px}
+  .sect-title{font-size:17px;font-weight:800;margin:0 0 3px;display:flex;align-items:center;gap:8px}
+  .sect-sub{font-size:13px;color:var(--mut);margin:0 0 12px}
+
+  /* ---------- platform tabs ---------- */
+  .tabs{display:flex;gap:8px;margin-bottom:12px}
+  .tab{flex:1;border:1px solid var(--line);background:var(--card-2);color:var(--mut);
+        border-radius:var(--r-md);padding:10px 6px;font:inherit;font-size:13px;font-weight:700;
+        cursor:pointer;transition:all .2s var(--ease);text-align:center;line-height:1.3}
+  .tab:hover{color:var(--txt);border-color:var(--line-strong)}
+  .tab.on{color:var(--acc);background:var(--acc-soft);border-color:rgba(91,140,255,.45)}
+  .tab .you{display:block;font-size:9.5px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;
+        color:var(--green);margin-top:2px;visibility:hidden}
+  .tab.mine .you{visibility:visible}
+  .panel{display:none}
+  .panel.on{display:block;animation:fadeup .35s var(--ease)}
+  @keyframes fadeup{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+  .badge{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:800;
+        color:var(--green);background:var(--green-soft);border:1px solid rgba(46,230,168,.3);
+        border-radius:999px;padding:4px 11px}
+  .badge.soon{color:var(--yellow);background:var(--yellow-soft);border-color:rgba(255,178,36,.35)}
+
+  .go{width:100%;padding:15px;border:0;border-radius:var(--r-md);cursor:pointer;
+        background:linear-gradient(135deg,#4f82ff,#6a95ff);color:#fff;font:inherit;font-size:16px;
+        font-weight:800;letter-spacing:.2px;display:flex;justify-content:center;align-items:center;gap:10px;
+        box-shadow:0 8px 24px rgba(79,130,255,.35);text-decoration:none;
+        transition:transform .15s var(--ease),box-shadow .2s}
+  .go:hover{transform:translateY(-1px);box-shadow:0 10px 28px rgba(79,130,255,.45)}
+  .go:active{transform:scale(.985)}
+
+  .steps{margin:14px 0 0;padding:0;list-style:none;counter-reset:st}
+  .steps li{display:flex;gap:11px;margin:10px 0;font-size:13.5px;line-height:1.5;color:#dbe3f2}
+  .steps li::before{counter-increment:st;content:counter(st);flex:none;width:22px;height:22px;
+        border-radius:50%;background:var(--acc-soft);color:var(--acc);font-size:12px;font-weight:800;
+        display:flex;align-items:center;justify-content:center;margin-top:1px}
+  .steps b{font-weight:700;color:#fff}
+
+  .subtabs{display:flex;gap:6px;margin:12px 0}
+  .subtab{border:1px solid var(--line);background:var(--card-2);color:var(--mut);border-radius:999px;
+        padding:6px 14px;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer;
+        transition:all .2s var(--ease)}
+  .subtab.on{color:var(--acc);background:var(--acc-soft);border-color:rgba(91,140,255,.45)}
+  .subpanel{display:none}
+  .subpanel.on{display:block;animation:fadeup .3s var(--ease)}
+
+  .copyrow{display:flex;gap:8px;margin:10px 0 2px}
+  .copyrow input{flex:1;min-width:0;background:var(--input);color:#cdd6e8;border:1px solid var(--line);
+        border-radius:var(--r-sm);padding:10px 12px;font-family:var(--mono);font-size:12.5px}
+  .copyrow input:focus{outline:none;border-color:var(--acc);box-shadow:0 0 0 3px var(--acc-soft)}
+  .copybtn{flex:none;border:1px solid rgba(91,140,255,.45);background:var(--acc-soft);color:var(--acc);
+        border-radius:var(--r-sm);padding:10px 14px;font:inherit;font-size:13px;font-weight:800;
+        cursor:pointer;transition:all .2s var(--ease);white-space:nowrap}
+  .copybtn:hover{transform:translateY(-1px)}
+  .copybtn.ok{color:var(--green);background:var(--green-soft);border-color:rgba(46,230,168,.4)}
+
+  .mock{width:100%;height:auto;display:block;margin:12px 0 2px;border:1px solid var(--line);
+        border-radius:var(--r-sm);background:var(--input)}
+  .note{font-size:12.5px;color:var(--mut);line-height:1.6;margin:10px 0 0}
+  .note a{color:var(--acc);text-decoration:underline;text-underline-offset:3px}
+  .and-opt{background:var(--card-2);border:1px solid var(--line);border-radius:var(--r-md);
+        padding:13px 14px;margin-top:10px}
+  .and-opt .h{font-size:13px;font-weight:800;margin-bottom:4px;display:flex;gap:7px;align-items:center}
+  .and-opt p{margin:0;font-size:12.5px;color:var(--mut);line-height:1.55}
+  .and-opt p a{color:var(--acc);text-decoration:underline;text-underline-offset:3px}
+
+  /* ---------- test ---------- */
+  .test-btn{display:flex;justify-content:center;align-items:center;gap:9px;width:100%;padding:14px;
+        border:1px dashed rgba(255,93,108,.5);background:var(--red-soft);color:#ffb3bc;
+        border-radius:var(--r-md);font:inherit;font-size:15px;font-weight:800;cursor:pointer;
+        text-decoration:none;transition:all .2s var(--ease)}
+  .test-btn:hover{transform:translateY(-1px);border-color:var(--red)}
+  .test-btn .dom{font-family:var(--mono);font-weight:700}
+
+  /* ---------- footer ---------- */
+  footer{margin-top:26px;text-align:center;font-size:12px;color:var(--mut);line-height:1.7}
+
+  @media(prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation-duration:.01ms !important;transition-duration:.01ms !important}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <svg class="logo" viewBox="0 0 32 32" aria-hidden="true">
+      <defs>
+        <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#5b8cff"/><stop offset="1" stop-color="#2ee6a8"/>
+        </linearGradient>
+      </defs>
+      <path d="M16 2 27 6.5v8.2c0 7-4.7 12.3-11 15.3-6.3-3-11-8.3-11-15.3V6.5L16 2z" fill="url(#lg)"/>
+      <path d="M10.5 15.5l4 4 7-7.5" fill="none" stroke="#080c16" stroke-width="3"
+            stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <div class="brand">
+      <h1>Qorǵau Shield</h1>
+      <p data-i18n="slogan">DNS-защита от фишинга</p>
+    </div>
+    <div class="lang" role="group" aria-label="Language">
+      <button id="langRu" type="button">RU</button>
+      <button id="langKz" type="button">QZ</button>
+    </div>
+  </header>
+
+  <nav class="nav-pages" aria-label="Qorǵau">
+    <a href="index.html">🔍 <span data-i18n="navChecker">Проверка сообщений</span></a>
+    <a href="shield.html" class="on" aria-current="page">🛡 Shield</a>
+    <a href="password.html">🔑 <span data-i18n="navPassword">Проверка пароля</span></a>
+  </nav>
+
+  <!-- ================= hero + live stats ================= -->
+  <div class="card hero">
+    <div class="hero-shield">
+      <svg viewBox="0 0 32 32" aria-hidden="true">
+        <defs>
+          <linearGradient id="hg" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#5b8cff"/><stop offset="1" stop-color="#2ee6a8"/>
+          </linearGradient>
+        </defs>
+        <path d="M16 2 27 6.5v8.2c0 7-4.7 12.3-11 15.3-6.3-3-11-8.3-11-15.3V6.5L16 2z" fill="url(#hg)"/>
+        <path d="M11 16.2l3.4 3.4 6.6-7" fill="none" stroke="#080c16" stroke-width="3"
+              stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <h2 data-i18n="heroTitle">Фишинговые сайты не откроются. Вообще.</h2>
+    <p class="sub" data-i18n-html="heroSub">Блок-лист пополняется из жалоб граждан в реальном времени: пожаловался один — защищены все.</p>
+
+    <div class="stat-live"><span class="live-dot"></span><span>LIVE</span></div>
+    <div class="stat-grid">
+      <div class="stat">
+        <div class="n" id="stDomains">—</div>
+        <div class="l" data-i18n="stDomains">доменов в блок-листе</div>
+      </div>
+      <div class="stat">
+        <div class="n" id="stBlocked">—</div>
+        <div class="l" data-i18n="stBlocked">заблокировано сегодня</div>
+      </div>
+    </div>
+    <div class="top-box" id="topBox" hidden>
+      <div class="h" data-i18n="stTopL">Чаще всего блокируем</div>
+      <div class="dchips" id="topList"></div>
+    </div>
+  </div>
+
+  <!-- ================= setup ================= -->
+  <section class="sect">
+    <h3 class="sect-title">⚡ <span data-i18n="setupTitle">Включить за 2 тапа</span></h3>
+    <p class="sect-sub" data-i18n="setupSub">Выберите своё устройство — мы уже подсветили его.</p>
+
+    <div class="tabs" role="tablist">
+      <button class="tab" id="tab-ios" type="button" role="tab">
+        <span data-i18n="tabIos">iPhone / iPad</span><span class="you" data-i18n="you">ваше устройство</span>
+      </button>
+      <button class="tab" id="tab-pc" type="button" role="tab">
+        <span data-i18n="tabPc">Компьютер</span><span class="you" data-i18n="you">ваше устройство</span>
+      </button>
+      <button class="tab" id="tab-android" type="button" role="tab">
+        <span>Android</span><span class="you" data-i18n="you">ваше устройство</span>
+      </button>
+    </div>
+
+    <!-- iOS -->
+    <div class="card panel" id="panel-ios" role="tabpanel">
+      <div style="margin-bottom:12px"><span class="badge">📱 <span data-i18n="iosBadge">защищает весь телефон</span></span></div>
+      <a class="go" id="iosBtn" href="/shield/apple.mobileconfig">
+        ⬇️ <span data-i18n="iosBtn">Скачать профиль защиты</span>
+      </a>
+      <ol class="steps">
+        <li><span data-i18n="iosS1">Нажмите кнопку выше — Safari скачает профиль и предложит его разрешить.</span></li>
+        <li><span data-i18n-b="iosS2">Откройте|Настройки → Профиль загружен|и нажмите «Установить».</span></li>
+        <li><span data-i18n="iosS3">Готово: каждый сайт на телефоне теперь проверяется через Qorǵau — в любой сети и в любом приложении.</span></li>
+      </ol>
+    </div>
+
+    <!-- PC -->
+    <div class="card panel" id="panel-pc" role="tabpanel">
+      <div class="copyrow">
+        <input id="dohField" readonly aria-label="DoH"/>
+        <button class="copybtn" id="copyBtn" type="button" data-i18n="copyBtn">Скопировать адрес</button>
+      </div>
+      <p class="note" data-i18n="pcNote">Это адрес нашего защищённого DNS. Вставьте его в настройки браузера:</p>
+
+      <div class="subtabs" role="tablist">
+        <button class="subtab" id="sub-chrome" type="button" role="tab">Chrome / Edge</button>
+        <button class="subtab" id="sub-firefox" type="button" role="tab">Firefox</button>
+      </div>
+
+      <div class="subpanel" id="subpanel-chrome" role="tabpanel">
+        <ol class="steps">
+          <li><span data-i18n-b="chS1">Меню ⋮ →|Настройки → Конфиденциальность и безопасность → Безопасность|</span></li>
+          <li><span data-i18n-b="chS2">Включите|«Использовать безопасный DNS-сервер»|и выберите «Другой провайдер».</span></li>
+          <li><span data-i18n="chS3">Вставьте скопированный адрес в поле — и всё, защита работает.</span></li>
+        </ol>
+        <svg class="mock" viewBox="0 0 440 190" aria-hidden="true">
+          <rect x="0" y="0" width="440" height="190" rx="8" fill="#0c1424"/>
+          <rect x="0" y="0" width="440" height="26" rx="8" fill="#101a2e"/>
+          <circle cx="16" cy="13" r="4" fill="#ff5d6c" opacity=".7"/>
+          <circle cx="30" cy="13" r="4" fill="#ffb224" opacity=".7"/>
+          <circle cx="44" cy="13" r="4" fill="#2ee6a8" opacity=".7"/>
+          <text x="64" y="17" fill="#5f6c8a" font-size="10" data-i18n="mockSettings">Настройки</text>
+          <rect x="12" y="38" width="120" height="140" rx="6" fill="#101a2e"/>
+          <rect x="22" y="50" width="80" height="7" rx="3.5" fill="#1c2942"/>
+          <rect x="16" y="68" width="112" height="22" rx="6" fill="rgba(91,140,255,.16)"/>
+          <text x="24" y="83" fill="#5b8cff" font-size="9.5" font-weight="700" data-i18n="mockSecurity">Безопасность</text>
+          <rect x="22" y="102" width="72" height="7" rx="3.5" fill="#1c2942"/>
+          <rect x="22" y="120" width="86" height="7" rx="3.5" fill="#1c2942"/>
+          <text x="148" y="56" fill="#e9eef8" font-size="10.5" font-weight="700" data-i18n="mockDns">Использовать безопасный DNS-сервер</text>
+          <rect x="394" y="44" width="32" height="16" rx="8" fill="#2ee6a8"/>
+          <circle cx="418" cy="52" r="6" fill="#080c16"/>
+          <circle cx="152" cy="86" r="5" fill="none" stroke="#5f6c8a" stroke-width="1.5"/>
+          <text x="164" y="90" fill="#8b98b6" font-size="9.5" data-i18n="mockWith">С текущим провайдером</text>
+          <circle cx="152" cy="112" r="5" fill="none" stroke="#5b8cff" stroke-width="1.5"/>
+          <circle cx="152" cy="112" r="2.5" fill="#5b8cff"/>
+          <text x="164" y="116" fill="#e9eef8" font-size="9.5" data-i18n="mockCustom">Другой провайдер</text>
+          <rect x="148" y="128" width="278" height="26" rx="6" fill="#0b1220" stroke="#5b8cff" stroke-opacity=".8"/>
+          <text x="158" y="145" fill="#2ee6a8" font-size="10" font-family="ui-monospace,Consolas,monospace" class="svgDoh">https://…/dns-query</text>
+          <text x="148" y="172" fill="#5f6c8a" font-size="8.5" data-i18n="mockHint">↑ сюда — скопированный адрес</text>
+        </svg>
+      </div>
+
+      <div class="subpanel" id="subpanel-firefox" role="tabpanel">
+        <ol class="steps">
+          <li><span data-i18n-b="ffS1">Меню ☰ →|Настройки → Приватность и защита|</span></li>
+          <li><span data-i18n-b="ffS2">Найдите блок|«DNS через HTTPS»|и включите «Максимальная защита».</span></li>
+          <li><span data-i18n-b="ffS3">Провайдер:|«Другой…»|— вставьте скопированный адрес.</span></li>
+        </ol>
+        <svg class="mock" viewBox="0 0 440 175" aria-hidden="true">
+          <rect x="0" y="0" width="440" height="175" rx="8" fill="#0c1424"/>
+          <rect x="0" y="0" width="440" height="26" rx="8" fill="#101a2e"/>
+          <circle cx="16" cy="13" r="4" fill="#ff5d6c" opacity=".7"/>
+          <circle cx="30" cy="13" r="4" fill="#ffb224" opacity=".7"/>
+          <circle cx="44" cy="13" r="4" fill="#2ee6a8" opacity=".7"/>
+          <text x="64" y="17" fill="#5f6c8a" font-size="10" data-i18n="mockFfPriv">Настройки → Приватность и защита</text>
+          <text x="20" y="52" fill="#e9eef8" font-size="11" font-weight="700" data-i18n="mockFfDoh">DNS через HTTPS</text>
+          <circle cx="26" cy="72" r="5" fill="none" stroke="#5f6c8a" stroke-width="1.5"/>
+          <text x="38" y="76" fill="#8b98b6" font-size="9.5" data-i18n="mockFfDef">Стандартная защита</text>
+          <circle cx="26" cy="96" r="5" fill="none" stroke="#5b8cff" stroke-width="1.5"/>
+          <circle cx="26" cy="96" r="2.5" fill="#5b8cff"/>
+          <text x="38" y="100" fill="#e9eef8" font-size="9.5" font-weight="700" data-i18n="mockFfMax">Максимальная защита</text>
+          <text x="38" y="122" fill="#8b98b6" font-size="9.5" data-i18n="mockFfProv">Выбрать провайдера: Другой…</text>
+          <rect x="34" y="132" width="330" height="26" rx="6" fill="#0b1220" stroke="#5b8cff" stroke-opacity=".8"/>
+          <text x="44" y="149" fill="#2ee6a8" font-size="10" font-family="ui-monospace,Consolas,monospace" class="svgDoh">https://…/dns-query</text>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Android -->
+    <div class="card panel" id="panel-android" role="tabpanel">
+      <div style="margin-bottom:12px"><span class="badge soon">🚧 <span data-i18n="andSoon">скоро — приложение в 1 тап</span></span></div>
+      <p class="note" style="margin-top:0" data-i18n="andWhy">Говорим честно: встроенный в Android «Частный DNS» работает только по протоколу DoT (порт 853), а Shield в MVP говорит на DoH. Приложение-фильтр, включающееся одним тапом, — уже в роадмапе.</p>
+      <div class="and-opt">
+        <div class="h">📶 <span data-i18n="andOpt1H">А пока: включите на домашнем Wi-Fi</span></div>
+        <p data-i18n="andOpt1">Многие роутеры умеют DoH: вставьте этот адрес в настройках DNS роутера — и Shield защитит все устройства в домашней сети, включая Android.</p>
+        <div class="copyrow">
+          <input id="dohField2" readonly aria-label="DoH"/>
+          <button class="copybtn" id="copyBtn2" type="button" data-i18n="copyShort">Скопировать</button>
+        </div>
+      </div>
+      <div class="and-opt">
+        <div class="h">🔍 <span data-i18n="andOpt2H">Или проверяйте ссылки вручную</span></div>
+        <p><span data-i18n="andOpt2">Пришла подозрительная ссылка? Вставьте её в</span> <a href="index.html" data-i18n="andOpt2A">чекер Qorǵau</a> <span data-i18n="andOpt2B">— он распознает фишинг до того, как вы откроете сайт.</span></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= test ================= -->
+  <section class="sect">
+    <h3 class="sect-title">🧪 <span data-i18n="testTitle">Проверь, что работает</span></h3>
+    <p class="sect-sub" data-i18n="testSub">kaspi-secure.xyz — тестовый домен из нашего блок-листа.</p>
+    <div class="card">
+      <a class="test-btn" href="http://kaspi-secure.xyz" target="_blank" rel="noopener">
+        ✂️ <span data-i18n="testBtn">Открыть тестовый фишинговый домен</span>
+      </a>
+      <p class="note" data-i18n="testNote">С включённым Shield этот сайт просто не откроется: браузер ответит «сайт не найден» — блокировка происходит на уровне DNS, до загрузки страницы. Без Shield ссылка откроется как обычная страница.</p>
+    </div>
+  </section>
+
+  <!-- ================= how ================= -->
+  <section class="sect">
+    <h3 class="sect-title">⚙️ <span data-i18n="howTitle">Как это устроено</span></h3>
+    <div class="card">
+      <svg style="width:100%;height:auto;display:block" viewBox="0 0 440 220" aria-hidden="true">
+        <defs>
+          <marker id="arr" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto">
+            <path d="M0 0 L8 4 L0 8 Z" fill="#5f6c8a"/>
+          </marker>
+        </defs>
+        <!-- phone -->
+        <rect x="14" y="76" width="64" height="94" rx="12" fill="#0b1220" stroke="#8b98b6" stroke-opacity=".4"/>
+        <rect x="24" y="90" width="44" height="56" rx="4" fill="#101a2e"/>
+        <circle cx="46" cy="158" r="5" fill="none" stroke="#8b98b6" stroke-opacity=".5" stroke-width="1.5"/>
+        <text x="46" y="196" text-anchor="middle" fill="#8b98b6" font-size="10.5" data-i18n="dPhone">Телефон</text>
+        <!-- dns request -->
+        <path d="M82 118 L 152 118" fill="none" stroke="#5f6c8a" stroke-width="1.6" marker-end="url(#arr)"/>
+        <text x="117" y="108" text-anchor="middle" fill="#5f6c8a" font-size="9" data-i18n="dReq">DNS-запрос</text>
+        <!-- qorgau -->
+        <rect x="156" y="76" width="128" height="86" rx="12" fill="rgba(91,140,255,.1)" stroke="#5b8cff" stroke-opacity=".6"/>
+        <path d="M220 88 228 91.2v5.9c0 5-3.4 8.8-8 11-4.6-2.2-8-6-8-11v-5.9l8-3.2z" fill="#5b8cff"/>
+        <path d="M216 96.5l2.9 2.9 5.1-5.4" fill="none" stroke="#080c16" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <text x="220" y="127" text-anchor="middle" fill="#aec7ff" font-size="11.5" font-weight="700">Qorǵau Shield</text>
+        <text x="220" y="142" text-anchor="middle" fill="#8fa8d8" font-size="9" data-i18n="dQ2">блок-лист из жалоб граждан</text>
+        <text x="220" y="154" text-anchor="middle" fill="#8fa8d8" font-size="9" data-i18n="dQ3">обновляется в реальном времени</text>
+        <!-- phishing branch -->
+        <path d="M288 100 C 314 88, 318 62, 336 52" fill="none" stroke="#ff5d6c" stroke-opacity=".7" stroke-width="1.6" marker-end="url(#arr)"/>
+        <rect x="330" y="18" width="100" height="52" rx="10" fill="rgba(255,93,108,.08)" stroke="#ff5d6c" stroke-opacity=".5"/>
+        <text x="380" y="40" text-anchor="middle" fill="#ffb3bc" font-size="11" font-weight="700">✂️ <tspan data-i18n="dBad">фишинг</tspan></text>
+        <text x="380" y="56" text-anchor="middle" fill="#d79aa3" font-size="9" data-i18n="dBad2">NXDOMAIN — не откроется</text>
+        <!-- normal branch -->
+        <path d="M288 138 C 314 150, 318 176, 336 186" fill="none" stroke="#2ee6a8" stroke-opacity=".7" stroke-width="1.6" marker-end="url(#arr)"/>
+        <rect x="330" y="164" width="100" height="52" rx="10" fill="rgba(46,230,168,.07)" stroke="#2ee6a8" stroke-opacity=".5"/>
+        <text x="380" y="186" text-anchor="middle" fill="#9df0d2" font-size="11" font-weight="700">✅ <tspan data-i18n="dOk">обычные сайты</tspan></text>
+        <text x="380" y="202" text-anchor="middle" fill="#84c9ae" font-size="9" data-i18n="dOk2">открываются как всегда</text>
+      </svg>
+      <p class="note" data-i18n="howNote">Один человек пожаловался на фишинговый домен в чекере или боте — домен попадает в блок-лист, и он мгновенно перестаёт открываться у всех, кто включил Shield.</p>
+    </div>
+  </section>
+
+  <footer>
+    <div>🔒 <span data-i18n="privacy">IP-адреса не логируются. Считаем только обезличенные счётчики по доменам.</span></div>
+  </footer>
+</div>
+
+<script>
+'use strict';
+// Страницу отдаёт сам API → тот же origin. Для file:// — локальный сервер.
+const API = location.protocol === 'file:' ? 'http://localhost:8080' : '';
+const DOH = (location.protocol === 'file:' ? 'http://localhost:8080' : location.origin) + '/dns-query';
+
+/* ================= i18n ================= */
+const I18N = {
+  ru: {
+    slogan:'DNS-защита от фишинга',
+    navChecker:'Проверка сообщений', navPassword:'Проверка пароля',
+    heroTitle:'Фишинговые сайты не откроются. Вообще.',
+    heroSub:'Блок-лист пополняется из жалоб граждан в реальном времени: пожаловался один — защищены все.',
+    stDomains:'доменов в блок-листе', stBlocked:'заблокировано сегодня', stTopL:'Чаще всего блокируем',
+    setupTitle:'Включить за 2 тапа', setupSub:'Выберите своё устройство — мы уже подсветили его.',
+    tabIos:'iPhone / iPad', tabPc:'Компьютер', you:'ваше устройство',
+    iosBtn:'Скачать профиль защиты', iosBadge:'защищает весь телефон',
+    iosS1:'Нажмите кнопку выше — Safari скачает профиль и предложит его разрешить.',
+    iosS2:'Откройте|Настройки → Профиль загружен|и нажмите «Установить».',
+    iosS3:'Готово: каждый сайт на телефоне теперь проверяется через Qorǵau — в любой сети и в любом приложении.',
+    copyBtn:'Скопировать адрес', copyShort:'Скопировать', copied:'Скопировано ✓',
+    pcNote:'Это адрес нашего защищённого DNS. Вставьте его в настройки браузера:',
+    chS1:'Меню ⋮ →|Настройки → Конфиденциальность и безопасность → Безопасность|',
+    chS2:'Включите|«Использовать безопасный DNS-сервер»|и выберите «Другой провайдер».',
+    chS3:'Вставьте скопированный адрес в поле — и всё, защита работает.',
+    ffS1:'Меню ☰ →|Настройки → Приватность и защита|',
+    ffS2:'Найдите блок|«DNS через HTTPS»|и включите «Максимальная защита».',
+    ffS3:'Провайдер:|«Другой…»|— вставьте скопированный адрес.',
+    mockSettings:'Настройки', mockSecurity:'Безопасность',
+    mockDns:'Использовать безопасный DNS-сервер', mockWith:'С текущим провайдером',
+    mockCustom:'Другой провайдер', mockHint:'↑ сюда — скопированный адрес',
+    mockFfPriv:'Настройки → Приватность и защита', mockFfDoh:'DNS через HTTPS',
+    mockFfDef:'Стандартная защита', mockFfMax:'Максимальная защита',
+    mockFfProv:'Выбрать провайдера: Другой…',
+    andSoon:'скоро — приложение в 1 тап',
+    andWhy:'Говорим честно: встроенный в Android «Частный DNS» работает только по протоколу DoT (порт 853), а Shield в MVP говорит на DoH. Приложение-фильтр, включающееся одним тапом, — уже в роадмапе.',
+    andOpt1H:'А пока: включите на домашнем Wi-Fi',
+    andOpt1:'Многие роутеры умеют DoH: вставьте этот адрес в настройках DNS роутера — и Shield защитит все устройства в домашней сети, включая Android.',
+    andOpt2H:'Или проверяйте ссылки вручную',
+    andOpt2:'Пришла подозрительная ссылка? Вставьте её в', andOpt2A:'чекер Qorǵau',
+    andOpt2B:'— он распознает фишинг до того, как вы откроете сайт.',
+    testTitle:'Проверь, что работает', testSub:'kaspi-secure.xyz — тестовый домен из нашего блок-листа.',
+    testBtn:'Открыть тестовый фишинговый домен',
+    testNote:'С включённым Shield этот сайт просто не откроется: браузер ответит «сайт не найден» — блокировка происходит на уровне DNS, до загрузки страницы. Без Shield ссылка откроется как обычная страница.',
+    howTitle:'Как это устроено',
+    dPhone:'Телефон', dReq:'DNS-запрос', dQ2:'блок-лист из жалоб граждан',
+    dQ3:'обновляется в реальном времени', dBad:'фишинг', dBad2:'NXDOMAIN — не откроется',
+    dOk:'обычные сайты', dOk2:'открываются как всегда',
+    howNote:'Один человек пожаловался на фишинговый домен в чекере или боте — домен попадает в блок-лист, и он мгновенно перестаёт открываться у всех, кто включил Shield.',
+    privacy:'IP-адреса не логируются. Считаем только обезличенные счётчики по доменам.',
+    title:'Qorǵau Shield — DNS-защита от фишинга'
+  },
+  kz: {
+    slogan:'Фишингтен қорғайтын DNS',
+    navChecker:'Хабарлама тексеру', navPassword:'Құпиясөзді тексеру',
+    heroTitle:'Фишинг-сайттар мүлдем ашылмайды.',
+    heroSub:'Блок-тізім азаматтардың шағымдарынан нақты уақытта толығады: біреу шағымданса — бәрі қорғалады.',
+    stDomains:'блок-тізімдегі домен', stBlocked:'бүгін бұғатталды', stTopL:'Жиі бұғатталатындар',
+    setupTitle:'2 рет басып қосу', setupSub:'Құрылғыңызды таңдаңыз — біз оны белгілеп қойдық.',
+    tabIos:'iPhone / iPad', tabPc:'Компьютер', you:'сіздің құрылғы',
+    iosBtn:'Қорғаныс профилін жүктеу', iosBadge:'бүкіл телефонды қорғайды',
+    iosS1:'Жоғарыдағы түймені басыңыз — Safari профильді жүктеп, рұқсат сұрайды.',
+    iosS2:'Ашыңыз:|Параметрлер → Профиль жүктелді|→ «Орнату» басыңыз.',
+    iosS3:'Дайын: телефондағы әр сайт енді Qorǵau арқылы тексеріледі — кез келген желіде, кез келген қолданбада.',
+    copyBtn:'Мекенжайды көшіру', copyShort:'Көшіру', copied:'Көшірілді ✓',
+    pcNote:'Бұл — біздің қорғалған DNS мекенжайы. Оны браузер параметрлеріне қойыңыз:',
+    chS1:'Мәзір ⋮ →|Параметрлер → Құпиялылық және қауіпсіздік → Қауіпсіздік|',
+    chS2:'Қосыңыз:|«Қауіпсіз DNS-серверді пайдалану»|→ «Басқа провайдер».',
+    chS3:'Көшірілген мекенжайды өріске қойыңыз — болды, қорғаныс жұмыс істейді.',
+    ffS1:'Мәзір ☰ →|Параметрлер → Құпиялылық және қорғаныс|',
+    ffS2:'|«DNS over HTTPS»|блогын тауып, «Максималды қорғаныс» қосыңыз.',
+    ffS3:'Провайдер:|«Басқа…»|— көшірілген мекенжайды қойыңыз.',
+    mockSettings:'Параметрлер', mockSecurity:'Қауіпсіздік',
+    mockDns:'Қауіпсіз DNS-серверді пайдалану', mockWith:'Ағымдағы провайдермен',
+    mockCustom:'Басқа провайдер', mockHint:'↑ осында — көшірілген мекенжай',
+    mockFfPriv:'Параметрлер → Құпиялылық және қорғаныс', mockFfDoh:'DNS over HTTPS',
+    mockFfDef:'Стандартты қорғаныс', mockFfMax:'Максималды қорғаныс',
+    mockFfProv:'Провайдер таңдау: Басқа…',
+    andSoon:'жақында — 1 рет басатын қолданба',
+    andWhy:'Ашығын айтамыз: Android-тағы «Жеке DNS» тек DoT хаттамасымен (853-порт) жұмыс істейді, ал Shield MVP-де DoH тілінде сөйлейді. Бір рет басып қосылатын сүзгі-қолданба роадмапта тұр.',
+    andOpt1H:'Әзірге: үйдегі Wi-Fi-да қосыңыз',
+    andOpt1:'Көп роутер DoH біледі: осы мекенжайды роутердің DNS параметрлеріне қойыңыз — Shield үй желісіндегі барлық құрылғыны, Android-ты қоса, қорғайды.',
+    andOpt2H:'Немесе сілтемелерді қолмен тексеріңіз',
+    andOpt2:'Күдікті сілтеме келді ме? Оны', andOpt2A:'Qorǵau тексергішіне',
+    andOpt2B:'қойыңыз — сайтты ашпай тұрып фишингті танып береді.',
+    testTitle:'Жұмыс істейтінін тексер', testSub:'kaspi-secure.xyz — блок-тізіміміздегі сынақ домені.',
+    testBtn:'Сынақ фишинг-доменін ашу',
+    testNote:'Shield қосулы болса, бұл сайт жай ғана ашылмайды: браузер «сайт табылмады» дейді — бұғаттау DNS деңгейінде, бет жүктелгенге дейін болады. Shield-сіз сілтеме қарапайым бет ретінде ашылады.',
+    howTitle:'Бұл қалай құрылған',
+    dPhone:'Телефон', dReq:'DNS-сұраныс', dQ2:'азаматтар шағымының блок-тізімі',
+    dQ3:'нақты уақытта жаңарады', dBad:'фишинг', dBad2:'NXDOMAIN — ашылмайды',
+    dOk:'қарапайым сайттар', dOk2:'әдеттегідей ашылады',
+    howNote:'Бір адам чекерде немесе ботта фишинг-доменге шағымданды — домен блок-тізімге түседі де, Shield қосқан барлық адамда лезде ашылмай қалады.',
+    privacy:'IP-мекенжайлар журналға жазылмайды. Тек домендер бойынша иесіздендірілген есептегіштер.',
+    title:'Qorǵau Shield — фишингтен қорғайтын DNS'
+  }
+};
+let lang = localStorage.getItem('qorgau_lang') || 'ru';
+if (!I18N[lang]) lang = 'ru';
+const t = k => (I18N[lang] && I18N[lang][k]) || I18N.ru[k] || k;
+const $ = id => document.getElementById(id);
+
+function applyLang(){
+  document.documentElement.lang = lang;
+  document.title = t('title');
+  document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
+  // строки вида "до|жирное|после" → текст с <b> посередине (без innerHTML)
+  document.querySelectorAll('[data-i18n-b]').forEach(el => {
+    const parts = t(el.dataset.i18nB).split('|');
+    el.textContent = '';
+    parts.forEach((p, i) => {
+      if (!p) return;
+      if (i % 2 === 1) { const b = document.createElement('b'); b.textContent = p; el.appendChild(b); }
+      else el.appendChild(document.createTextNode(p));
+    });
+  });
+  // героподзаголовок: выделяем ключевую фразу
+  const sub = document.querySelector('[data-i18n-html]');
+  if (sub) {
+    const s = t('heroSub');
+    const cut = lang === 'kz' ? 'біреу шағымданса — бәрі қорғалады.' : 'пожаловался один — защищены все.';
+    const idx = s.indexOf(cut);
+    sub.textContent = '';
+    if (idx >= 0) {
+      sub.appendChild(document.createTextNode(s.slice(0, idx)));
+      const b = document.createElement('b'); b.textContent = cut; sub.appendChild(b);
+    } else sub.textContent = s;
+  }
+  $('langRu').classList.toggle('on', lang === 'ru');
+  $('langKz').classList.toggle('on', lang === 'kz');
+  if (lastStats) renderStats(lastStats);
+}
+function setLang(l){ lang = l; localStorage.setItem('qorgau_lang', l); applyLang(); }
+$('langRu').addEventListener('click', () => setLang('ru'));
+$('langKz').addEventListener('click', () => setLang('kz'));
+
+/* ================= live stats ================= */
+let lastStats = null;
+function fmtNum(n){ return Number(n).toLocaleString('ru-RU'); }
+async function loadStats(){
+  try {
+    const r = await fetch(API + '/shield/stats');
+    if (!r.ok) throw 0;
+    lastStats = await r.json();
+    renderStats(lastStats);
+  } catch (_) { /* API молчит — оставляем прочерки */ }
+}
+function renderStats(s){
+  $('stDomains').textContent = fmtNum(s.blocklist_count || 0);
+  $('stBlocked').textContent = fmtNum(s.blocked_today || 0);
+  const top = (s.top_blocked || []).slice(0, 3);
+  const box = $('topBox'), list = $('topList');
+  list.textContent = '';
+  if (!top.length) { box.hidden = true; return; }
+  top.forEach(d => {
+    const chip = document.createElement('span');
+    chip.className = 'dchip';
+    chip.appendChild(document.createTextNode(d.domain || ''));
+    const b = document.createElement('b');
+    b.textContent = '×' + fmtNum(d.count || 0);
+    chip.appendChild(b);
+    list.appendChild(chip);
+  });
+  box.hidden = false;
+}
+
+/* ================= platform tabs ================= */
+const TABS = ['ios', 'pc', 'android'];
+function detectPlatform(){
+  const ua = navigator.userAgent;
+  const iPadOS = /Macintosh/.test(ua) && navigator.maxTouchPoints > 1; // iPadOS маскируется под Mac
+  if (/iPhone|iPad|iPod/.test(ua) || iPadOS) return 'ios';
+  if (/Android/.test(ua)) return 'android';
+  return 'pc';
+}
+function showTab(name){
+  TABS.forEach(p => {
+    $('tab-' + p).classList.toggle('on', p === name);
+    $('tab-' + p).setAttribute('aria-selected', p === name ? 'true' : 'false');
+    $('panel-' + p).classList.toggle('on', p === name);
+  });
+}
+TABS.forEach(p => $('tab-' + p).addEventListener('click', () => showTab(p)));
+const mine = detectPlatform();
+$('tab-' + mine).classList.add('mine');
+showTab(mine);
+
+/* ---- browser subtabs (Chrome/Edge vs Firefox) ---- */
+const SUBS = ['chrome', 'firefox'];
+function showSub(name){
+  SUBS.forEach(s => {
+    $('sub-' + s).classList.toggle('on', s === name);
+    $('sub-' + s).setAttribute('aria-selected', s === name ? 'true' : 'false');
+    $('subpanel-' + s).classList.toggle('on', s === name);
+  });
+}
+SUBS.forEach(s => $('sub-' + s).addEventListener('click', () => showSub(s)));
+showSub(/Firefox/.test(navigator.userAgent) ? 'firefox' : 'chrome');
+
+/* ================= DoH address + copy ================= */
+$('iosBtn').href = API + '/shield/apple.mobileconfig';
+$('dohField').value = DOH;
+$('dohField2').value = DOH;
+document.querySelectorAll('.svgDoh').forEach(el => { el.textContent = DOH; });
+
+function bindCopy(btnId, fieldId){
+  const btn = $(btnId), field = $(fieldId);
+  let timer = null;
+  btn.addEventListener('click', async () => {
+    let ok = false;
+    try { await navigator.clipboard.writeText(DOH); ok = true; }
+    catch (_) {
+      // фолбэк: выделяем поле — пользователь копирует сам (Ctrl+C)
+      field.focus(); field.select();
+      try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+    }
+    if (ok) {
+      btn.classList.add('ok');
+      btn.textContent = t('copied');
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        btn.classList.remove('ok');
+        btn.textContent = t(btnId === 'copyBtn' ? 'copyBtn' : 'copyShort');
+      }, 1600);
+    }
+  });
+  field.addEventListener('click', () => field.select());
+}
+bindCopy('copyBtn', 'dohField');
+bindCopy('copyBtn2', 'dohField2');
+
+/* ================= boot ================= */
+applyLang();
+loadStats();
+setInterval(loadStats, 30000);
+</script>
+</body>
+</html>

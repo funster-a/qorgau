@@ -44,6 +44,12 @@
   .lang button{border:0;background:transparent;color:var(--mut);font:inherit;font-size:12.5px;
         font-weight:700;padding:5px 12px;border-radius:999px;cursor:pointer;transition:all .2s var(--ease)}
   .lang button.on{background:var(--acc-soft);color:var(--acc)}
+  .nav-pages{display:flex;gap:8px;flex-wrap:wrap;margin:-6px 0 18px}
+  .nav-pages a{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:700;
+        color:var(--mut);background:var(--card-2);border:1px solid var(--line);border-radius:999px;
+        padding:6px 12px;text-decoration:none;transition:all .2s var(--ease)}
+  .nav-pages a:hover{color:var(--txt);border-color:var(--acc);transform:translateY(-1px)}
+  .nav-pages a.on{color:var(--acc);background:var(--acc-soft);border-color:rgba(91,140,255,.4)}
 
   /* ---------- campaign banner ---------- */
   .banner{overflow:hidden;max-height:0;opacity:0;transform:translateY(-6px);
@@ -212,6 +218,12 @@
     </div>
   </header>
 
+  <nav class="nav-pages" aria-label="Qorǵau">
+    <a href="index.html" class="on" aria-current="page">🔍 <span data-i18n="navChecker">Проверка сообщений</span></a>
+    <a href="shield.html">🛡 Shield</a>
+    <a href="password.html">🔑 <span data-i18n="navPassword">Проверка пароля</span></a>
+  </nav>
+
   <div class="banner" id="banner" aria-live="polite">
     <div class="banner-in">
       <div class="banner-head">
@@ -278,6 +290,10 @@
   <footer>
     <div>🔒 <span data-i18n="privacy">Текст удаляется через 24 часа. В аналитике — только обезличенные признаки.</span></div>
     <button class="link" id="howBtn" type="button" data-i18n="how">Как это работает</button>
+    <div>
+      <a class="link" href="shield.html">🛡 Qorǵau Shield</a>
+      · <a class="link" href="password.html">🔑 <span data-i18n="navPassword">Проверка пароля</span></a>
+    </div>
   </footer>
 </div>
 
@@ -355,6 +371,7 @@ const I18N = {
     zRaw:'Сырой текст', zRaw2:'СМС / переписка', zPii:'Зона PII', zPii2:'шифрование · TTL 24 ч',
     zDel:'Удалено', zDel2:'навсегда', zAn:'Только признаки', zAn2:'схема · риск · регион',
     zAn3:'маскированные индикаторы', zRadar:'Радар', zRadar2:'кампании · банки', zEnc:'шифр',
+    navChecker:'Проверка сообщений', navPassword:'Проверка пароля',
     title:'Qorǵau — проверка на мошенничество'
   },
   kz: {
@@ -378,6 +395,7 @@ const I18N = {
     zRaw:'Бастапқы мәтін', zRaw2:'СМС / хат-хабар', zPii:'PII аймағы', zPii2:'шифрлау · TTL 24 сағ',
     zDel:'Біржола', zDel2:'жойылады', zAn:'Тек белгілер', zAn2:'схема · қауіп · аймақ',
     zAn3:'маскаланған индикаторлар', zRadar:'Радар', zRadar2:'кампаниялар · банктер', zEnc:'шифр',
+    navChecker:'Хабарлама тексеру', navPassword:'Құпиясөзді тексеру',
     title:'Qorǵau — алаяқтықты тексеру'
   }
 };

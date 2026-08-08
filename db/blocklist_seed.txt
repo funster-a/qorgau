@@ -1,0 +1,29 @@
+# Qorǵau Shield — сид блок-листа фишинговых доменов (по одному на строку).
+# Комментарии начинаются с '#'. Поддомены блокируются автоматически
+# (суффиксный матчинг в api/shield.go), wildcards здесь не нужны.
+# Второй источник блок-листа — домены из analytics.ioc (жалобы пользователей).
+
+# --- демо-домены (используются в сценарии защиты) ---
+kaspi-secure.xyz
+egov-vyplata.xyz
+bank-alert-248.xyz
+halyk-bonus-kz.top
+
+# --- правдоподобные фишинг-паттерны КЗ ---
+kaspi-bonus.xyz
+kaspi-verify.top
+kaspi-gold-prize.site
+kaspi-pay-secure.top
+egov-kompensaciya.xyz
+egov-posobie.site
+egov-login-kz.top
+halyk-security.xyz
+halyk-cashback.site
+forte-verify.xyz
+jusan-bonus.top
+bcc-secure-kz.xyz
+otbasy-vyplata.site
+kazpost-dostavka.top
+onay-balance.xyz
+telecom-kz-bonus.site
+enpf-vyplaty.xyz
