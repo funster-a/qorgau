@@ -65,6 +65,11 @@ const helpText = `🛡️ <b>Qorǵau</b> — проверка сообщений
 /subscribe — получать предупреждения о новых волнах мошенничества
 /unsubscribe — отключить предупреждения
 
+👨‍👩‍👧 <b>Защита близкого</b> (для пожилых родителей и др.):
+/guardian — я опекун: получить код привязки
+/protect QG-XXXX — я подопечный: ввести код опекуна
+/myprotection — кого я защищаю и кто защищает меня
+
 ⚠️ Помните: банк и госорганы <b>никогда</b> не просят код из СМС.`
 
 func main() {
@@ -83,6 +88,7 @@ func main() {
 	log.Printf("Бот @%s запущен, API=%s", bot.Self.UserName, apiURL)
 
 	go broadcastLoop(bot)
+	go guardAlertLoop(bot)
 
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 30
@@ -141,6 +147,15 @@ func handle(bot *tgbotapi.BotAPI, m *tgbotapi.Message) {
 		}
 		send(bot, chatID, "🔕 Подписка отключена. Вернуть предупреждения: /subscribe")
 		return
+	case text == "/guardian":
+		handleGuardian(bot, chatID)
+		return
+	case text == "/protect" || strings.HasPrefix(text, "/protect "):
+		handleProtect(bot, chatID, strings.TrimSpace(strings.TrimPrefix(text, "/protect")))
+		return
+	case text == "/myprotection":
+		handleMyProtection(bot, chatID)
+		return
 	case strings.HasPrefix(text, "/"):
 		send(bot, chatID, "Не знаю такой команды. /help — что я умею.")
 		return
@@ -160,6 +175,7 @@ func handle(bot *tgbotapi.BotAPI, m *tgbotapi.Message) {
 		return
 	}
 	send(bot, chatID, format(res))
+	maybeAlertGuardians(chatID, res)
 }
 
 // ---------- вызовы API ----------
@@ -213,6 +229,7 @@ func handlePhoto(bot *tgbotapi.BotAPI, m *tgbotapi.Message) {
 		return
 	}
 	send(bot, chatID, format(res))
+	maybeAlertGuardians(chatID, res)
 }
 
 // handleVoice: скачивает голосовое/аудио и отправляет в /analyze/audio (multipart).
@@ -252,6 +269,7 @@ func handleVoice(bot *tgbotapi.BotAPI, m *tgbotapi.Message) {
 		send(bot, chatID, "🎙 Распознал: «"+esc(clip(t, 3500))+"»")
 	}
 	send(bot, chatID, format(res))
+	maybeAlertGuardians(chatID, res)
 }
 
 // analyzeImage — POST base64-картинки в /analyze/image (таймаут mediaTimeout).
@@ -571,6 +589,219 @@ func clip(s string, max int) string {
 		return s
 	}
 	return string(r[:max]) + "…"
+}
+
+// ---------- защита близкого (опекун ↔ подопечный) ----------
+
+// handleGuardian: пользователь-опекун получает код привязки, который показывает
+// подопечному. Тот вводит его командой /protect QG-XXXX.
+func handleGuardian(bot *tgbotapi.BotAPI, chatID int64) {
+	code, ttl, err := guardLink(chatID)
+	if err != nil {
+		log.Printf("guard link error: %v", err)
+		send(bot, chatID, "⚠️ Не удалось создать код привязки. Попробуйте позже.")
+		return
+	}
+	send(bot, chatID, fmt.Sprintf(`🔗 <b>Код привязки: <code>%s</code></b>
+
+Передайте его близкому, которого хотите защитить. Пусть он отправит мне команду:
+<code>/protect %s</code>
+
+Код действует %d минут. После привязки я предупрежу вас, если на близкого пойдёт атака мошенников.`, esc(code), esc(code), ttl/60))
+}
+
+// handleProtect: подопечный вводит код опекуна → создаётся связь.
+func handleProtect(bot *tgbotapi.BotAPI, chatID int64, code string) {
+	code = strings.ToUpper(strings.TrimSpace(code))
+	if code == "" {
+		send(bot, chatID, "Укажите код опекуна: <code>/protect QG-1234</code>\nКод даёт человек, который будет вас защищать (см. /guardian).")
+		return
+	}
+	ok, errMsg, err := guardConfirm(code, chatID)
+	if err != nil {
+		log.Printf("guard confirm error: %v", err)
+		send(bot, chatID, "⚠️ Не удалось привязать. Попробуйте позже.")
+		return
+	}
+	if !ok {
+		msg := "Код неверный или истёк. Попросите опекуна создать новый через /guardian."
+		if errMsg == "cannot_link_self" {
+			msg = "Нельзя привязать самого себя. Код должен создать другой человек (опекун)."
+		}
+		send(bot, chatID, "❌ "+msg)
+		return
+	}
+	send(bot, chatID, "✅ Готово! Теперь ваш опекун получит предупреждение, если я замечу атаку мошенников на вас. Ваши сообщения при этом опекуну <b>не</b> пересылаются — только факт угрозы.")
+}
+
+// handleMyProtection: кого защищаю / кто защищает меня.
+func handleMyProtection(bot *tgbotapi.BotAPI, chatID int64) {
+	wards, guardians, err := guardLinks(chatID)
+	if err != nil {
+		send(bot, chatID, "⚠️ Не удалось получить данные. Попробуйте позже.")
+		return
+	}
+	var b bytes.Buffer
+	b.WriteString("👨‍👩‍👧 <b>Ваша защита</b>\n\n")
+	if len(wards) > 0 {
+		fmt.Fprintf(&b, "Вы защищаете (%d): я предупрежу вас об атаке на этих людей.\n", len(wards))
+	} else {
+		b.WriteString("Вы пока никого не защищаете. Станьте опекуном: /guardian\n")
+	}
+	if len(guardians) > 0 {
+		fmt.Fprintf(&b, "\nВас защищают (%d): им придёт сигнал, если на вас пойдёт атака.\n", len(guardians))
+	} else {
+		b.WriteString("\nВас пока никто не защищает. Попросите близкого дать код (/guardian) и введите /protect КОД.\n")
+	}
+	send(bot, chatID, b.String())
+}
+
+// maybeAlertGuardians: при высоком риске просим API создать алерт опекунам
+// подопечного. API сам находит опекунов; если их нет — ничего не создаётся.
+func maybeAlertGuardians(chatID int64, res analyzeResp) {
+	if res.RiskLevel != "high" {
+		return
+	}
+	if err := guardAlert(chatID, res.SchemeTitle, res.RiskScore); err != nil {
+		log.Printf("guard alert error: %v", err)
+	}
+}
+
+// guardAlertLoop поллит недоставленные алерты и рассылает опекунам, затем ack.
+func guardAlertLoop(bot *tgbotapi.BotAPI) {
+	t := time.NewTicker(20 * time.Second)
+	defer t.Stop()
+	for {
+		alerts, err := fetchGuardAlerts()
+		if err != nil {
+			log.Printf("guard alerts poll error: %v", err)
+		}
+		delivered := []string{}
+		for _, a := range alerts {
+			msg := fmt.Sprintf(`⚠️ <b>Ваш близкий под атакой мошенников</b>
+
+Тип угрозы: %s
+Оценка риска: %d/100
+
+Позвоните ему прямо сейчас и попросите ничего не переводить и не называть коды из СМС. Ради приватности содержание его переписки мы не показываем.`, esc(a.SchemeTitle), a.RiskScore)
+			m := tgbotapi.NewMessage(a.GuardianChatID, msg)
+			m.ParseMode = tgbotapi.ModeHTML
+			m.DisableWebPagePreview = true
+			if _, err := bot.Send(m); err != nil {
+				log.Printf("guard alert → %d: %v", a.GuardianChatID, err)
+			}
+			delivered = append(delivered, a.ID)
+			time.Sleep(50 * time.Millisecond)
+		}
+		if len(delivered) > 0 {
+			if err := ackGuardAlerts(delivered); err != nil {
+				log.Printf("guard alerts ack error: %v", err)
+			}
+		}
+		<-t.C
+	}
+}
+
+// ---------- HTTP-обёртки для /guard/* ----------
+
+type guardAlertItem struct {
+	ID             string `json:"id"`
+	GuardianChatID int64  `json:"guardian_chat_id"`
+	SchemeTitle    string `json:"scheme_title"`
+	RiskScore      int    `json:"risk_score"`
+}
+
+func guardLink(chatID int64) (string, int, error) {
+	var out struct {
+		Code         string `json:"code"`
+		ExpiresInSec int    `json:"expires_in_sec"`
+	}
+	if err := postJSON("/guard/link", map[string]any{"guardian_chat_id": chatID}, false, &out); err != nil {
+		return "", 0, err
+	}
+	return out.Code, out.ExpiresInSec, nil
+}
+
+func guardConfirm(code string, wardChatID int64) (bool, string, error) {
+	var out struct {
+		OK    bool   `json:"ok"`
+		Error string `json:"error"`
+	}
+	if err := postJSON("/guard/confirm", map[string]any{"code": code, "ward_chat_id": wardChatID}, false, &out); err != nil {
+		return false, "", err
+	}
+	return out.OK, out.Error, nil
+}
+
+func guardLinks(chatID int64) (wards, guardians []map[string]any, err error) {
+	req, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/guard/links?chat_id=%d", apiURL, chatID), nil)
+	client := http.Client{Timeout: 8 * time.Second}
+	resp, e := client.Do(req)
+	if e != nil {
+		return nil, nil, e
+	}
+	defer resp.Body.Close()
+	var out struct {
+		Wards     []map[string]any `json:"wards"`
+		Guardians []map[string]any `json:"guardians"`
+	}
+	if e := json.NewDecoder(resp.Body).Decode(&out); e != nil {
+		return nil, nil, e
+	}
+	return out.Wards, out.Guardians, nil
+}
+
+func guardAlert(wardChatID int64, schemeTitle string, riskScore int) error {
+	return postJSON("/guard/alert", map[string]any{
+		"ward_chat_id": wardChatID, "scheme_title": schemeTitle, "risk_score": riskScore,
+	}, true, nil)
+}
+
+func fetchGuardAlerts() ([]guardAlertItem, error) {
+	req, _ := http.NewRequest(http.MethodGet, apiURL+"/guard/alerts", nil)
+	if botAPIKey != "" {
+		req.Header.Set("X-Bot-Key", botAPIKey)
+	}
+	client := http.Client{Timeout: 8 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("api http %d", resp.StatusCode)
+	}
+	var out []guardAlertItem
+	return out, json.NewDecoder(resp.Body).Decode(&out)
+}
+
+func ackGuardAlerts(ids []string) error {
+	return postJSON("/guard/alerts/ack", map[string]any{"ids": ids}, true, nil)
+}
+
+// postJSON — POST JSON на API; botKey добавляет X-Bot-Key; out (если не nil) декодит ответ.
+func postJSON(path string, payload any, botKey bool, out any) error {
+	body, _ := json.Marshal(payload)
+	req, _ := http.NewRequest(http.MethodPost, apiURL+path, bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	if botKey && botAPIKey != "" {
+		req.Header.Set("X-Bot-Key", botAPIKey)
+	}
+	client := http.Client{Timeout: 8 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		io.Copy(io.Discard, resp.Body)
+		return fmt.Errorf("api http %d", resp.StatusCode)
+	}
+	if out != nil {
+		return json.NewDecoder(resp.Body).Decode(out)
+	}
+	io.Copy(io.Discard, resp.Body)
+	return nil
 }
 
 // loadDotEnv читает .env из рабочей директории или на уровень выше (запуск из bot/).

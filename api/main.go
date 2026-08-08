@@ -59,6 +59,23 @@ func main() {
 	mux.HandleFunc("/shield/apple.mobileconfig", withCORS(handleShieldMobileconfig))
 	// проверка пароля по утечкам (HIBP k-anonymity)
 	mux.HandleFunc("/leaks/password/", withCORS(handleLeaksPassword))
+	// этап «ДО»: проверка номера/карты + тренажёр
+	mux.HandleFunc("/check/phone", withCORS(handleCheckPhone))
+	mux.HandleFunc("/check/card", withCORS(handleCheckCard))
+	mux.HandleFunc("/trainer/start", withCORS(handleTrainerStart))
+	mux.HandleFunc("/trainer/reply", withCORS(handleTrainerReply))
+	// этап «ВО ВРЕМЯ»: живой суфлёр + защита близкого
+	mux.HandleFunc("/live/hint", withCORS(handleLiveHint))
+	mux.HandleFunc("/guard/link", withCORS(handleGuardLink))
+	mux.HandleFunc("/guard/confirm", withCORS(handleGuardConfirm))
+	mux.HandleFunc("/guard/links", withCORS(handleGuardLinks))
+	// алерты опекунам — только бот (X-Bot-Key, если задан BOT_API_KEY)
+	mux.HandleFunc("/guard/alert", withCORS(requireKey("X-Bot-Key", &botAPIKey, handleGuardAlert)))
+	mux.HandleFunc("/guard/alerts", withCORS(requireKey("X-Bot-Key", &botAPIKey, handleGuardAlerts)))
+	mux.HandleFunc("/guard/alerts/ack", withCORS(requireKey("X-Bot-Key", &botAPIKey, handleGuardAlertsAck)))
+	// этап «ПОСЛЕ»: ИИ-юрист первой помощи + ближайшие точки
+	mux.HandleFunc("/help/chat", withCORS(handleHelpChat))
+	mux.HandleFunc("/help/places", withCORS(handleHelpPlaces))
 	// служебные для бота (X-Bot-Key, если задан BOT_API_KEY)
 	mux.HandleFunc("/bot/subscribe", withCORS(requireKey("X-Bot-Key", &botAPIKey, handleBotSubscribe)))
 	mux.HandleFunc("/bot/unsubscribe", withCORS(requireKey("X-Bot-Key", &botAPIKey, handleBotUnsubscribe)))

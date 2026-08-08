@@ -1,0 +1,691 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+<meta name="theme-color" content="#0B0E14"/>
+<title data-i18n-title="cTitle">Qorǵau — проверка</title>
+<meta name="description" content="Qorǵau — единая проверка: сообщение, ссылка, скриншот, номер телефона и карта. Спидометр риска и понятный разбор."/>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2338E0C8' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 22s8-4 8-10V5.2l-8-3-8 3V12c0 6 8 10 8 10Z'/%3E%3Cpath d='M9 12l2.2 2.2L15.5 10'/%3E%3C/svg%3E"/>
+<link rel="stylesheet" href="assets/app.css"/>
+<script src="assets/app.js" defer></script>
+<style>
+  /* Страничные компоненты хаба «Проверка» — на токенах app.css, без своих цветов вне семантики риска. */
+  .check-head{padding-top:26px}
+  .check-tools{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end}
+  .check-tools .field{flex:1 1 220px;min-width:180px}
+  .tabs{width:100%}
+  .panel{display:none}
+  .panel.on{display:block;animation:qg-reveal .3s var(--ease)}
+  .ex-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;align-items:center}
+  .ex-lead{font-size:var(--fs-6);color:var(--muted-2);font-weight:600}
+  .field-foot{display:flex;justify-content:flex-end;margin-top:6px}
+
+  /* Drag&drop скриншота */
+  .drop{border:2px dashed var(--line);border-radius:var(--r-md);background:var(--bg);
+    padding:26px 18px;text-align:center;cursor:pointer;transition:border-color .18s var(--ease),background-color .18s var(--ease)}
+  .drop:hover,.drop.hot{border-color:var(--accent-line);background:var(--surface-2)}
+  .drop .drop-ic{width:34px;height:34px;color:var(--muted);margin:0 auto 10px}
+  .drop .drop-t{font-weight:700;font-size:var(--fs-4)}
+  .drop .drop-s{color:var(--muted);font-size:var(--fs-6);margin-top:4px}
+  .img-preview{margin-top:14px;position:relative;display:none}
+  .img-preview.on{display:block}
+  .img-preview img{width:100%;border-radius:var(--r-md);border:1px solid var(--line);max-height:320px;object-fit:contain;background:var(--bg)}
+  .img-preview .img-x{position:absolute;top:8px;right:8px;width:32px;height:32px;border-radius:50%;
+    display:grid;place-items:center;background:rgba(11,14,20,.82);border:1px solid var(--line);
+    color:var(--txt);cursor:pointer}
+  .img-preview .img-x .ic{width:16px;height:16px}
+
+  /* Извлечённый текст / доп.блоки */
+  .extracted{margin-top:16px;padding:14px 16px;background:var(--bg);border:1px solid var(--line);
+    border-radius:var(--r-md)}
+  .extracted .v-h{font-size:var(--fs-6);font-weight:800;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--muted);margin-bottom:8px}
+  .extracted p{white-space:pre-wrap;font-size:var(--fs-5);line-height:1.6;color:var(--txt)}
+
+  /* Карточки-факты (ссылка) + строки деталей (номер/карта) */
+  .facts{margin-top:16px}
+  .facts .v-h{font-size:var(--fs-6);font-weight:800;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--muted);margin-bottom:10px}
+  .fact-grid{display:grid;gap:10px}
+  @media(min-width:560px){.fact-grid{grid-template-columns:1fr 1fr}}
+  .fact{display:flex;align-items:center;justify-content:space-between;gap:12px;
+    padding:12px 14px;background:var(--bg);border:1px solid var(--line);border-radius:var(--r-md)}
+  .fact .f-l{display:flex;align-items:center;gap:9px;color:var(--muted);font-size:var(--fs-5)}
+  .fact .f-l .ic{width:17px;height:17px;flex:none;color:var(--muted-2)}
+  .fact .f-v{font-weight:700;font-size:var(--fs-5);text-align:right}
+  .fact.ok .f-v{color:var(--risk-low)} .fact.ok .f-l .ic{color:var(--risk-low)}
+  .fact.warn .f-v{color:var(--risk-med)} .fact.warn .f-l .ic{color:var(--risk-med)}
+  .fact.bad{border-color:rgba(255,84,104,.32)} .fact.bad .f-v{color:var(--risk-high)} .fact.bad .f-l .ic{color:var(--risk-high)}
+
+  /* Результат номера/карты (нет risk_score — свой заголовок) */
+  .lookup{display:block;animation:qg-reveal .45s var(--ease)}
+  .lookup .lk-top{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+  .lookup .lk-num{font-size:44px;font-weight:800;line-height:1;letter-spacing:-1px;font-variant-numeric:tabular-nums}
+  .lookup .lk-num.low{color:var(--risk-low)} .lookup .lk-num.med{color:var(--risk-med)} .lookup .lk-num.high{color:var(--risk-high)}
+  .lookup .lk-numlabel{color:var(--muted);font-size:var(--fs-5);max-width:22ch}
+  .lookup .lk-masked{font-family:var(--mono);font-size:var(--fs-5);color:var(--muted);margin-top:6px}
+  .lookup .lk-verdict{color:var(--txt);font-size:var(--fs-4);line-height:1.6;margin-top:16px}
+  .warn-banner{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;margin-top:14px;
+    background:var(--risk-med-soft);border:1px solid rgba(255,176,32,.4);border-radius:var(--r-md);
+    font-size:var(--fs-5);line-height:1.5;color:var(--txt)}
+  .warn-banner .ic{width:19px;height:19px;flex:none;color:var(--risk-med);margin-top:1px}
+
+  .result-scroll{scroll-margin-top:80px}
+  .spoof-row{display:flex;justify-content:center;margin-top:14px}
+</style>
+</head>
+<body>
+
+<div id="nav"></div>
+
+<main>
+  <section class="container">
+    <div class="stack lg check-head">
+
+      <div class="stack">
+        <div class="eyebrow" data-i18n="cEyebrow">Проверка</div>
+        <h1 data-i18n="cTitleH">Одна проверка на всё</h1>
+        <p class="lead" data-i18n="cLead">Сообщение, ссылка, скриншот, номер или карта — Qorǵau разберёт и покажет уровень риска понятным языком.</p>
+      </div>
+
+      <!-- Регион (общий, сохраняется) + сегмент-контрол -->
+      <div class="check-tools">
+        <label class="field">
+          <span class="label" data-i18n="cRegionLabel">Регион</span>
+          <span class="control">
+            <select class="select" id="region">
+              <option value="" data-i18n="cRegionAny">Весь Казахстан</option>
+              <option value="Almaty">Алматы</option>
+              <option value="Astana">Астана</option>
+              <option value="Shymkent">Шымкент</option>
+              <option value="Karagandy">Караганда</option>
+              <option value="Aktobe">Актобе</option>
+              <option value="Atyrau">Атырау</option>
+              <option value="Aktau">Актау</option>
+              <option value="Pavlodar">Павлодар</option>
+              <option value="Oral">Уральск</option>
+            </select>
+          </span>
+        </label>
+      </div>
+
+      <div class="tabs" id="tabs" role="tablist">
+        <button type="button" data-mode="message" class="on"><span data-icon="message"></span><span data-i18n="cTabMsg">Сообщение</span></button>
+        <button type="button" data-mode="link"><span data-icon="link"></span><span data-i18n="cTabLink">Ссылка</span></button>
+        <button type="button" data-mode="image"><span data-icon="scan"></span><span data-i18n="cTabImg">Скриншот</span></button>
+        <button type="button" data-mode="phone"><span data-icon="phone"></span><span data-i18n="cTabPhone">Номер</span></button>
+        <button type="button" data-mode="card"><span data-icon="card"></span><span data-i18n="cTabCard">Карта</span></button>
+      </div>
+
+      <!-- ================= Панель: Сообщение ================= -->
+      <div class="panel on" data-panel="message">
+        <div class="card pad stack">
+          <label class="field">
+            <span class="label" data-i18n="cMsgLabel">Текст сообщения</span>
+            <span class="control">
+              <textarea class="textarea" id="msgText" maxlength="4000" data-i18n-ph="cMsgPh" placeholder="Вставьте подозрительное СМС или сообщение…"></textarea>
+            </span>
+            <span class="field-foot"><span class="counter" id="msgCounter">0 / 4000</span></span>
+          </label>
+          <div class="ex-row">
+            <span class="ex-lead" data-i18n="cExamples">Примеры:</span>
+            <button type="button" class="chip" data-ex-msg="1" data-i18n="cMsgEx1">«Служба безопасности банка»</button>
+            <button type="button" class="chip" data-ex-msg="2" data-i18n="cMsgEx2">«Выигрыш / приз»</button>
+          </div>
+          <button type="button" class="btn block" id="msgBtn">
+            <span class="spin"></span><span data-icon="scan"></span><span data-i18n="cAnalyze">Проверить</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- ================= Панель: Ссылка ================= -->
+      <div class="panel" data-panel="link">
+        <div class="card pad stack">
+          <label class="field">
+            <span class="label" data-i18n="cLinkLabel">Ссылка (URL)</span>
+            <span class="control">
+              <input class="input" id="linkUrl" type="url" inputmode="url" autocomplete="off" spellcheck="false"
+                data-i18n-ph="cLinkPh" placeholder="https://…"/>
+            </span>
+            <span class="hint" data-i18n="cLinkHint">Мы разбираем ссылку пассивно — не переходя на неё.</span>
+          </label>
+          <div class="ex-row">
+            <span class="ex-lead" data-i18n="cExamples">Примеры:</span>
+            <button type="button" class="chip" data-ex-link="http://kaspi-bonus.xyz/win">kaspi-bonus.xyz</button>
+            <button type="button" class="chip" data-ex-link="https://kaspi.kz">kaspi.kz</button>
+          </div>
+          <button type="button" class="btn block" id="linkBtn">
+            <span class="spin"></span><span data-icon="link"></span><span data-i18n="cAnalyze">Проверить</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- ================= Панель: Скриншот ================= -->
+      <div class="panel" data-panel="image">
+        <div class="card pad stack">
+          <div class="drop" id="drop" tabindex="0" role="button" aria-label="Загрузить скриншот">
+            <span class="drop-ic" data-icon="scan"></span>
+            <div class="drop-t" data-i18n="cImgDropT">Перетащите скриншот сюда</div>
+            <div class="drop-s" data-i18n="cImgDropS">или нажмите, чтобы выбрать · можно вставить из буфера (Ctrl+V)</div>
+            <input type="file" id="imgFile" accept="image/*" hidden/>
+          </div>
+          <div class="img-preview" id="imgPreview">
+            <button type="button" class="img-x" id="imgClear" aria-label="Убрать"><span data-icon="x"></span></button>
+            <img id="imgTag" alt="Превью скриншота"/>
+          </div>
+          <span class="hint" data-i18n="cImgHint">PNG или JPG, до 5 МБ. Текст со скриншота распознаётся ИИ.</span>
+          <button type="button" class="btn block" id="imgBtn">
+            <span class="spin"></span><span data-icon="scan"></span><span data-i18n="cAnalyze">Проверить</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- ================= Панель: Номер ================= -->
+      <div class="panel" data-panel="phone">
+        <div class="card pad stack">
+          <label class="field">
+            <span class="label" data-i18n="cPhoneLabel">Номер телефона</span>
+            <span class="control">
+              <input class="input" id="phoneInput" type="tel" inputmode="tel" autocomplete="off"
+                data-i18n-ph="cPhonePh" placeholder="+7 701 234 56 78"/>
+            </span>
+            <span class="hint" data-i18n="cPhoneHint">Проверяем по базе обезличенных жалоб — сколько раз номер уже встречался.</span>
+          </label>
+          <button type="button" class="btn block" id="phoneBtn">
+            <span class="spin"></span><span data-icon="phone"></span><span data-i18n="cCheckBase">Пробить по базе</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- ================= Панель: Карта ================= -->
+      <div class="panel" data-panel="card">
+        <div class="card pad stack">
+          <label class="field">
+            <span class="label" data-i18n="cCardLabel">Номер карты</span>
+            <span class="control">
+              <input class="input mono" id="cardInput" type="text" inputmode="numeric" autocomplete="off" maxlength="23"
+                data-i18n-ph="cCardPh" placeholder="4400 4302 1234 5678"/>
+            </span>
+          </label>
+          <div class="warn-banner">
+            <span data-icon="alert"></span>
+            <span data-i18n="cCardWarn">Никому не сообщайте полный номер карты, срок и CVV. Мы проверяем только банк-эмитент и контрольную сумму — сам номер не сохраняется.</span>
+          </div>
+          <button type="button" class="btn block" id="cardBtn">
+            <span class="spin"></span><span data-icon="card"></span><span data-i18n="cCheckCard">Проверить карту</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Общий результат -->
+      <div id="skeleton" class="card pad hidden"></div>
+      <div id="result" class="result-scroll"></div>
+
+    </div>
+  </section>
+</main>
+
+<footer class="qg-footer">
+  <div class="qg-footer-in">
+    <span data-icon="shield-check"></span>
+    <span data-i18n="cFoot">Сырой текст удаляется через 24 часа. В аналитике — только обезличенные признаки.</span>
+    <span class="sep">·</span>
+    <a href="index.html" data-i18n="cFootHome">На главную</a>
+  </div>
+</footer>
+
+<script defer>
+addEventListener('DOMContentLoaded', function () {
+  var Q = window.Qorgau, el = Q.el, i18n = Q.i18n;
+
+  /* ------------------------------ словарь ------------------------------ */
+  i18n.extend({
+    ru: {
+      cTitle: 'Qorǵau — проверка',
+      cEyebrow: 'Проверка', cTitleH: 'Одна проверка на всё',
+      cLead: 'Сообщение, ссылка, скриншот, номер или карта — Qorǵau разберёт и покажет уровень риска понятным языком.',
+      cRegionLabel: 'Регион', cRegionAny: 'Весь Казахстан',
+      cTabMsg: 'Сообщение', cTabLink: 'Ссылка', cTabImg: 'Скриншот', cTabPhone: 'Номер', cTabCard: 'Карта',
+      cAnalyze: 'Проверить', cCheckBase: 'Пробить по базе', cCheckCard: 'Проверить карту',
+      cExamples: 'Примеры:',
+      cMsgLabel: 'Текст сообщения', cMsgPh: 'Вставьте подозрительное СМС или сообщение…',
+      cMsgEx1: '«Служба безопасности банка»', cMsgEx2: '«Выигрыш / приз»',
+      cLinkLabel: 'Ссылка (URL)', cLinkPh: 'https://…',
+      cLinkHint: 'Мы разбираем ссылку пассивно — не переходя на неё.',
+      cImgDropT: 'Перетащите скриншот сюда',
+      cImgDropS: 'или нажмите, чтобы выбрать · можно вставить из буфера (Ctrl+V)',
+      cImgHint: 'PNG или JPG, до 5 МБ. Текст со скриншота распознаётся ИИ.',
+      cPhoneLabel: 'Номер телефона', cPhonePh: '+7 701 234 56 78',
+      cPhoneHint: 'Проверяем по базе обезличенных жалоб — сколько раз номер уже встречался.',
+      cCardLabel: 'Номер карты', cCardPh: '4400 4302 1234 5678',
+      cCardWarn: 'Никому не сообщайте полный номер карты, срок и CVV. Мы проверяем только банк-эмитент и контрольную сумму — сам номер не сохраняется.',
+      cFoot: 'Сырой текст удаляется через 24 часа. В аналитике — только обезличенные признаки.',
+      cFootHome: 'На главную',
+      cEmptyText: 'Вставьте текст сообщения для проверки.',
+      cEmptyUrl: 'Введите ссылку для проверки.',
+      cEmptyImg: 'Сначала добавьте скриншот.',
+      cEmptyPhone: 'Введите номер телефона.',
+      cEmptyCard: 'Введите номер карты.',
+      cImgBig: 'Файл больше 5 МБ — выберите изображение поменьше.',
+      cImgBad: 'Это не похоже на изображение.',
+      /* доп. подписи результата */
+      cFactsH: 'Что известно о домене',
+      cDomain: 'Домен', cDomainAge: 'Возраст домена', cSsl: 'HTTPS-сертификат',
+      cBrandSim: 'Похож на бренд', cBlock: 'Блок-лист Shield',
+      cAgeUnknown: 'неизвестен', cDays: 'дн.',
+      cSslNone: 'нет', cSslSelf: 'самоподписанный', cSslOk: 'действующий', cSslBad: 'недействителен',
+      cInBlock: 'уже заблокирован', cNotBlock: 'не найден', cNoSim: 'нет совпадений',
+      cDist: 'расстояние',
+      cExtractedH: 'Распознанный текст',
+      cSpoof: 'Похоже на поддельный интерфейс',
+      cPhoneReports: 'упоминаний в жалобах', cPhoneNone: 'В базе жалоб не встречался.',
+      cPhoneSchemes: 'Схемы, по которым проходил номер',
+      cCardLuhnOk: 'Контрольная сумма верна', cCardLuhnBad: 'Не проходит проверку (Luhn)',
+      cCardBank: 'Банк-эмитент', cCardBrand: 'Платёжная система', cCardUnknown: 'неизвестен',
+      cLevelLow: 'Низкий риск', cLevelMed: 'Средний риск', cLevelHigh: 'Высокий риск'
+    },
+    kz: {
+      cTitle: 'Qorǵau — тексеру',
+      cEyebrow: 'Тексеру', cTitleH: 'Бәрін бір жерде тексеріңіз',
+      cLead: 'Хабарлама, сілтеме, скриншот, нөмір немесе карта — Qorǵau талдап, қауіп деңгейін түсінікті тілмен көрсетеді.',
+      cRegionLabel: 'Аймақ', cRegionAny: 'Бүкіл Қазақстан',
+      cTabMsg: 'Хабарлама', cTabLink: 'Сілтеме', cTabImg: 'Скриншот', cTabPhone: 'Нөмір', cTabCard: 'Карта',
+      cAnalyze: 'Тексеру', cCheckBase: 'Базадан тексеру', cCheckCard: 'Картаны тексеру',
+      cExamples: 'Мысалдар:',
+      cMsgLabel: 'Хабарлама мәтіні', cMsgPh: 'Күдікті СМС немесе хабарламаны қойыңыз…',
+      cMsgEx1: '«Банк қауіпсіздік қызметі»', cMsgEx2: '«Ұтыс / сыйлық»',
+      cLinkLabel: 'Сілтеме (URL)', cLinkPh: 'https://…',
+      cLinkHint: 'Сілтемені оған кірмей, пассивті түрде талдаймыз.',
+      cImgDropT: 'Скриншотты осында сүйреңіз',
+      cImgDropS: 'немесе таңдау үшін басыңыз · буферден қоюға болады (Ctrl+V)',
+      cImgHint: 'PNG немесе JPG, 5 МБ-қа дейін. Скриншот мәтінін ЖИ таниды.',
+      cPhoneLabel: 'Телефон нөмірі', cPhonePh: '+7 701 234 56 78',
+      cPhoneHint: 'Иесіздендірілген шағымдар базасынан тексереміз — нөмір қанша рет кездескен.',
+      cCardLabel: 'Карта нөмірі', cCardPh: '4400 4302 1234 5678',
+      cCardWarn: 'Картаның толық нөмірін, мерзімін және CVV-ды ешкімге айтпаңыз. Біз тек банк-эмитент пен бақылау санын тексереміз — нөмірдің өзі сақталмайды.',
+      cFoot: 'Бастапқы мәтін 24 сағаттан кейін жойылады. Аналитикада — тек иесіздендірілген белгілер.',
+      cFootHome: 'Басты бетке',
+      cEmptyText: 'Тексеру үшін хабарлама мәтінін қойыңыз.',
+      cEmptyUrl: 'Тексеру үшін сілтеме енгізіңіз.',
+      cEmptyImg: 'Алдымен скриншот қосыңыз.',
+      cEmptyPhone: 'Телефон нөмірін енгізіңіз.',
+      cEmptyCard: 'Карта нөмірін енгізіңіз.',
+      cImgBig: 'Файл 5 МБ-тан үлкен — кішірек сурет таңдаңыз.',
+      cImgBad: 'Бұл суретке ұқсамайды.',
+      cFactsH: 'Домен туралы не белгілі',
+      cDomain: 'Домен', cDomainAge: 'Домен жасы', cSsl: 'HTTPS-сертификат',
+      cBrandSim: 'Брендке ұқсас', cBlock: 'Shield блок-тізімі',
+      cAgeUnknown: 'белгісіз', cDays: 'күн',
+      cSslNone: 'жоқ', cSslSelf: 'өзі қол қойған', cSslOk: 'жарамды', cSslBad: 'жарамсыз',
+      cInBlock: 'бұғатталған', cNotBlock: 'табылмады', cNoSim: 'сәйкестік жоқ',
+      cDist: 'қашықтық',
+      cExtractedH: 'Танылған мәтін',
+      cSpoof: 'Жалған интерфейске ұқсайды',
+      cPhoneReports: 'шағымда кездескен', cPhoneNone: 'Шағым базасында кездеспеген.',
+      cPhoneSchemes: 'Нөмір өткен схемалар',
+      cCardLuhnOk: 'Бақылау саны дұрыс', cCardLuhnBad: 'Тексеруден өтпейді (Luhn)',
+      cCardBank: 'Банк-эмитент', cCardBrand: 'Төлем жүйесі', cCardUnknown: 'белгісіз',
+      cLevelLow: 'Төмен қауіп', cLevelMed: 'Орташа қауіп', cLevelHigh: 'Жоғары қауіп'
+    }
+  });
+
+  Q.mountNav('#nav', 'check');
+  i18n.apply();
+
+  /* инлайн-иконки [data-icon] */
+  function resolveIcons(root) {
+    (root || document).querySelectorAll('[data-icon]').forEach(function (slot) {
+      if (slot.__ic) return; slot.__ic = 1;
+      slot.appendChild(Q.icon(slot.getAttribute('data-icon')));
+    });
+  }
+  resolveIcons();
+
+  /* ------------------------------ регион ------------------------------- */
+  var regionSel = document.getElementById('region');
+  try { regionSel.value = localStorage.getItem('qorgau_region') || ''; } catch (_) {}
+  if (!regionSel.value) regionSel.value = '';
+  regionSel.addEventListener('change', function () {
+    try { localStorage.setItem('qorgau_region', regionSel.value); } catch (_) {}
+  });
+  function region() { return regionSel.value || ''; }
+
+  /* ------------------------------ общий результат ---------------------- */
+  var result = document.getElementById('result');
+  var skel = document.getElementById('skeleton');
+  function clearResult() { result.textContent = ''; }
+  function showSkeleton(withArc) { skel.classList.remove('hidden'); Q.skeleton.fill(skel, 4, withArc); }
+  function hideSkeleton() { skel.classList.add('hidden'); skel.textContent = ''; }
+  function busy(btn, on) { if (!btn) return; btn.classList.toggle('busy', on); btn.disabled = on; }
+  function scrollToResult() {
+    try { result.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (_) {}
+  }
+  function fail(err) {
+    hideSkeleton(); clearResult();
+    var k = err && err.kind;
+    var msg = k === 'rate' ? i18n.t('errRate') : k === 'bad' ? i18n.t('errBad') : i18n.t('errNet');
+    if (k === 'rate' && err.wait) msg = i18n.t('errRate') + ' (' + err.wait + 's)';
+    Q.toast(msg, 'error');
+  }
+  var LVL = { low: 'low', medium: 'med', high: 'high' };
+  var LVL_KEY = { low: 'cLevelLow', medium: 'cLevelMed', high: 'cLevelHigh' };
+  var LVL_IC = { low: 'shield-check', medium: 'alert', high: 'alert' };
+  function levelBadge(level) {
+    level = LVL[level] ? level : 'low';
+    var b = el('span', 'badge ' + LVL[level]);
+    b.appendChild(Q.icon(LVL_IC[level]));
+    b.appendChild(el('span', null, i18n.t(LVL_KEY[level])));
+    return b;
+  }
+
+  function post(path, body) {
+    return Q.fetchJSON(path, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+  }
+
+  /* ------------------------------ табы --------------------------------- */
+  var tabs = document.getElementById('tabs');
+  var panels = document.querySelectorAll('.panel');
+  tabs.querySelectorAll('button').forEach(function (b) {
+    b.addEventListener('click', function () {
+      tabs.querySelectorAll('button').forEach(function (x) { x.classList.remove('on'); });
+      b.classList.add('on');
+      var mode = b.getAttribute('data-mode');
+      panels.forEach(function (p) { p.classList.toggle('on', p.getAttribute('data-panel') === mode); });
+      clearResult(); hideSkeleton();
+    });
+  });
+
+  /* ============================ 1. Сообщение =========================== */
+  var msgText = document.getElementById('msgText');
+  var msgCounter = document.getElementById('msgCounter');
+  var msgBtn = document.getElementById('msgBtn');
+  var EX_MSG = {
+    '1': 'Здравствуйте! Служба безопасности банка. Зафиксирована попытка списания 250 000 тг с вашей карты. Срочно назовите код из СМС, чтобы отменить операцию.',
+    '2': 'Поздравляем! Ваш номер выиграл 1 000 000 тенге в акции. Для получения приза перейдите по ссылке и оплатите комиссию 5 900 тг.'
+  };
+  function updCounter() {
+    var n = msgText.value.length;
+    msgCounter.textContent = n + ' / 4000';
+    msgCounter.classList.toggle('warn', n > 3600);
+  }
+  msgText.addEventListener('input', updCounter); updCounter();
+  document.querySelectorAll('[data-ex-msg]').forEach(function (c) {
+    c.addEventListener('click', function () {
+      msgText.value = EX_MSG[c.getAttribute('data-ex-msg')] || ''; updCounter(); msgText.focus();
+    });
+  });
+  async function runMessage() {
+    var text = msgText.value.trim();
+    if (!text) { Q.toast(i18n.t('cEmptyText'), 'warn'); return; }
+    busy(msgBtn, true); clearResult(); showSkeleton(true);
+    try {
+      var d = await post('/analyze', { text: text, channel: 'web', region: region() });
+      hideSkeleton(); Q.renderVerdict(result, d); scrollToResult();
+    } catch (e) { fail(e); } finally { busy(msgBtn, false); }
+  }
+  msgBtn.addEventListener('click', runMessage);
+  msgText.addEventListener('keydown', function (e) {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') runMessage();
+  });
+
+  /* ============================ 2. Ссылка ============================= */
+  var linkUrl = document.getElementById('linkUrl');
+  var linkBtn = document.getElementById('linkBtn');
+  document.querySelectorAll('[data-ex-link]').forEach(function (c) {
+    c.addEventListener('click', function () { linkUrl.value = c.getAttribute('data-ex-link'); linkUrl.focus(); });
+  });
+  function buildLinkFacts(d) {
+    var wrap = el('div', 'card pad facts');
+    wrap.appendChild(el('div', 'v-h', i18n.t('cFactsH')));
+    var grid = el('div', 'fact-grid');
+
+    function fact(icon, label, value, tone) {
+      var f = el('div', 'fact' + (tone ? ' ' + tone : ''));
+      var l = el('div', 'f-l'); l.appendChild(Q.icon(icon)); l.appendChild(el('span', null, label));
+      f.appendChild(l);
+      f.appendChild(el('span', 'f-v', value));
+      grid.appendChild(f);
+    }
+
+    // домен
+    if (d.domain) fact('link', i18n.t('cDomain'), d.domain, null);
+
+    // возраст домена
+    var age = d.domain_age_days;
+    if (age === -1 || age == null) fact('eye', i18n.t('cDomainAge'), i18n.t('cAgeUnknown'), 'warn');
+    else fact('eye', i18n.t('cDomainAge'), age + ' ' + i18n.t('cDays'), age < 30 ? 'bad' : 'ok');
+
+    // ssl
+    var ssl = d.ssl || {};
+    var sslTxt, sslTone;
+    if (!ssl.present) { sslTxt = i18n.t('cSslNone'); sslTone = 'bad'; }
+    else if (ssl.self_signed) { sslTxt = i18n.t('cSslSelf'); sslTone = 'bad'; }
+    else if (ssl.valid === false) { sslTxt = i18n.t('cSslBad'); sslTone = 'bad'; }
+    else { sslTxt = i18n.t('cSslOk'); sslTone = 'ok'; }
+    fact('shield', i18n.t('cSsl'), sslTxt, sslTone);
+
+    // похожесть на бренд
+    var sim = (d.brand_similarity || [])[0];
+    if (sim) fact('alert', i18n.t('cBrandSim'), sim.brand + ' · ' + i18n.t('cDist') + ' ' + sim.distance,
+      sim.distance <= 3 ? 'bad' : 'warn');
+    else fact('shield-check', i18n.t('cBrandSim'), i18n.t('cNoSim'), 'ok');
+
+    // блок-лист
+    fact('shield', i18n.t('cBlock'), d.in_blocklist ? i18n.t('cInBlock') : i18n.t('cNotBlock'),
+      d.in_blocklist ? 'bad' : 'ok');
+
+    wrap.appendChild(grid);
+    return wrap;
+  }
+  async function runLink() {
+    var url = linkUrl.value.trim();
+    if (!url) { Q.toast(i18n.t('cEmptyUrl'), 'warn'); return; }
+    busy(linkBtn, true); clearResult(); showSkeleton(true);
+    try {
+      var d = await post('/analyze/link', { url: url, region: region() });
+      hideSkeleton();
+      var v = el('div'); result.appendChild(v); Q.renderVerdict(v, d);
+      result.appendChild(buildLinkFacts(d));
+      scrollToResult();
+    } catch (e) { fail(e); } finally { busy(linkBtn, false); }
+  }
+  linkBtn.addEventListener('click', runLink);
+  linkUrl.addEventListener('keydown', function (e) { if (e.key === 'Enter') runLink(); });
+
+  /* ============================ 3. Скриншот =========================== */
+  var drop = document.getElementById('drop');
+  var imgFile = document.getElementById('imgFile');
+  var imgPreview = document.getElementById('imgPreview');
+  var imgTag = document.getElementById('imgTag');
+  var imgClear = document.getElementById('imgClear');
+  var imgBtn = document.getElementById('imgBtn');
+  var currentImage = null;
+
+  function setImage(dataUrl) {
+    currentImage = dataUrl; imgTag.src = dataUrl; imgPreview.classList.add('on');
+  }
+  function clearImage() { currentImage = null; imgTag.removeAttribute('src'); imgPreview.classList.remove('on'); imgFile.value = ''; }
+  function handleFile(file) {
+    if (!file || !/^image\//.test(file.type)) { Q.toast(i18n.t('cImgBad'), 'warn'); return; }
+    if (file.size > 5 * 1024 * 1024) { Q.toast(i18n.t('cImgBig'), 'warn'); return; }
+    var fr = new FileReader();
+    fr.onload = function () { setImage(String(fr.result)); };
+    fr.onerror = function () { Q.toast(i18n.t('cImgBad'), 'error'); };
+    fr.readAsDataURL(file);
+  }
+  drop.addEventListener('click', function () { imgFile.click(); });
+  drop.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); imgFile.click(); } });
+  imgFile.addEventListener('change', function () { if (imgFile.files[0]) handleFile(imgFile.files[0]); });
+  ['dragenter', 'dragover'].forEach(function (ev) {
+    drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.add('hot'); });
+  });
+  ['dragleave', 'drop'].forEach(function (ev) {
+    drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.remove('hot'); });
+  });
+  drop.addEventListener('drop', function (e) {
+    var f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+    if (f) handleFile(f);
+  });
+  // вставка из буфера — работает, когда панель скриншота активна
+  addEventListener('paste', function (e) {
+    var panel = document.querySelector('.panel[data-panel="image"]');
+    if (!panel || !panel.classList.contains('on')) return;
+    var items = e.clipboardData && e.clipboardData.items; if (!items) return;
+    for (var i = 0; i < items.length; i++) {
+      if (items[i].type && items[i].type.indexOf('image') === 0) {
+        var f = items[i].getAsFile(); if (f) { handleFile(f); e.preventDefault(); return; }
+      }
+    }
+  });
+  imgClear.addEventListener('click', clearImage);
+  async function runImage() {
+    if (!currentImage) { Q.toast(i18n.t('cEmptyImg'), 'warn'); return; }
+    busy(imgBtn, true); clearResult(); showSkeleton(true);
+    try {
+      var d = await post('/analyze/image', { image_base64: currentImage, region: region() });
+      hideSkeleton();
+      var v = el('div'); result.appendChild(v); Q.renderVerdict(v, d);
+      if (d.ui_spoofing) {
+        var row = el('div', 'spoof-row');
+        var b = el('span', 'badge high'); b.appendChild(Q.icon('alert'));
+        b.appendChild(el('span', null, i18n.t('cSpoof')));
+        row.appendChild(b); result.appendChild(row);
+      }
+      if (d.extracted_text) {
+        var ex = el('div', 'extracted');
+        ex.appendChild(el('div', 'v-h', i18n.t('cExtractedH')));
+        ex.appendChild(el('p', null, d.extracted_text));
+        result.appendChild(ex);
+      }
+      scrollToResult();
+    } catch (e) { fail(e); } finally { busy(imgBtn, false); }
+  }
+  imgBtn.addEventListener('click', runImage);
+
+  /* ============================ 4. Номер ============================== */
+  var phoneInput = document.getElementById('phoneInput');
+  var phoneBtn = document.getElementById('phoneBtn');
+  function renderPhone(d) {
+    var host = el('div', 'card pad lookup');
+    var lvl = LVL[d.risk_level] ? d.risk_level : 'low';
+    var top = el('div', 'lk-top');
+    var numWrap = el('div');
+    var reports = Number(d.reports) || 0;
+    numWrap.appendChild(el('div', 'lk-num ' + LVL[lvl], String(reports)));
+    numWrap.appendChild(el('div', 'lk-numlabel', reports ? i18n.t('cPhoneReports') : i18n.t('cPhoneNone')));
+    top.appendChild(numWrap);
+    top.appendChild(levelBadge(lvl));
+    host.appendChild(top);
+    if (d.phone_masked) host.appendChild(el('div', 'lk-masked', d.phone_masked));
+    if (d.verdict) host.appendChild(el('div', 'lk-verdict', d.verdict));
+
+    var schemes = Array.isArray(d.schemes) ? d.schemes : [];
+    if (schemes.length) {
+      var sw = el('div', 'facts');
+      sw.appendChild(el('div', 'v-h', i18n.t('cPhoneSchemes')));
+      var grid = el('div', 'fact-grid');
+      schemes.forEach(function (s) {
+        var f = el('div', 'fact');
+        var l = el('div', 'f-l'); l.appendChild(Q.icon('alert')); l.appendChild(el('span', null, s.title || s.scheme));
+        f.appendChild(l); f.appendChild(el('span', 'f-v', '× ' + (s.count || 0)));
+        grid.appendChild(f);
+      });
+      sw.appendChild(grid); host.appendChild(sw);
+    }
+    appendActions(host, d.recommended_actions);
+    result.appendChild(host);
+  }
+  async function runPhone() {
+    var phone = phoneInput.value.trim();
+    if (!phone) { Q.toast(i18n.t('cEmptyPhone'), 'warn'); return; }
+    busy(phoneBtn, true); clearResult(); showSkeleton(false);
+    try {
+      var d = await post('/check/phone', { phone: phone });
+      hideSkeleton(); renderPhone(d); scrollToResult();
+    } catch (e) { fail(e); } finally { busy(phoneBtn, false); }
+  }
+  phoneBtn.addEventListener('click', runPhone);
+  phoneInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') runPhone(); });
+
+  /* ============================ 5. Карта ============================== */
+  var cardInput = document.getElementById('cardInput');
+  var cardBtn = document.getElementById('cardBtn');
+  // мягкое форматирование ввода группами по 4
+  cardInput.addEventListener('input', function () {
+    var digits = cardInput.value.replace(/\D+/g, '').slice(0, 19);
+    cardInput.value = digits.replace(/(.{4})/g, '$1 ').trim();
+  });
+  function renderCard(d) {
+    var host = el('div', 'card pad lookup');
+    var lvl = LVL[d.risk_level] ? d.risk_level : 'low';
+    var top = el('div', 'lk-top');
+    top.appendChild(levelBadge(lvl));
+    host.appendChild(top);
+    if (d.card_masked) host.appendChild(el('div', 'lk-masked', d.card_masked));
+    if (d.verdict) host.appendChild(el('div', 'lk-verdict', d.verdict));
+
+    var facts = el('div', 'facts');
+    var grid = el('div', 'fact-grid');
+    function fact(icon, label, value, tone) {
+      var f = el('div', 'fact' + (tone ? ' ' + tone : ''));
+      var l = el('div', 'f-l'); l.appendChild(Q.icon(icon)); l.appendChild(el('span', null, label));
+      f.appendChild(l); f.appendChild(el('span', 'f-v', value)); grid.appendChild(f);
+    }
+    fact(d.luhn_valid ? 'check' : 'alert', 'Luhn',
+      d.luhn_valid ? i18n.t('cCardLuhnOk') : i18n.t('cCardLuhnBad'),
+      d.luhn_valid ? 'ok' : 'bad');
+    var bin = d.bin || {};
+    fact('card', i18n.t('cCardBank'), bin.known ? (bin.bank || i18n.t('cCardUnknown')) : i18n.t('cCardUnknown'), bin.known ? null : 'warn');
+    if (bin.brand) fact('card', i18n.t('cCardBrand'), bin.brand + (bin.country ? ' · ' + bin.country : ''), null);
+    facts.appendChild(grid); host.appendChild(facts);
+
+    appendActions(host, d.recommended_actions);
+    result.appendChild(host);
+  }
+  async function runCard() {
+    var card = cardInput.value.trim();
+    if (!card) { Q.toast(i18n.t('cEmptyCard'), 'warn'); return; }
+    busy(cardBtn, true); clearResult(); showSkeleton(false);
+    try {
+      var d = await post('/check/card', { card: card });
+      hideSkeleton(); renderCard(d); scrollToResult();
+    } catch (e) { fail(e); } finally { busy(cardBtn, false); }
+  }
+  cardBtn.addEventListener('click', runCard);
+  cardInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') runCard(); });
+
+  /* общий блок «что делать» для номера/карты (в стиле вердикта) */
+  function appendActions(host, acts) {
+    acts = Array.isArray(acts) ? acts : [];
+    if (!acts.length) return;
+    var box = el('div', 'v-actions'); box.style.marginTop = '18px';
+    box.appendChild(el('div', 'v-h', i18n.t('vActions')));
+    var ul = document.createElement('ul');
+    acts.forEach(function (a) {
+      var li = document.createElement('li'); li.appendChild(Q.icon('check'));
+      li.appendChild(el('span', null, String(a))); ul.appendChild(li);
+    });
+    box.appendChild(ul); host.appendChild(box);
+  }
+
+  // .v-actions вне .verdict — подмешаем нужные стили инлайн через класс-обёртку
+  // (стили .v-actions заданы под .verdict; продублируем базовое оформление)
+});
+</script>
+<style>
+  /* .v-actions используется и вне .verdict (номер/карта) — повторяем оформление */
+  .lookup .v-actions{margin-top:18px;padding:16px 18px;background:var(--bg);
+    border:1px solid var(--line);border-radius:var(--r-md)}
+  .lookup .v-actions .v-h{font-size:var(--fs-6);font-weight:800;letter-spacing:.1em;
+    text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+  .lookup .v-actions ul{margin:0;padding:0;list-style:none}
+  .lookup .v-actions li{display:flex;gap:10px;font-size:var(--fs-5);line-height:1.5;margin:9px 0;color:var(--txt)}
+  .lookup .v-actions li .ic{width:18px;height:18px;flex:none;color:var(--accent);margin-top:1px}
+</style>
+</body>
+</html>

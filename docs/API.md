@@ -177,6 +177,104 @@ multipart/form-data, поле `audio` (ogg/mp3/wav/m4a, ≤10 МБ), опц. `re
 `[ { "region": "Almaty", "total": 0, "high": 0, "share_high": 0 } ]`
 Для тепловой карты Казахстана. share_high — % высокого риска 0..100.
 
+## Этап «ДО»: проверка номера и карты, тренажёр
+
+### POST /check/phone
+`{ "phone": "+7 701 234 56 78" }` → 
+```json
+{ "phone_masked": "+7 7** *** ** 78", "reports": 12, "risk_level": "high|medium|low",
+  "first_seen": "RFC3339|null", "last_seen": "RFC3339|null",
+  "schemes": [ { "scheme": "bank_security", "title": "...", "count": 5 } ],
+  "verdict": "текст для человека", "recommended_actions": ["..."] }
+```
+Считает по analytics.ioc (type='phone') — сколько раз этот номер встречался
+в жалобах. reports=0 → risk_level low + честный текст «в базе не встречался».
+
+### POST /check/card
+`{ "card": "4400 4302 1234 5678" }` →
+```json
+{ "card_masked": "4400 **** **** 5678", "luhn_valid": true,
+  "bin": { "bank": "Kaspi Bank", "country": "KZ", "brand": "VISA", "known": true },
+  "reports": 0, "risk_level": "low|medium|high",
+  "verdict": "...", "recommended_actions": ["..."] }
+```
+Luhn считаем сами; BIN — по локальной таблице db/bins_kz.json (~30 БИНов банков КЗ,
+известные + маркер known:false для неизвестных). Полный номер НЕ хранится и НЕ
+логируется, в analytics.ioc пишется только маска (type='card').
+
+### POST /trainer/start
+`{ "scenario": "bank_security|relative_help|prize_payout|investment|job_offer|random", "lang": "ru|kz" }`
+→ `{ "session_id": "uuid", "scenario": "bank_security", "title": "Звонок из «службы безопасности»",
+     "intro": "описание ситуации для пользователя", "opening": "первая реплика мошенника" }`
+
+### POST /trainer/reply
+`{ "session_id": "uuid", "message": "ответ пользователя" }` →
+```json
+{ "reply": "следующая реплика мошенника или ''",
+  "finished": false,
+  "turn": 3,
+  "mistakes": [ { "quote": "меня зовут Айгуль", "why": "назвали имя", "severity": "medium" } ],
+  "score": 0,                 // 0..100, заполняется при finished
+  "debrief": "разбор: что сделал верно, где повёлся, как надо было",
+  "red_flags_shown": ["давление срочностью", "запрос кода из СМС"] }
+```
+LLM играет мошенника (безопасно: сценарий-игра, ВСЕГДА заканчивается разбором;
+максимум 8 ходов, потом finished=true). Состояние сессий — в памяти, TTL 1ч.
+При недоступности LLM — сценарий из заранее заготовленных реплик (degraded).
+
+## Этап «ВО ВРЕМЯ»: живой помощник и защита близкого
+
+### POST /live/hint
+Живой суфлёр во время звонка: пользователь вставляет фразы звонящего.
+`{ "session_id": "uuid|''", "phrase": "назовите код из СМС", "history": ["..."] }` →
+```json
+{ "level": "danger|warn|ok", "title": "Просят код из СМС",
+  "hint": "Немедленно кладите трубку. Код из СМС — это подпись под операцией.",
+  "manipulations": ["запрос OTP", "давление срочностью"],
+  "cumulative_risk": 85 }
+```
+Быстрый путь: сначала мгновенная эвристика по маркерам (без сети), затем, если
+LLM доступен — уточнение. Отвечать ≤1.5с, это «реальное время».
+
+### POST /guard/link  — привязать близкого
+`{ "guardian_chat_id": 123, "code": "" }` → `{ "code": "QG-4821", "expires_in_sec": 900 }`
+Опекун получает код; подопечный вводит его в боте (`/protect QG-4821`) →
+`POST /guard/confirm { "code": "QG-4821", "ward_chat_id": 456 }` → `{ "ok": true }`.
+Хранение — зона `pii` (это идентификаторы): таблица `pii.guard_link`.
+
+### GET /guard/links?chat_id=123
+`{ "wards": [ { "ward_chat_id": 456, "linked_at": "RFC3339" } ],
+   "guardians": [ { "guardian_chat_id": 123, "linked_at": "RFC3339" } ] }`
+
+### Алерт опекуну
+Внутренняя логика: если у пользователя есть опекун и его проверка дала
+`risk_level: high` — API кладёт запись в `pii.guard_alert`; бот поллит
+`GET /guard/alerts` (X-Bot-Key) → `[ { "id":"uuid", "guardian_chat_id":123,
+"scheme_title":"...", "risk_score":98, "created_at":"RFC3339" } ]` и рассылает,
+затем `POST /guard/alerts/ack {"ids":["uuid"]}`. Текст сообщения НЕ передаётся —
+опекун видит только факт и тип угрозы (приватность подопечного).
+
+## Этап «ПОСЛЕ»: юридическая первая помощь
+
+### POST /help/chat
+`{ "session_id": "uuid|''", "message": "я перевёл 200000 тенге", "situation": {
+   "lost_money": true, "gave_otp": false, "gave_card": true, "installed_app": false } }` →
+```json
+{ "session_id": "uuid", "reply": "ответ ИИ-юриста простым языком",
+  "steps": [ { "order": 1, "title": "Заблокируйте карту", "detail": "...",
+               "urgency": "now|today|week", "done_hint": "..." } ],
+  "contacts": [ { "name": "Kaspi Bank", "phone": "+7 727 000 00 00", "kind": "bank" } ],
+  "degraded": false }
+```
+Контакты — из локального db/contacts_kz.json (банки КЗ, полиция 102, 1414,
+финпол/АФМ). Никаких выдуманных телефонов: только те, что в файле.
+
+### GET /help/places?lat=43.23&lon=76.94&kind=police|bank|lawyer
+`[ { "name": "...", "kind": "police", "address": "...", "lat": 0, "lon": 0,
+     "distance_km": 1.2, "phone": "" } ]`
+Данные — из локального db/places_kz.json (заготовленный набор по крупным
+городам: отделения полиции, ЦОНы, юрпомощь). Без внешних API.
+
 ## Статика
 - `/` — чекер (web/index.html)
 - `/demo.html` — пульт управления демо

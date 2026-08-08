@@ -1,0 +1,16 @@
+{
+  "note": "BIN-таблица для Qorǵau (этап «ДО», /check/card). ЧЕСТНО: точные BIN банков КЗ публично не стандартизированы и здесь НЕ выдумываются как факт. known:true стоит только у общеизвестного префикса Kaspi Gold. Остальные записи — иллюстративные (known:false); при отсутствии совпадения бренд определяется по первой цифре номера (4=VISA, 5=MASTERCARD, 2=MASTERCARD/МИР).",
+  "bins": [
+    { "bin": "440043", "bank": "Kaspi Bank", "brand": "VISA", "known": true },
+    { "bin": "676454", "bank": "Kaspi Bank", "brand": "VISA", "known": false },
+    { "bin": "440563", "bank": "Halyk Bank", "brand": "VISA", "known": false },
+    { "bin": "535609", "bank": "Halyk Bank", "brand": "MASTERCARD", "known": false },
+    { "bin": "404243", "bank": "Jusan Bank", "brand": "VISA", "known": false },
+    { "bin": "518901", "bank": "ForteBank", "brand": "MASTERCARD", "known": false },
+    { "bin": "525477", "bank": "Bank CenterCredit", "brand": "MASTERCARD", "known": false },
+    { "bin": "402444", "bank": "Freedom Bank", "brand": "VISA", "known": false },
+    { "bin": "433800", "bank": "Eurasian Bank", "brand": "VISA", "known": false },
+    { "bin": "547912", "bank": "Bereke Bank", "brand": "MASTERCARD", "known": false },
+    { "bin": "220024", "bank": "Bank RBK", "brand": "МИР/MASTERCARD", "known": false }
+  ]
+}

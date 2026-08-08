@@ -1,0 +1,474 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+<meta name="theme-color" content="#0B0E14"/>
+<title data-i18n-title="tTitle">Qorǵau — тренажёр</title>
+<meta name="description" content="Qorǵau тренажёр: ИИ играет мошенника, вы учитесь не поддаться. Разбор ошибок и красных флагов."/>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2338E0C8' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 22s8-4 8-10V5.2l-8-3-8 3V12c0 6 8 10 8 10Z'/%3E%3Cpath d='M9 12l2.2 2.2L15.5 10'/%3E%3C/svg%3E"/>
+<link rel="stylesheet" href="assets/app.css"/>
+<script src="assets/app.js" defer></script>
+<style>
+  .tr-head{padding-top:26px}
+  .scenario-grid{display:grid;gap:12px}
+  @media(min-width:560px){.scenario-grid{grid-template-columns:1fr 1fr}}
+  .tile.static-h{align-items:center}
+
+  /* Экран чата */
+  .chat-shell{display:none}
+  .chat-shell.on{display:block;animation:qg-reveal .35s var(--ease)}
+  .chat-bar{position:sticky;top:56px;z-index:10;background:var(--surface);border:1px solid var(--line);
+    border-radius:var(--r-md);padding:12px 14px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .chat-bar .cb-title{font-weight:800;font-size:var(--fs-4);min-width:0;flex:1 1 160px}
+  .chat-bar .cb-turn{font-size:var(--fs-6);color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+  .risk-meter{flex:1 1 160px;min-width:140px}
+  .risk-meter .rm-top{display:flex;justify-content:space-between;font-size:var(--fs-6);color:var(--muted);margin-bottom:5px}
+  .risk-meter .rm-val{font-weight:800;font-variant-numeric:tabular-nums}
+  .risk-meter .rm-track{height:8px;border-radius:999px;background:var(--surface-2);overflow:hidden}
+  .risk-meter .rm-fill{height:100%;width:0;border-radius:999px;background:var(--risk-low);
+    transition:width .5s var(--ease),background-color .4s}
+  .risk-meter[data-level="medium"] .rm-fill{background:var(--risk-med)}
+  .risk-meter[data-level="high"] .rm-fill{background:var(--risk-high)}
+  .risk-meter[data-level="medium"] .rm-val{color:var(--risk-med)}
+  .risk-meter[data-level="high"] .rm-val{color:var(--risk-high)}
+
+  .chat-intro{margin-top:14px;padding:14px 16px;background:var(--accent-soft);
+    border:1px solid var(--accent-line);border-radius:var(--r-md);color:var(--txt);
+    font-size:var(--fs-5);line-height:1.6}
+  .chat-log{margin-top:16px;display:flex;flex-direction:column;gap:12px}
+  .msg{max-width:82%;display:flex;flex-direction:column;gap:6px}
+  .msg .bubble{padding:11px 14px;border-radius:16px;font-size:var(--fs-4);line-height:1.5;white-space:pre-wrap;word-wrap:break-word}
+  .msg.scam{align-self:flex-start;align-items:flex-start}
+  .msg.scam .bubble{background:var(--surface);border:1px solid var(--line);border-bottom-left-radius:5px}
+  .msg.scam .who{font-size:var(--fs-6);color:var(--muted-2);font-weight:700;padding-left:2px}
+  .msg.me{align-self:flex-end;align-items:flex-end}
+  .msg.me .bubble{background:var(--accent-soft);border:1px solid var(--accent-line);
+    color:var(--txt);border-bottom-right-radius:5px}
+  .msg-warns{display:flex;flex-direction:column;gap:6px;align-self:flex-end;max-width:82%}
+  .msg-warn{display:flex;align-items:flex-start;gap:8px;padding:8px 11px;border-radius:var(--r-sm);
+    font-size:var(--fs-6);line-height:1.45;background:var(--risk-high-soft);
+    border:1px solid rgba(255,84,104,.3);color:#FFB3BC}
+  .msg-warn.medium{background:var(--risk-med-soft);border-color:rgba(255,176,32,.34);color:#FFD98A}
+  .msg-warn.low{background:var(--surface-2);border-color:var(--line);color:var(--muted)}
+  .msg-warn .ic{width:15px;height:15px;flex:none;margin-top:1px}
+  .msg-warn .mw-q{font-family:var(--mono);opacity:.95}
+
+  .typing .bubble{display:inline-flex;gap:5px;align-items:center}
+  .typing .dot{width:6px;height:6px;border-radius:50%;background:var(--muted-2);animation:tw 1s infinite}
+  .typing .dot:nth-child(2){animation-delay:.15s}.typing .dot:nth-child(3){animation-delay:.3s}
+  @keyframes tw{0%,60%,100%{opacity:.3;transform:translateY(0)}30%{opacity:1;transform:translateY(-3px)}}
+
+  .chat-input{position:sticky;bottom:0;background:linear-gradient(0deg,var(--bg) 72%,transparent);
+    padding:12px 0 calc(12px + env(safe-area-inset-bottom));margin-top:6px;display:flex;gap:10px;align-items:flex-end}
+  .chat-input .field{flex:1 1 auto;margin:0}
+  .chat-input .input{border-radius:var(--r-pill)}
+  .chat-input .btn{flex:none;border-radius:50%;width:48px;height:48px;padding:0}
+  .chat-input .btn .ic{width:20px;height:20px}
+
+  /* Разбор */
+  .debrief{display:none}
+  .debrief.on{display:block;animation:qg-reveal .45s var(--ease)}
+  .debrief .db-score{max-width:300px;margin:6px auto 0}
+  .debrief .db-title{text-align:center;font-size:var(--fs-3);font-weight:800;margin-top:4px}
+  .debrief .db-text{color:var(--txt);font-size:var(--fs-4);line-height:1.65;margin-top:16px;white-space:pre-wrap}
+  .flags-box{margin-top:18px;padding:16px 18px;background:var(--bg);border:1px solid var(--line);border-radius:var(--r-md)}
+  .flags-box .v-h{font-size:var(--fs-6);font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+  .flags-box ul{margin:0;padding:0;list-style:none}
+  .flags-box li{display:flex;gap:10px;font-size:var(--fs-5);line-height:1.5;margin:9px 0;color:var(--txt)}
+  .flags-box li .ic{width:18px;height:18px;flex:none;color:var(--risk-high);margin-top:1px}
+  .debrief .db-actions{margin-top:22px;display:flex;gap:12px;flex-wrap:wrap}
+  .debrief .db-actions .btn{flex:1 1 200px}
+</style>
+</head>
+<body>
+
+<div id="nav"></div>
+
+<main>
+  <section class="container">
+    <div class="stack lg tr-head">
+
+      <!-- ===================== Выбор сценария ===================== -->
+      <div id="selectScreen" class="stack lg">
+        <div class="stack">
+          <div class="eyebrow" data-i18n="tEyebrow">Тренажёр</div>
+          <h1 data-i18n="tTitleH">Потренируйтесь на мошеннике</h1>
+          <p class="lead" data-i18n="tLead">ИИ сыграет мошенника, а вы попробуете не выдать данные. В конце — честный разбор: где вы устояли и где вас чуть не поймали.</p>
+        </div>
+        <div class="scenario-grid" id="scenarioGrid">
+          <button type="button" class="tile" data-scenario="bank_security">
+            <span class="tile-ic"><span data-icon="phone"></span></span>
+            <span class="tile-body">
+              <span class="tile-title" data-i18n="tScBankT">Звонок из «банка»</span>
+              <span class="tile-sub" data-i18n="tScBankS">Служба безопасности, код из СМС</span>
+            </span>
+            <span class="tile-arrow" data-icon="chevron"></span>
+          </button>
+          <button type="button" class="tile" data-scenario="relative_help">
+            <span class="tile-ic"><span data-icon="user-plus"></span></span>
+            <span class="tile-body">
+              <span class="tile-title" data-i18n="tScRelT">Родственник в беде</span>
+              <span class="tile-sub" data-i18n="tScRelS">«Мама, я попал в аварию»</span>
+            </span>
+            <span class="tile-arrow" data-icon="chevron"></span>
+          </button>
+          <button type="button" class="tile" data-scenario="prize_payout">
+            <span class="tile-ic"><span data-icon="alert"></span></span>
+            <span class="tile-body">
+              <span class="tile-title" data-i18n="tScPrizeT">Выигрыш</span>
+              <span class="tile-sub" data-i18n="tScPrizeS">Приз, но «оплатите комиссию»</span>
+            </span>
+            <span class="tile-arrow" data-icon="chevron"></span>
+          </button>
+          <button type="button" class="tile" data-scenario="investment">
+            <span class="tile-ic"><span data-icon="scales"></span></span>
+            <span class="tile-body">
+              <span class="tile-title" data-i18n="tScInvT">Инвестиции</span>
+              <span class="tile-sub" data-i18n="tScInvS">«Гарантированный доход»</span>
+            </span>
+            <span class="tile-arrow" data-icon="chevron"></span>
+          </button>
+          <button type="button" class="tile" data-scenario="job_offer">
+            <span class="tile-ic"><span data-icon="card"></span></span>
+            <span class="tile-body">
+              <span class="tile-title" data-i18n="tScJobT">Работа с предоплатой</span>
+              <span class="tile-sub" data-i18n="tScJobS">«Внесите депозит за оформление»</span>
+            </span>
+            <span class="tile-arrow" data-icon="chevron"></span>
+          </button>
+          <button type="button" class="tile" data-scenario="random">
+            <span class="tile-ic"><span data-icon="radar"></span></span>
+            <span class="tile-body">
+              <span class="tile-title" data-i18n="tScRandT">Случайный</span>
+              <span class="tile-sub" data-i18n="tScRandS">Пусть ИИ выберет сам</span>
+            </span>
+            <span class="tile-arrow" data-icon="chevron"></span>
+          </button>
+        </div>
+      </div>
+
+      <!-- ===================== Чат ===================== -->
+      <div id="chatShell" class="chat-shell">
+        <div class="chat-bar">
+          <div class="cb-title" id="chatTitle">—</div>
+          <div class="risk-meter" id="riskMeter" data-level="low">
+            <div class="rm-top"><span data-i18n="tRisk">Риск</span><span class="rm-val" id="riskVal">0</span></div>
+            <div class="rm-track"><div class="rm-fill" id="riskFill"></div></div>
+          </div>
+          <div class="cb-turn"><span data-i18n="tTurn">Ход</span> <span id="turnVal">0</span> / 8</div>
+        </div>
+
+        <div class="chat-intro" id="chatIntro"></div>
+        <div class="chat-log" id="chatLog"></div>
+
+        <div class="chat-input">
+          <label class="field">
+            <span class="control">
+              <input class="input" id="replyInput" type="text" autocomplete="off"
+                data-i18n-ph="tReplyPh" placeholder="Ваш ответ мошеннику…"/>
+            </span>
+          </label>
+          <button type="button" class="btn" id="sendBtn" aria-label="Отправить">
+            <span class="spin"></span><span data-icon="chevron"></span>
+          </button>
+        </div>
+      </div>
+
+      <!-- ===================== Разбор ===================== -->
+      <div id="debrief" class="debrief card pad-lg">
+        <div class="eyebrow center" data-i18n="tDebriefEyebrow">Разбор</div>
+        <div class="db-score" id="dbScore"></div>
+        <div class="db-title" id="dbTitle" data-i18n="tResult">Ваш результат</div>
+        <div class="db-text" id="dbText"></div>
+        <div class="flags-box" id="flagsBox" style="display:none">
+          <div class="v-h" data-i18n="tRedFlags">Красные флаги в этом сценарии</div>
+          <ul id="flagsList"></ul>
+        </div>
+        <div class="db-actions">
+          <button type="button" class="btn" id="againBtn">
+            <span data-icon="graduation"></span><span data-i18n="tAgain">Пройти ещё раз</span>
+          </button>
+          <button type="button" class="btn subtle" id="shareBtn">
+            <span data-icon="user-plus"></span><span data-i18n="tShare">Поделиться с близким</span>
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </section>
+</main>
+
+<footer class="qg-footer">
+  <div class="qg-footer-in">
+    <span data-icon="shield-check"></span>
+    <span data-i18n="tFoot">Это безопасная игра-тренировка. Реальному «банку» никогда не называйте код из СМС.</span>
+    <span class="sep">·</span>
+    <a href="check.html" data-i18n="tFootCheck">Проверить сообщение</a>
+  </div>
+</footer>
+
+<script defer>
+addEventListener('DOMContentLoaded', function () {
+  var Q = window.Qorgau, el = Q.el, i18n = Q.i18n;
+
+  i18n.extend({
+    ru: {
+      tTitle: 'Qorǵau — тренажёр',
+      tEyebrow: 'Тренажёр', tTitleH: 'Потренируйтесь на мошеннике',
+      tLead: 'ИИ сыграет мошенника, а вы попробуете не выдать данные. В конце — честный разбор: где вы устояли и где вас чуть не поймали.',
+      tScBankT: 'Звонок из «банка»', tScBankS: 'Служба безопасности, код из СМС',
+      tScRelT: 'Родственник в беде', tScRelS: '«Мама, я попал в аварию»',
+      tScPrizeT: 'Выигрыш', tScPrizeS: 'Приз, но «оплатите комиссию»',
+      tScInvT: 'Инвестиции', tScInvS: '«Гарантированный доход»',
+      tScJobT: 'Работа с предоплатой', tScJobS: '«Внесите депозит за оформление»',
+      tScRandT: 'Случайный', tScRandS: 'Пусть ИИ выберет сам',
+      tRisk: 'Риск', tTurn: 'Ход', tScammer: 'Мошенник', tYou: 'Вы',
+      tReplyPh: 'Ваш ответ мошеннику…',
+      tDebriefEyebrow: 'Разбор', tResult: 'Ваш результат',
+      tRedFlags: 'Красные флаги в этом сценарии',
+      tAgain: 'Пройти ещё раз', tShare: 'Поделиться с близким',
+      tFoot: 'Это безопасная игра-тренировка. Реальному «банку» никогда не называйте код из СМС.',
+      tFootCheck: 'Проверить сообщение',
+      tStartErr: 'Не удалось начать тренировку. Попробуйте ещё раз.',
+      tShared: 'Ссылка скопирована — отправьте её близкому.',
+      tShareFail: 'Скопируйте ссылку из адресной строки вручную.',
+      tDegraded: 'Базовый режим: ИИ недоступен, играем по заготовленному сценарию.',
+      tScoreGood: 'Отлично — вы устояли.', tScoreMid: 'Неплохо, но были рискованные моменты.',
+      tScoreBad: 'Вас поймали бы. Разберём почему.'
+    },
+    kz: {
+      tTitle: 'Qorǵau — жаттықтырғыш',
+      tEyebrow: 'Жаттықтырғыш', tTitleH: 'Алаяқпен жаттығыңыз',
+      tLead: 'ЖИ алаяқ рөлін ойнайды, ал сіз дерек бермеуге тырысасыз. Соңында — адал талдау: қай жерде тұрдыңыз, қай жерде алдана жаздадыңыз.',
+      tScBankT: '«Банктен» қоңырау', tScBankS: 'Қауіпсіздік қызметі, СМС коды',
+      tScRelT: 'Қиындықтағы туыс', tScRelS: '«Апа, мен апатқа ұшырадым»',
+      tScPrizeT: 'Ұтыс', tScPrizeS: 'Сыйлық, бірақ «комиссия төлеңіз»',
+      tScInvT: 'Инвестиция', tScInvS: '«Кепілдік берілген табыс»',
+      tScJobT: 'Алдын ала төлемді жұмыс', tScJobS: '«Рәсімдеу үшін депозит салыңыз»',
+      tScRandT: 'Кездейсоқ', tScRandS: 'ЖИ өзі таңдасын',
+      tRisk: 'Қауіп', tTurn: 'Қадам', tScammer: 'Алаяқ', tYou: 'Сіз',
+      tReplyPh: 'Алаяққа жауабыңыз…',
+      tDebriefEyebrow: 'Талдау', tResult: 'Нәтижеңіз',
+      tRedFlags: 'Осы сценарийдегі қызыл жалаушалар',
+      tAgain: 'Қайта өту', tShare: 'Жақыныңмен бөлісу',
+      tFoot: 'Бұл қауіпсіз жаттығу-ойын. Нағыз «банкке» СМС кодын ешқашан айтпаңыз.',
+      tFootCheck: 'Хабарламаны тексеру',
+      tStartErr: 'Жаттығуды бастау мүмкін болмады. Қайталап көріңіз.',
+      tShared: 'Сілтеме көшірілді — жақыныңызға жіберіңіз.',
+      tShareFail: 'Сілтемені мекенжай жолынан қолмен көшіріңіз.',
+      tDegraded: 'Базалық режим: ЖИ қолжетімсіз, дайын сценарий бойынша ойнаймыз.',
+      tScoreGood: 'Тамаша — сіз тұрдыңыз.', tScoreMid: 'Жаман емес, бірақ қауіпті сәттер болды.',
+      tScoreBad: 'Сізді ұстап алар еді. Себебін талдайық.'
+    }
+  });
+
+  Q.mountNav('#nav', 'trainer');
+  i18n.apply();
+  document.querySelectorAll('[data-icon]').forEach(function (slot) {
+    if (slot.__ic) return; slot.__ic = 1; slot.appendChild(Q.icon(slot.getAttribute('data-icon')));
+  });
+
+  /* ------------------------------ элементы ----------------------------- */
+  var selectScreen = document.getElementById('selectScreen');
+  var chatShell = document.getElementById('chatShell');
+  var debrief = document.getElementById('debrief');
+  var chatLog = document.getElementById('chatLog');
+  var chatIntro = document.getElementById('chatIntro');
+  var chatTitle = document.getElementById('chatTitle');
+  var replyInput = document.getElementById('replyInput');
+  var sendBtn = document.getElementById('sendBtn');
+  var turnVal = document.getElementById('turnVal');
+  var riskMeter = document.getElementById('riskMeter');
+  var riskVal = document.getElementById('riskVal');
+  var riskFill = document.getElementById('riskFill');
+
+  var state = { sid: null, turn: 0, risk: 0, busy: false, degradedShown: false };
+
+  function post(path, body) {
+    return Q.fetchJSON(path, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+    });
+  }
+  function levelOf(v) { return v >= 67 ? 'high' : v >= 34 ? 'medium' : 'low'; }
+  function setRisk(v) {
+    state.risk = Math.max(0, Math.min(100, Math.round(v)));
+    riskFill.style.width = state.risk + '%';
+    riskVal.textContent = String(state.risk);
+    riskMeter.setAttribute('data-level', levelOf(state.risk));
+  }
+
+  /* ------------------------------ старт -------------------------------- */
+  document.getElementById('scenarioGrid').querySelectorAll('[data-scenario]').forEach(function (b) {
+    b.addEventListener('click', function () { startScenario(b.getAttribute('data-scenario')); });
+  });
+
+  async function startScenario(scenario) {
+    if (state.busy) return; state.busy = true;
+    selectScreen.querySelectorAll('.tile').forEach(function (t) { t.style.pointerEvents = 'none'; });
+    try {
+      var d = await post('/trainer/start', { scenario: scenario, lang: i18n.lang });
+      state.sid = d.session_id; state.turn = 0; state.degradedShown = false;
+      chatTitle.textContent = d.title || i18n.t('tEyebrow');
+      chatIntro.textContent = d.intro || '';
+      chatIntro.style.display = d.intro ? 'block' : 'none';
+      chatLog.textContent = '';
+      setRisk(0); turnVal.textContent = '0';
+      selectScreen.classList.add('hidden');
+      debrief.classList.remove('on');
+      chatShell.classList.add('on');
+      if (d.opening) addScam(d.opening);
+      replyInput.value = ''; replyInput.focus();
+    } catch (e) {
+      Q.toast(i18n.t('tStartErr'), 'error');
+    } finally {
+      state.busy = false;
+      selectScreen.querySelectorAll('.tile').forEach(function (t) { t.style.pointerEvents = ''; });
+    }
+  }
+
+  /* ------------------------------ реплики ------------------------------ */
+  function addScam(text) {
+    var m = el('div', 'msg scam');
+    m.appendChild(el('div', 'who', i18n.t('tScammer')));
+    m.appendChild(el('div', 'bubble', text));
+    chatLog.appendChild(m);
+    scrollLog();
+    return m;
+  }
+  function addMe(text) {
+    var m = el('div', 'msg me');
+    m.appendChild(el('div', 'bubble', text));
+    chatLog.appendChild(m);
+    scrollLog();
+    return m;
+  }
+  function addTyping() {
+    var m = el('div', 'msg scam typing');
+    var b = el('div', 'bubble');
+    for (var i = 0; i < 3; i++) b.appendChild(el('span', 'dot'));
+    m.appendChild(b); chatLog.appendChild(m); scrollLog();
+    return m;
+  }
+  function addWarns(mistakes) {
+    if (!mistakes || !mistakes.length) return;
+    var box = el('div', 'msg-warns');
+    mistakes.forEach(function (mk) {
+      var sev = (mk.severity === 'high' || mk.severity === 'medium' || mk.severity === 'low') ? mk.severity : 'medium';
+      var w = el('div', 'msg-warn ' + sev);
+      w.appendChild(Q.icon('alert'));
+      var body = el('span');
+      if (mk.quote) {
+        var q = el('span', 'mw-q', '«' + mk.quote + '» ');
+        body.appendChild(q);
+      }
+      body.appendChild(el('span', null, mk.why || ''));
+      w.appendChild(body);
+      box.appendChild(w);
+    });
+    chatLog.appendChild(box);
+    scrollLog();
+  }
+  function scrollLog() {
+    try { window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }); } catch (_) {}
+  }
+  var SEV_W = { high: 30, medium: 18, low: 9 };
+  function riskFromMistakes(mistakes) {
+    (mistakes || []).forEach(function (mk) { setRisk(state.risk + (SEV_W[mk.severity] || 12)); });
+  }
+
+  async function sendReply() {
+    if (state.busy || !state.sid) return;
+    var text = replyInput.value.trim();
+    if (!text) return;
+    state.busy = true; sendBtn.classList.add('busy'); sendBtn.disabled = true; replyInput.disabled = true;
+    addMe(text);
+    replyInput.value = '';
+    var typing = addTyping();
+    try {
+      var d = await post('/trainer/reply', { session_id: state.sid, message: text });
+      if (typing.parentNode) typing.parentNode.removeChild(typing);
+      if (d.degraded && !state.degradedShown) { state.degradedShown = true; Q.toast(i18n.t('tDegraded'), 'warn'); }
+      addWarns(d.mistakes);
+      riskFromMistakes(d.mistakes);
+      if (typeof d.turn === 'number') { state.turn = d.turn; turnVal.textContent = String(d.turn); }
+      if (d.reply) addScam(d.reply);
+      if (d.finished) { showDebrief(d); }
+    } catch (e) {
+      if (typing.parentNode) typing.parentNode.removeChild(typing);
+      var k = e && e.kind;
+      Q.toast(k === 'rate' ? i18n.t('errRate') : k === 'bad' ? i18n.t('errBad') : i18n.t('errNet'), 'error');
+    } finally {
+      state.busy = false; sendBtn.classList.remove('busy'); sendBtn.disabled = false;
+      replyInput.disabled = false;
+      if (chatShell.classList.contains('on')) replyInput.focus();
+    }
+  }
+  sendBtn.addEventListener('click', sendReply);
+  replyInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); sendReply(); } });
+
+  /* ------------------------------ разбор ------------------------------- */
+  function showDebrief(d) {
+    var score = Math.max(0, Math.min(100, Number(d.score) || 0));
+    // score: чем выше — тем лучше устоял → зелёный. Инвертируем в риск-цвет гейджа.
+    var gLevel = score >= 67 ? 'low' : score >= 34 ? 'medium' : 'high';
+    var g = document.getElementById('dbScore');
+    g.className = 'db-score'; g.textContent = '';
+    Q.Gauge(g, score, gLevel);
+
+    var title = document.getElementById('dbTitle');
+    title.textContent = i18n.t('tResult') + ' · ' +
+      (score >= 67 ? i18n.t('tScoreGood') : score >= 34 ? i18n.t('tScoreMid') : i18n.t('tScoreBad'));
+
+    document.getElementById('dbText').textContent = d.debrief || '';
+
+    var box = document.getElementById('flagsBox');
+    var list = document.getElementById('flagsList');
+    list.textContent = '';
+    var flags = Array.isArray(d.red_flags_shown) ? d.red_flags_shown : [];
+    if (flags.length) {
+      flags.forEach(function (f) {
+        var li = document.createElement('li');
+        li.appendChild(Q.icon('alert'));
+        li.appendChild(el('span', null, String(f)));
+        list.appendChild(li);
+      });
+      box.style.display = 'block';
+    } else { box.style.display = 'none'; }
+
+    chatShell.classList.remove('on');
+    debrief.classList.add('on');
+    try { debrief.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (_) {}
+  }
+
+  document.getElementById('againBtn').addEventListener('click', function () {
+    debrief.classList.remove('on');
+    chatShell.classList.remove('on');
+    selectScreen.classList.remove('hidden');
+    state.sid = null;
+    try { selectScreen.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (_) {}
+  });
+
+  document.getElementById('shareBtn').addEventListener('click', function () {
+    var url = location.href;
+    function done() { Q.toast(i18n.t('tShared'), 'success'); }
+    function fallback() {
+      try {
+        var ta = document.createElement('textarea'); ta.value = url;
+        ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta);
+        ta.select(); document.execCommand('copy'); document.body.removeChild(ta); done();
+      } catch (_) { Q.toast(i18n.t('tShareFail'), 'warn'); }
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(done).catch(fallback);
+    } else { fallback(); }
+  });
+
+  // при смене языка обновим статичные подписи «Мошенник/Вы» уже показанных пузырей
+  i18n.onChange(function () {
+    chatLog.querySelectorAll('.msg.scam .who').forEach(function (w) { w.textContent = i18n.t('tScammer'); });
+  });
+});
+</script>
+</body>
+</html>

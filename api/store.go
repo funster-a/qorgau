@@ -55,6 +55,8 @@ func bootstrapSchema() error {
 			`ALTER TABLE analytics.signal ADD COLUMN IF NOT EXISTS channel TEXT NOT NULL DEFAULT 'web'`,
 			`ALTER TABLE analytics.campaign ADD COLUMN IF NOT EXISTS closed_at TIMESTAMPTZ`,
 			`CREATE TABLE IF NOT EXISTS pii.subscriber (chat_id BIGINT PRIMARY KEY, created_at TIMESTAMPTZ NOT NULL DEFAULT now())`,
+			`CREATE TABLE IF NOT EXISTS pii.guard_link (guardian_chat_id BIGINT NOT NULL, ward_chat_id BIGINT NOT NULL, linked_at TIMESTAMPTZ NOT NULL DEFAULT now(), PRIMARY KEY (guardian_chat_id, ward_chat_id))`,
+			`CREATE TABLE IF NOT EXISTS pii.guard_alert (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), guardian_chat_id BIGINT NOT NULL, scheme_title TEXT NOT NULL, risk_score INT NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT now(), delivered BOOLEAN NOT NULL DEFAULT false)`,
 		}
 		for _, s := range stmts {
 			if _, err := db.Exec(s); err != nil {

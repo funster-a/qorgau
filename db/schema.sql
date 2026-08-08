@@ -24,6 +24,25 @@ CREATE TABLE IF NOT EXISTS pii.subscriber (
     created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- Защита близкого: связь опекун↔подопечный (chat_id — идентификаторы, зона pii).
+CREATE TABLE IF NOT EXISTS pii.guard_link (
+    guardian_chat_id  BIGINT NOT NULL,
+    ward_chat_id      BIGINT NOT NULL,
+    linked_at         TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (guardian_chat_id, ward_chat_id)
+);
+
+-- Алерты опекунам о высоком риске у подопечного. Текст сообщения НЕ хранится —
+-- только факт, тип угрозы и риск (приватность подопечного).
+CREATE TABLE IF NOT EXISTS pii.guard_alert (
+    id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    guardian_chat_id  BIGINT NOT NULL,
+    scheme_title      TEXT NOT NULL,
+    risk_score        INT NOT NULL,
+    created_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
+    delivered         BOOLEAN NOT NULL DEFAULT false
+);
+
 -- === ЗОНА ANALYTICS: обезличенные признаки, живёт долго ===
 CREATE TABLE IF NOT EXISTS analytics.scheme (
     code      TEXT PRIMARY KEY,

@@ -1,0 +1,659 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+<meta name="theme-color" content="#0B0E14"/>
+<title data-i18n-title="hTitle">Qorǵau — Помощь после мошенничества</title>
+<meta name="description" content="ИИ-юрист первой помощи после мошенничества: пошаговый план, реальные контакты банков и полиции Казахстана, карта ближайших отделений."/>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2338E0C8' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 22s8-4 8-10V5.2l-8-3-8 3V12c0 6 8 10 8 10Z'/%3E%3Cpath d='M9 12l2.2 2.2L15.5 10'/%3E%3C/svg%3E"/>
+<link rel="stylesheet" href="assets/app.css"/>
+<script src="assets/app.js" defer></script>
+<style>
+  /* ── help.html — «Помощь после» ── */
+  .help-head{padding:30px 0 6px}
+  .help-head h1{font-size:clamp(26px,6vw,40px);line-height:1.1;max-width:18ch}
+  .help-head .lead{margin-top:12px;max-width:54ch}
+
+  /* Опросник ситуации */
+  .sit-grid{display:grid;gap:10px;margin-top:4px}
+  @media(min-width:560px){.sit-grid{grid-template-columns:1fr 1fr}}
+  .sit{display:flex;gap:12px;align-items:center;padding:13px 15px;background:var(--bg);
+    border:1px solid var(--line);border-radius:var(--r-md);cursor:pointer;
+    transition:border-color .18s var(--ease),background-color .18s var(--ease)}
+  .sit:hover{border-color:var(--accent-line)}
+  .sit.on{border-color:var(--accent-line);background:var(--accent-soft)}
+  .sit .box{width:24px;height:24px;flex:none;border-radius:7px;border:1.5px solid var(--line);
+    display:grid;place-items:center;color:var(--accent-ink);background:transparent;transition:all .18s}
+  .sit.on .box{background:var(--accent);border-color:var(--accent)}
+  .sit .box .ic{width:16px;height:16px;opacity:0;transition:opacity .15s}
+  .sit.on .box .ic{opacity:1}
+  .sit .lbl{font-size:var(--fs-5);font-weight:600}
+  .sit input{position:absolute;opacity:0;pointer-events:none}
+
+  /* Чат */
+  .chat{display:flex;flex-direction:column;gap:14px}
+  .msg{max-width:92%}
+  .msg.user{align-self:flex-end}
+  .msg.bot{align-self:flex-start;width:100%}
+  .bubble{padding:12px 15px;border-radius:var(--r-md);font-size:var(--fs-4);line-height:1.55}
+  .msg.user .bubble{background:var(--accent-soft);border:1px solid var(--accent-line);color:var(--txt);
+    border-bottom-right-radius:5px}
+  .msg.bot .bubble{background:var(--surface);border:1px solid var(--line);border-bottom-left-radius:5px}
+  .bot-role{display:inline-flex;align-items:center;gap:7px;font-size:var(--fs-6);font-weight:800;
+    letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:8px}
+  .bot-role .ic{width:15px;height:15px}
+
+  /* Шаги */
+  .steps2{list-style:none;margin:14px 0 0;padding:0;display:flex;flex-direction:column;gap:10px}
+  .st2{display:flex;gap:12px;align-items:flex-start;padding:13px 14px;background:var(--bg);
+    border:1px solid var(--line);border-radius:var(--r-md)}
+  .st2-n{flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;
+    background:var(--surface-2);color:var(--txt);font-weight:800;font-size:var(--fs-6);
+    font-variant-numeric:tabular-nums}
+  .st2-b{min-width:0;flex:1}
+  .st2-head{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  .st2-t{font-weight:700;font-size:var(--fs-4)}
+  .st2-d{color:var(--muted);font-size:var(--fs-5);line-height:1.55;margin-top:4px}
+  .st2-done{color:var(--muted-2);font-size:var(--fs-6);margin-top:6px;display:flex;gap:6px;align-items:center}
+  .st2-done .ic{width:14px;height:14px;flex:none;color:var(--risk-low)}
+  .u-badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:800;
+    letter-spacing:.06em;text-transform:uppercase;padding:3px 9px;border-radius:var(--r-pill);
+    border:1px solid var(--line)}
+  .u-badge.now{color:var(--risk-high);background:var(--risk-high-soft);border-color:rgba(255,84,104,.4)}
+  .u-badge.today{color:var(--risk-med);background:var(--risk-med-soft);border-color:rgba(255,176,32,.4)}
+  .u-badge.week{color:var(--muted);background:var(--surface);border-color:var(--line)}
+
+  /* Контакты */
+  .contacts{margin-top:14px}
+  .contacts .ch{font-size:var(--fs-6);font-weight:800;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--muted);margin-bottom:9px}
+  .con-row{display:flex;flex-wrap:wrap;gap:8px}
+  .con{display:inline-flex;align-items:center;gap:9px;padding:9px 13px;border-radius:var(--r-md);
+    border:1px solid var(--line);background:var(--surface);text-decoration:none;color:var(--txt);
+    transition:border-color .18s,transform .14s var(--ease)}
+  a.con:hover{border-color:var(--accent-line);transform:translateY(-1px);text-decoration:none}
+  .con .ic{width:18px;height:18px;flex:none;color:var(--accent)}
+  .con-b{display:flex;flex-direction:column;line-height:1.25}
+  .con-name{font-size:var(--fs-5);font-weight:600}
+  .con-phone{font-size:var(--fs-6);color:var(--accent);font-family:var(--mono)}
+  .con-note{font-size:var(--fs-6);color:var(--muted-2)}
+  .con.static{cursor:default}
+
+  .typing{display:inline-flex;gap:5px;padding:4px 0}
+  .typing i{width:8px;height:8px;border-radius:50%;background:var(--muted-2);display:block;
+    animation:qg-typ 1.1s var(--ease) infinite}
+  .typing i:nth-child(2){animation-delay:.15s}.typing i:nth-child(3){animation-delay:.3s}
+  @keyframes qg-typ{0%,60%,100%{opacity:.3;transform:translateY(0)}30%{opacity:1;transform:translateY(-4px)}}
+
+  /* Ввод чата */
+  .chat-input{display:flex;gap:10px;align-items:flex-end;margin-top:16px}
+  .chat-input .field{flex:1}
+  #chatMsg{min-height:52px;max-height:140px}
+  .chat-send{flex:none;padding:12px 16px}
+
+  /* ── Карта помощи ── */
+  .map-kinds{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+  .minimap-wrap{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);
+    padding:16px;display:none}
+  .minimap-wrap.show{display:block;animation:qg-reveal .45s var(--ease)}
+  .minimap{width:100%;height:auto;border-radius:var(--r-md);background:var(--bg);
+    border:1px solid var(--line-soft)}
+  .map-legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:12px;font-size:var(--fs-6);color:var(--muted)}
+  .map-legend span{display:inline-flex;align-items:center;gap:6px}
+  .map-legend .d{width:10px;height:10px;border-radius:50%}
+
+  .places{display:flex;flex-direction:column;gap:10px;margin-top:14px}
+  .place{display:flex;gap:13px;align-items:flex-start;padding:14px;background:var(--surface);
+    border:1px solid var(--line);border-radius:var(--r-md)}
+  .place-pin{flex:none;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;
+    background:var(--accent-soft);color:var(--accent);font-weight:800;font-size:var(--fs-6);
+    font-variant-numeric:tabular-nums;border:1px solid var(--accent-line)}
+  .place-b{min-width:0;flex:1}
+  .place-name{font-weight:700;font-size:var(--fs-4)}
+  .place-addr{color:var(--muted);font-size:var(--fs-5);margin-top:2px}
+  .place-meta{display:flex;gap:14px;flex-wrap:wrap;margin-top:8px;align-items:center}
+  .place-dist{font-size:var(--fs-6);color:var(--muted);display:inline-flex;gap:5px;align-items:center;
+    font-variant-numeric:tabular-nums}
+  .place-dist .ic{width:14px;height:14px;color:var(--muted-2)}
+  .place-tel{font-size:var(--fs-6);font-family:var(--mono)}
+
+  .city-fallback{display:none;margin-top:14px}
+  .city-fallback.show{display:block}
+</style>
+</head>
+<body>
+
+<div id="nav"></div>
+
+<main>
+  <section class="container">
+    <div class="help-head stack">
+      <div class="eyebrow" data-i18n="hEyebrow">Помощь после · ИИ-юрист</div>
+      <h1 data-i18n="hHeroTitle">Уже перевели деньги? Первый час решает многое</h1>
+      <p class="lead" data-i18n="hHeroLead">Отметьте, что произошло, — ИИ-юрист даст пошаговый план и реальные контакты банков и полиции Казахстана. Действуйте спокойно и по порядку.</p>
+    </div>
+  </section>
+
+  <!-- ── Опросник ситуации ── -->
+  <section class="container">
+    <div class="stack lg">
+      <div class="card pad stack">
+        <div class="stack">
+          <div class="eyebrow" data-i18n="hSitEyebrow">Что случилось</div>
+          <h2 style="font-size:var(--fs-3)" data-i18n="hSitH">Отметьте всё, что подходит</h2>
+        </div>
+        <div class="sit-grid">
+          <label class="sit" data-sit="lost_money">
+            <input type="checkbox"/>
+            <span class="box"><span data-icon="check"></span></span>
+            <span class="lbl" data-i18n="hSitMoney">Перевёл деньги</span>
+          </label>
+          <label class="sit" data-sit="gave_otp">
+            <input type="checkbox"/>
+            <span class="box"><span data-icon="check"></span></span>
+            <span class="lbl" data-i18n="hSitOtp">Назвал код из СМС</span>
+          </label>
+          <label class="sit" data-sit="gave_card">
+            <input type="checkbox"/>
+            <span class="box"><span data-icon="check"></span></span>
+            <span class="lbl" data-i18n="hSitCard">Дал данные карты</span>
+          </label>
+          <label class="sit" data-sit="installed_app">
+            <input type="checkbox"/>
+            <span class="box"><span data-icon="check"></span></span>
+            <span class="lbl" data-i18n="hSitApp">Установил приложение</span>
+          </label>
+        </div>
+        <div class="row">
+          <button class="btn" id="startBtn" type="button">
+            <span class="spin"></span><span data-icon="scales"></span><span id="startLbl" data-i18n="hStart">Получить первую помощь</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- ── Чат ── -->
+      <div id="chatCard" class="card pad hidden">
+        <div class="chat" id="chat"></div>
+        <div class="chat-input">
+          <div class="field">
+            <div class="control">
+              <textarea id="chatMsg" class="textarea" data-i18n-ph="hChatPh" enterkeyhint="send"></textarea>
+            </div>
+          </div>
+          <button class="btn chat-send" id="sendBtn" type="button" aria-label="Send">
+            <span class="spin"></span><span data-icon="chevron"></span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Карта помощи ── -->
+  <section class="container">
+    <div class="section tight stack lg">
+      <div class="stack">
+        <div class="eyebrow" data-i18n="hMapEyebrow">Куда обратиться</div>
+        <h2 data-i18n="hMapH">Ближайшие отделения помощи</h2>
+        <p class="lead" data-i18n="hMapP">Найдём полицию, банки и юридическую помощь рядом с вами. Геолокация используется только для расчёта расстояния и никуда не сохраняется.</p>
+      </div>
+
+      <div class="map-kinds" id="mapKinds">
+        <button type="button" class="chip on" data-kind="police"><span data-icon="shield"></span><span data-i18n="hKindPolice">Полиция</span></button>
+        <button type="button" class="chip" data-kind="bank"><span data-icon="card"></span><span data-i18n="hKindBank">Банк</span></button>
+        <button type="button" class="chip" data-kind="lawyer"><span data-icon="scales"></span><span data-i18n="hKindLawyer">Юрпомощь</span></button>
+      </div>
+
+      <div class="row">
+        <button class="btn" id="findBtn" type="button">
+          <span class="spin"></span><span data-icon="map-pin"></span><span id="findLbl" data-i18n="hFind">Найти ближайшие отделения</span>
+        </button>
+      </div>
+
+      <!-- Город-фолбэк если геолокация отклонена -->
+      <div class="city-fallback field" id="cityFallback">
+        <span class="label" data-i18n="hCityLabel">Геолокация недоступна — выберите город</span>
+        <select id="citySel" class="select">
+          <option value="43.238,76.945" data-i18n="hCityAlmaty">Алматы</option>
+          <option value="51.169,71.449" data-i18n="hCityAstana">Астана</option>
+          <option value="42.317,69.590" data-i18n="hCityShymkent">Шымкент</option>
+          <option value="49.806,73.085" data-i18n="hCityKaraganda">Караганда</option>
+          <option value="50.283,57.167" data-i18n="hCityAktobe">Актобе</option>
+        </select>
+        <div class="hint" data-i18n="hCityHint">Расстояния будут считаться от центра выбранного города.</div>
+      </div>
+
+      <!-- Мини-карта -->
+      <div class="minimap-wrap" id="minimapWrap">
+        <svg class="minimap" id="minimap" viewBox="0 0 320 240" role="img" aria-labelledby="mmTitle">
+          <title id="mmTitle" data-i18n="hMapAlt">Схема ближайших отделений вокруг вашей позиции</title>
+        </svg>
+        <div class="map-legend">
+          <span><span class="d" style="background:var(--accent)"></span><span data-i18n="hMapYou">Вы здесь</span></span>
+          <span><span class="d" style="background:var(--risk-med)"></span><span data-i18n="hMapPlaces">Отделения</span></span>
+        </div>
+      </div>
+
+      <!-- Список отделений -->
+      <div class="places" id="places"></div>
+    </div>
+  </section>
+</main>
+
+<footer class="qg-footer">
+  <div class="qg-footer-in">
+    <span data-icon="shield-check"></span>
+    <span data-i18n="hFoot">Контакты — из проверенного справочника КЗ. Геолокация не сохраняется.</span>
+    <span class="sep">·</span>
+    <a href="live.html" data-i18n="hFootLive">Мне звонят</a>
+  </div>
+</footer>
+
+<script defer>
+addEventListener('DOMContentLoaded', function () {
+  var Q = window.Qorgau;
+  var el = Q.el;
+  var SVGNS = 'http://www.w3.org/2000/svg';
+
+  Q.i18n.extend({
+    ru: {
+      hTitle: 'Qorǵau — Помощь после мошенничества',
+      hEyebrow: 'Помощь после · ИИ-юрист',
+      hHeroTitle: 'Уже перевели деньги? Первый час решает многое',
+      hHeroLead: 'Отметьте, что произошло, — ИИ-юрист даст пошаговый план и реальные контакты банков и полиции Казахстана. Действуйте спокойно и по порядку.',
+      hSitEyebrow: 'Что случилось',
+      hSitH: 'Отметьте всё, что подходит',
+      hSitMoney: 'Перевёл деньги',
+      hSitOtp: 'Назвал код из СМС',
+      hSitCard: 'Дал данные карты',
+      hSitApp: 'Установил приложение',
+      hStart: 'Получить первую помощь',
+      hStarting: 'Готовлю план…',
+      hChatPh: 'Опишите, что произошло, или задайте вопрос…',
+      hMapEyebrow: 'Куда обратиться',
+      hMapH: 'Ближайшие отделения помощи',
+      hMapP: 'Найдём полицию, банки и юридическую помощь рядом с вами. Геолокация используется только для расчёта расстояния и никуда не сохраняется.',
+      hKindPolice: 'Полиция', hKindBank: 'Банк', hKindLawyer: 'Юрпомощь',
+      hFind: 'Найти ближайшие отделения',
+      hFinding: 'Ищу…',
+      hCityLabel: 'Геолокация недоступна — выберите город',
+      hCityHint: 'Расстояния будут считаться от центра выбранного города.',
+      hCityAlmaty: 'Алматы', hCityAstana: 'Астана', hCityShymkent: 'Шымкент',
+      hCityKaraganda: 'Караганда', hCityAktobe: 'Актобе',
+      hMapAlt: 'Схема ближайших отделений вокруг вашей позиции',
+      hMapYou: 'Вы здесь', hMapPlaces: 'Отделения',
+      hFoot: 'Контакты — из проверенного справочника КЗ. Геолокация не сохраняется.',
+      hFootLive: 'Мне звонят',
+      hBotRole: 'ИИ-юрист Qorǵau',
+      hStepsH: 'Пошаговый план',
+      hContactsH: 'Позвонить',
+      hUnow: 'Сейчас', hUtoday: 'Сегодня', hUweek: 'На неделе',
+      hMsgMoney: 'Я перевёл деньги мошенникам.',
+      hMsgOtp: 'Я назвал код из СМС.',
+      hMsgCard: 'Я передал данные своей карты.',
+      hMsgApp: 'Я установил приложение по просьбе звонящего.',
+      hMsgGeneric: 'Кажется, я столкнулся с мошенниками. Что мне делать?',
+      hMsgJoin: ' ',
+      hEmpty: 'Напишите сообщение.',
+      hErr: 'Не удалось получить ответ. Попробуйте ещё раз.',
+      hNoPlaces: 'Рядом ничего не нашли. Попробуйте другой тип или город.',
+      hGeoDenied: 'Доступ к геолокации закрыт — выберите город вручную.',
+      hKm: 'км'
+    },
+    kz: {
+      hTitle: 'Qorǵau — Алаяқтықтан кейінгі көмек',
+      hEyebrow: 'Кейінгі көмек · ЖИ-заңгер',
+      hHeroTitle: 'Ақша аударып қойдыңыз ба? Алғашқы сағат маңызды',
+      hHeroLead: 'Не болғанын белгілеңіз — ЖИ-заңгер қадамдық жоспар мен Қазақстан банктері мен полициясының нақты байланыстарын береді. Сабырмен, ретімен әрекет етіңіз.',
+      hSitEyebrow: 'Не болды',
+      hSitH: 'Сәйкес келетіннің бәрін белгілеңіз',
+      hSitMoney: 'Ақша аудардым',
+      hSitOtp: 'СМС кодын айттым',
+      hSitCard: 'Карта деректерін бердім',
+      hSitApp: 'Қолданба орнаттым',
+      hStart: 'Алғашқы көмек алу',
+      hStarting: 'Жоспар дайындап жатырмын…',
+      hChatPh: 'Не болғанын жазыңыз немесе сұрақ қойыңыз…',
+      hMapEyebrow: 'Қайда жүгіну керек',
+      hMapH: 'Жақын маңдағы көмек бөлімшелері',
+      hMapP: 'Жаныңыздағы полиция, банк және құқықтық көмекті табамыз. Геолокация тек қашықтықты есептеу үшін қолданылады және сақталмайды.',
+      hKindPolice: 'Полиция', hKindBank: 'Банк', hKindLawyer: 'Құқық көмегі',
+      hFind: 'Жақын бөлімшелерді табу',
+      hFinding: 'Іздеп жатырмын…',
+      hCityLabel: 'Геолокация қолжетімсіз — қаланы таңдаңыз',
+      hCityHint: 'Қашықтық таңдалған қала орталығынан есептеледі.',
+      hCityAlmaty: 'Алматы', hCityAstana: 'Астана', hCityShymkent: 'Шымкент',
+      hCityKaraganda: 'Қарағанды', hCityAktobe: 'Ақтөбе',
+      hMapAlt: 'Позицияңыз айналасындағы жақын бөлімшелер схемасы',
+      hMapYou: 'Сіз осындасыз', hMapPlaces: 'Бөлімшелер',
+      hFoot: 'Байланыстар — тексерілген ҚР анықтамалығынан. Геолокация сақталмайды.',
+      hFootLive: 'Маған қоңырау шалып жатыр',
+      hBotRole: 'Qorǵau ЖИ-заңгері',
+      hStepsH: 'Қадамдық жоспар',
+      hContactsH: 'Қоңырау шалу',
+      hUnow: 'Қазір', hUtoday: 'Бүгін', hUweek: 'Осы аптада',
+      hMsgMoney: 'Мен алаяқтарға ақша аудардым.',
+      hMsgOtp: 'Мен СМС кодын айттым.',
+      hMsgCard: 'Мен карта деректерімді бердім.',
+      hMsgApp: 'Мен қоңырау шалушының өтінішімен қолданба орнаттым.',
+      hMsgGeneric: 'Мен алаяқтарға тап болған сияқтымын. Не істеуім керек?',
+      hMsgJoin: ' ',
+      hEmpty: 'Хабарлама жазыңыз.',
+      hErr: 'Жауап алу мүмкін болмады. Қайталап көріңіз.',
+      hNoPlaces: 'Жақын маңда ештеңе табылмады. Басқа түрді немесе қаланы таңдаңыз.',
+      hGeoDenied: 'Геолокацияға рұқсат жабық — қаланы қолмен таңдаңыз.',
+      hKm: 'км'
+    }
+  });
+
+  Q.mountNav('#nav', 'help');
+  Q.i18n.apply();
+  document.querySelectorAll('[data-icon]').forEach(function (slot) {
+    slot.appendChild(Q.icon(slot.getAttribute('data-icon')));
+  });
+
+  /* ── Опросник ── */
+  var situation = { lost_money: false, gave_otp: false, gave_card: false, installed_app: false };
+  document.querySelectorAll('.sit').forEach(function (lab) {
+    var key = lab.getAttribute('data-sit');
+    var input = lab.querySelector('input');
+    lab.addEventListener('click', function (e) {
+      if (e.target !== input) input.checked = !input.checked;
+      situation[key] = input.checked;
+      lab.classList.toggle('on', input.checked);
+    });
+  });
+
+  /* ── Чат ── */
+  var chatCard = document.getElementById('chatCard');
+  var chat = document.getElementById('chat');
+  var chatMsg = document.getElementById('chatMsg');
+  var sendBtn = document.getElementById('sendBtn');
+  var startBtn = document.getElementById('startBtn');
+  var sessionId = '';
+  var chatBusy = false;
+
+  function addUserMsg(text) {
+    var m = el('div', 'msg user');
+    var b = el('div', 'bubble'); b.textContent = text;
+    m.appendChild(b); chat.appendChild(m);
+    m.scrollIntoView({ block: 'end', behavior: 'smooth' });
+  }
+
+  function addTyping() {
+    var m = el('div', 'msg bot'); m.id = 'typingMsg';
+    var b = el('div', 'bubble');
+    var role = el('div', 'bot-role'); role.appendChild(Q.icon('scales'));
+    role.appendChild(el('span', null, Q.i18n.t('hBotRole')));
+    b.appendChild(role);
+    var t = el('div', 'typing'); t.appendChild(el('i')); t.appendChild(el('i')); t.appendChild(el('i'));
+    b.appendChild(t); m.appendChild(b); chat.appendChild(m);
+    m.scrollIntoView({ block: 'end', behavior: 'smooth' });
+  }
+  function removeTyping() { var t = document.getElementById('typingMsg'); if (t) t.remove(); }
+
+  var URG = { now: { cls: 'now', key: 'hUnow' }, today: { cls: 'today', key: 'hUtoday' }, week: { cls: 'week', key: 'hUweek' } };
+
+  function addBotMsg(d) {
+    var m = el('div', 'msg bot');
+    var b = el('div', 'bubble');
+
+    var role = el('div', 'bot-role'); role.appendChild(Q.icon('scales'));
+    role.appendChild(el('span', null, Q.i18n.t('hBotRole')));
+    b.appendChild(role);
+
+    if (d.reply) b.appendChild(el('p', null, d.reply));
+
+    // шаги
+    var steps = Array.isArray(d.steps) ? d.steps : [];
+    if (steps.length) {
+      var ol = el('ul', 'steps2');
+      steps.forEach(function (s, i) {
+        var li = el('li', 'st2');
+        li.appendChild(el('div', 'st2-n', String(s.order || (i + 1))));
+        var sb = el('div', 'st2-b');
+        var head = el('div', 'st2-head');
+        head.appendChild(el('span', 'st2-t', s.title || ''));
+        var u = URG[s.urgency];
+        if (u) { var ub = el('span', 'u-badge ' + u.cls, Q.i18n.t(u.key)); head.appendChild(ub); }
+        sb.appendChild(head);
+        if (s.detail) sb.appendChild(el('div', 'st2-d', s.detail));
+        if (s.done_hint) {
+          var dh = el('div', 'st2-done'); dh.appendChild(Q.icon('check'));
+          dh.appendChild(el('span', null, s.done_hint)); sb.appendChild(dh);
+        }
+        li.appendChild(sb); ol.appendChild(li);
+      });
+      b.appendChild(ol);
+    }
+
+    // контакты
+    var contacts = Array.isArray(d.contacts) ? d.contacts : [];
+    if (contacts.length) {
+      var cw = el('div', 'contacts');
+      cw.appendChild(el('div', 'ch', Q.i18n.t('hContactsH')));
+      var row = el('div', 'con-row');
+      contacts.forEach(function (c) {
+        var dial = (c.phone || '').replace(/[^\d+]/g, '');
+        var node = dial ? document.createElement('a') : el('div', 'con static');
+        if (dial) { node.className = 'con'; node.href = 'tel:' + dial; }
+        node.appendChild(Q.icon('phone'));
+        var cb = el('div', 'con-b');
+        cb.appendChild(el('span', 'con-name', c.name || ''));
+        if (c.phone) cb.appendChild(el('span', 'con-phone', c.phone));
+        else if (c.note) cb.appendChild(el('span', 'con-note', c.note));
+        node.appendChild(cb);
+        row.appendChild(node);
+      });
+      cw.appendChild(row);
+      b.appendChild(cw);
+    }
+
+    if (d.degraded) {
+      var dg = el('div', 'st2-done'); dg.style.marginTop = '12px';
+      dg.appendChild(Q.icon('alert'));
+      dg.appendChild(el('span', null, Q.i18n.t('degraded')));
+      b.appendChild(dg);
+    }
+
+    m.appendChild(b); chat.appendChild(m);
+    m.scrollIntoView({ block: 'end', behavior: 'smooth' });
+  }
+
+  async function sendMessage(text, btn, lbl, labelKey) {
+    if (chatBusy) return;
+    text = (text || '').trim();
+    if (!text) { Q.toast(Q.i18n.t('hEmpty'), 'warn'); return; }
+    chatBusy = true;
+    if (btn) btn.classList.add('busy');
+    if (lbl && labelKey) lbl.textContent = Q.i18n.t(labelKey);
+
+    chatCard.classList.remove('hidden');
+    addUserMsg(text);
+    addTyping();
+
+    try {
+      var d = await Q.fetchJSON('/help/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session_id: sessionId, message: text, situation: situation })
+      });
+      d = d || {};
+      if (d.session_id) sessionId = d.session_id;
+      removeTyping();
+      addBotMsg(d);
+    } catch (e) {
+      removeTyping();
+      var msg = e && e.kind === 'rate' ? Q.i18n.t('errRate')
+        : (e && e.kind === 'net' ? Q.i18n.t('errNet') : Q.i18n.t('hErr'));
+      Q.toast(msg, 'error');
+    }
+    chatBusy = false;
+    if (btn) btn.classList.remove('busy');
+  }
+
+  // Автопервое сообщение из опросника
+  function composeFirst() {
+    var parts = [];
+    if (situation.lost_money) parts.push(Q.i18n.t('hMsgMoney'));
+    if (situation.gave_otp) parts.push(Q.i18n.t('hMsgOtp'));
+    if (situation.gave_card) parts.push(Q.i18n.t('hMsgCard'));
+    if (situation.installed_app) parts.push(Q.i18n.t('hMsgApp'));
+    return parts.length ? parts.join(Q.i18n.t('hMsgJoin')) : Q.i18n.t('hMsgGeneric');
+  }
+
+  startBtn.addEventListener('click', function () {
+    sendMessage(composeFirst(), startBtn, document.getElementById('startLbl'), 'hStarting');
+    setTimeout(function () {
+      var l = document.getElementById('startLbl'); if (l) l.textContent = Q.i18n.t('hStart');
+    }, 400);
+  });
+
+  sendBtn.addEventListener('click', function () {
+    var v = chatMsg.value; chatMsg.value = '';
+    sendMessage(v, sendBtn);
+  });
+  chatMsg.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); var v = chatMsg.value; chatMsg.value = ''; sendMessage(v, sendBtn); }
+  });
+
+  /* ── Карта помощи ── */
+  var kind = 'police';
+  var mapKinds = document.getElementById('mapKinds');
+  var findBtn = document.getElementById('findBtn');
+  var findLbl = document.getElementById('findLbl');
+  var placesBox = document.getElementById('places');
+  var minimapWrap = document.getElementById('minimapWrap');
+  var minimap = document.getElementById('minimap');
+  var cityFallback = document.getElementById('cityFallback');
+  var citySel = document.getElementById('citySel');
+  var mapBusy = false;
+
+  mapKinds.querySelectorAll('.chip').forEach(function (c) {
+    c.addEventListener('click', function () {
+      mapKinds.querySelectorAll('.chip').forEach(function (x) { x.classList.remove('on'); });
+      c.classList.add('on'); kind = c.getAttribute('data-kind');
+    });
+  });
+
+  function svgEl(tag, attrs) {
+    var n = document.createElementNS(SVGNS, tag);
+    for (var k in attrs) if (Object.prototype.hasOwnProperty.call(attrs, k)) n.setAttribute(k, attrs[k]);
+    return n;
+  }
+
+  // Мини-карта: пользователь в центре, пины отделений нормализованы в bounding box
+  function drawMiniMap(uLat, uLon, places) {
+    // очистить всё, кроме <title>
+    var title = minimap.querySelector('title');
+    minimap.textContent = '';
+    if (title) minimap.appendChild(title);
+
+    var W = 320, H = 240, cx = 160, cy = 120, R = 96;
+    // фоновые кольца дальности
+    [R, R * 0.66, R * 0.33].forEach(function (r) {
+      minimap.appendChild(svgEl('circle', { cx: cx, cy: cy, r: r, fill: 'none', stroke: '#1D2634', 'stroke-width': 1 }));
+    });
+    // перекрестье
+    minimap.appendChild(svgEl('line', { x1: cx - R, y1: cy, x2: cx + R, y2: cy, stroke: '#161e2b', 'stroke-width': 1 }));
+    minimap.appendChild(svgEl('line', { x1: cx, y1: cy - R, x2: cx, y2: cy + R, stroke: '#161e2b', 'stroke-width': 1 }));
+
+    var rad = Math.PI / 180;
+    var cosLat = Math.cos(uLat * rad) || 1;
+    var maxAbs = 0.0001;
+    var pts = places.map(function (p) {
+      var dLat = (Number(p.lat) || uLat) - uLat;
+      var dLon = ((Number(p.lon) || uLon) - uLon) * cosLat;
+      maxAbs = Math.max(maxAbs, Math.abs(dLat), Math.abs(dLon));
+      return { dLat: dLat, dLon: dLon, p: p };
+    });
+    var scale = (R * 0.86) / maxAbs;
+
+    pts.forEach(function (o, i) {
+      var x = cx + o.dLon * scale;
+      var y = cy - o.dLat * scale;
+      x = Math.max(16, Math.min(W - 16, x));
+      y = Math.max(16, Math.min(H - 16, y));
+      // луч от центра к пину
+      minimap.appendChild(svgEl('line', { x1: cx, y1: cy, x2: x, y2: y, stroke: '#263041', 'stroke-width': 1, 'stroke-dasharray': '3 3' }));
+      // пин
+      minimap.appendChild(svgEl('circle', { cx: x, cy: y, r: 12, fill: 'rgba(255,176,32,.16)', stroke: '#FFB020', 'stroke-width': 1.5 }));
+      var num = svgEl('text', { x: x, y: y + 4, 'text-anchor': 'middle', fill: '#FFB020', 'font-size': 11, 'font-weight': 800, 'font-family': 'ui-monospace,Consolas,monospace' });
+      num.textContent = String(i + 1);
+      minimap.appendChild(num);
+    });
+
+    // позиция пользователя — по центру, поверх
+    minimap.appendChild(svgEl('circle', { cx: cx, cy: cy, r: 13, fill: 'rgba(56,224,200,.18)', stroke: '#38E0C8', 'stroke-width': 2 }));
+    minimap.appendChild(svgEl('circle', { cx: cx, cy: cy, r: 4.5, fill: '#38E0C8' }));
+
+    minimapWrap.classList.add('show');
+  }
+
+  function renderPlaces(list, uLat, uLon) {
+    placesBox.textContent = '';
+    if (!list.length) { Q.toast(Q.i18n.t('hNoPlaces'), 'warn'); minimapWrap.classList.remove('show'); return; }
+    drawMiniMap(uLat, uLon, list);
+    list.forEach(function (p, i) {
+      var row = el('div', 'place');
+      row.appendChild(el('span', 'place-pin', String(i + 1)));
+      var b = el('div', 'place-b');
+      b.appendChild(el('div', 'place-name', p.name || ''));
+      if (p.address) b.appendChild(el('div', 'place-addr', p.address));
+      var meta = el('div', 'place-meta');
+      if (p.distance_km != null) {
+        var dist = el('span', 'place-dist'); dist.appendChild(Q.icon('map-pin'));
+        dist.appendChild(el('span', null, (Math.round(Number(p.distance_km) * 10) / 10) + ' ' + Q.i18n.t('hKm')));
+        meta.appendChild(dist);
+      }
+      var dial = (p.phone || '').replace(/[^\d+]/g, '');
+      if (dial) {
+        var tel = document.createElement('a'); tel.className = 'con place-tel'; tel.href = 'tel:' + dial;
+        tel.appendChild(Q.icon('phone')); tel.appendChild(el('span', null, p.phone));
+        meta.appendChild(tel);
+      }
+      b.appendChild(meta);
+      row.appendChild(b);
+      placesBox.appendChild(row);
+    });
+  }
+
+  async function fetchPlaces(lat, lon) {
+    try {
+      var list = await Q.fetchJSON('/help/places?lat=' + encodeURIComponent(lat) + '&lon=' + encodeURIComponent(lon) + '&kind=' + encodeURIComponent(kind));
+      renderPlaces(Array.isArray(list) ? list : [], lat, lon);
+    } catch (e) {
+      var msg = e && e.kind === 'net' ? Q.i18n.t('errNet') : Q.i18n.t('hErr');
+      Q.toast(msg, 'error');
+    }
+    mapBusy = false; findBtn.classList.remove('busy'); findLbl.textContent = Q.i18n.t('hFind');
+  }
+
+  function useCity() {
+    cityFallback.classList.add('show');
+    var parts = citySel.value.split(',');
+    fetchPlaces(parseFloat(parts[0]), parseFloat(parts[1]));
+  }
+
+  findBtn.addEventListener('click', function () {
+    if (mapBusy) return;
+    mapBusy = true; findBtn.classList.add('busy'); findLbl.textContent = Q.i18n.t('hFinding');
+    if (!navigator.geolocation) { Q.toast(Q.i18n.t('hGeoDenied'), 'warn'); useCity(); return; }
+    navigator.geolocation.getCurrentPosition(
+      function (pos) { fetchPlaces(pos.coords.latitude, pos.coords.longitude); },
+      function () { Q.toast(Q.i18n.t('hGeoDenied'), 'warn'); useCity(); },
+      { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 }
+    );
+  });
+
+  // смена города в фолбэке — сразу пересчёт
+  citySel.addEventListener('change', function () {
+    if (cityFallback.classList.contains('show')) {
+      var parts = citySel.value.split(',');
+      fetchPlaces(parseFloat(parts[0]), parseFloat(parts[1]));
+    }
+  });
+});
+</script>
+</body>
+</html>
