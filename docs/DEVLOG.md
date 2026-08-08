@@ -2,6 +2,21 @@
 
 > Ведёт оркестратор. Новые записи — сверху. Формат: дата-время, что сделано, что дальше.
 
+## 2026-08-08 ~18:30 — ПРОД ЖИВОЙ 🚀
+
+**https://api-production-029f.up.railway.app** — чекер, /demo.html — пульт.
+
+Прод-смоук зелёный: healthz {db:true, llm:groq}; /analyze через Groq
+(98/high, degraded=false); bootstrap схемы отработал на чистом
+Railway-Postgres; сид 148 сигналов; /admin/* без токена — 401 (ADMIN_TOKEN
+в силе, значение в .env.railway); обе страницы 200; privacy/proof работает.
+
+Нюансы прода: DATABASE_URL дополнен `?sslmode=disable` (internal-Postgres
+Railway без TLS, lib/pq по умолчанию требует SSL); GROQ_MODEL на проде =
+llama-3.1-8b-instant (суточная квота 70b выжжена eval-прогоном, вернуть
+завтра при желании). Bot-сервис НЕ задеплоен — ждём валидный
+TELEGRAM_BOT_TOKEN (текущий Telegram отвергает 401).
+
 ## 2026-08-08 ~18:20 — параллельная разработка завершена, интеграция зелёная
 
 **Фронт (агент):** index.html переписан (SVG-спидометр, RU/QZ ~40 строк, баннер
