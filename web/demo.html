@@ -1,0 +1,541 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<meta name="theme-color" content="#080c16"/>
+<title>Qorǵau — пульт демо</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23ffb224'/%3E%3Cstop offset='1' stop-color='%235b8cff'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M16 2 27 6.5v8.2c0 7-4.7 12.3-11 15.3-6.3-3-11-8.3-11-15.3V6.5L16 2z' fill='url(%23g)'/%3E%3Cpath d='M10.5 15.5l4 4 7-7.5' fill='none' stroke='%23080c16' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"/>
+<style>
+  :root{
+    --bg:#080c16; --card:#101a2e; --card-2:#0c1424; --input:#0b1220;
+    --line:rgba(148,166,204,.14); --line-strong:rgba(148,166,204,.28);
+    --txt:#e9eef8; --mut:#8b98b6; --mut-2:#5f6c8a;
+    --acc:#5b8cff; --acc-soft:rgba(91,140,255,.14);
+    --red:#ff5d6c; --red-soft:rgba(255,93,108,.13);
+    --yellow:#ffb224; --yellow-soft:rgba(255,178,36,.13);
+    --green:#2ee6a8; --green-soft:rgba(46,230,168,.12);
+    --r-lg:18px; --r-md:12px; --r-sm:9px;
+    --shadow:0 10px 32px rgba(2,6,16,.5);
+    --ease:cubic-bezier(.22,.9,.3,1);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;color:var(--txt);
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;
+    background:radial-gradient(900px 460px at 90% -10%, rgba(91,140,255,.1), transparent 70%), var(--bg);
+    min-height:100vh;line-height:1.45;font-size:14px}
+  .wrap{max-width:1060px;margin:0 auto;padding:18px 16px 40px}
+
+  /* top bar */
+  .top{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+  .top .logo{width:34px;height:34px;flex:none}
+  .top h1{font-size:17px;margin:0;font-weight:800}
+  .top .sub{font-size:11.5px;color:var(--mut);margin:0}
+  .top-right{margin-left:auto;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .token{display:flex;align-items:center;gap:6px;background:var(--card-2);
+         border:1px solid var(--line);border-radius:var(--r-sm);padding:4px 6px 4px 10px}
+  .token label{font-size:11px;color:var(--mut-2);white-space:nowrap}
+  .token input{background:transparent;border:0;color:var(--txt);font:inherit;font-size:12.5px;
+         width:130px;outline:none;font-family:ui-monospace,Consolas,monospace}
+  .pause{display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--mut);cursor:pointer;user-select:none}
+
+  /* switch */
+  .sw{position:relative;width:36px;height:20px;flex:none}
+  .sw input{position:absolute;opacity:0;inset:0;margin:0;cursor:pointer;z-index:1}
+  .sw i{position:absolute;inset:0;background:#1a2540;border:1px solid var(--line);
+        border-radius:999px;transition:background .2s,border-color .2s}
+  .sw i::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;
+        background:var(--mut);transition:transform .2s var(--ease),background .2s}
+  .sw input:checked + i{background:rgba(91,140,255,.35);border-color:var(--acc)}
+  .sw input:checked + i::after{transform:translateX(16px);background:#fff}
+  .sw input:disabled + i{opacity:.45}
+
+  /* grid */
+  .grid{display:grid;gap:14px;grid-template-columns:1fr}
+  @media(min-width:860px){
+    .grid{grid-template-columns:1.35fr 1fr}
+    .span2{grid-column:1 / -1}
+  }
+  .sec{background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);
+       padding:16px;box-shadow:var(--shadow)}
+  .sec > h2{margin:0 0 12px;font-size:11.5px;font-weight:800;letter-spacing:1.4px;
+       text-transform:uppercase;color:var(--mut)}
+
+  /* scenario buttons */
+  .scen{display:grid;gap:10px;grid-template-columns:1fr}
+  @media(min-width:560px){.scen{grid-template-columns:repeat(3,1fr)}}
+  .scen-card{background:var(--card-2);border:1px solid var(--line);border-radius:var(--r-md);
+       padding:13px;display:flex;flex-direction:column;gap:8px;transition:border-color .2s,transform .15s var(--ease)}
+  .scen-card:hover{border-color:var(--line-strong)}
+  .scen-card .ic{font-size:22px;line-height:1}
+  .scen-card .name{font-weight:700;font-size:13.5px}
+  .scen-card .desc{font-size:11.5px;color:var(--mut);flex:1}
+  .scen-card .row{display:flex;gap:6px}
+  .btn{border:0;border-radius:var(--r-sm);padding:9px 12px;font:inherit;font-size:13px;font-weight:700;
+       cursor:pointer;transition:transform .15s var(--ease),opacity .2s,box-shadow .2s;color:#fff}
+  .btn:active:not(:disabled){transform:scale(.97)}
+  .btn:disabled{opacity:.55;cursor:default}
+  .btn.acc{background:linear-gradient(135deg,#4f82ff,#6a95ff);box-shadow:0 5px 16px rgba(79,130,255,.3)}
+  .btn.warn{background:linear-gradient(135deg,#e69a0e,#ffb224);color:#231a05;box-shadow:0 5px 16px rgba(255,178,36,.25)}
+  .btn.danger{background:linear-gradient(135deg,#e04655,#ff5d6c);box-shadow:0 5px 16px rgba(255,93,108,.25)}
+  .btn.ghost{background:var(--input);color:var(--mut);border:1px solid var(--line)}
+  .btn.full{width:100%}
+  .mini-input,.mini-select{background:var(--input);border:1px solid var(--line);color:var(--txt);
+       border-radius:var(--r-sm);padding:8px 9px;font:inherit;font-size:12.5px;min-width:0}
+  .mini-select{flex:1;appearance:none;-webkit-appearance:none;
+       background:var(--input) no-repeat right 8px center;
+       background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%238b98b6' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E");
+       padding-right:24px}
+  .mini-input{width:58px;text-align:center;font-variant-numeric:tabular-nums}
+  .mini-input:focus,.mini-select:focus{outline:none;border-color:var(--acc)}
+  .confirm{display:none;gap:6px;align-items:center}
+  .confirm.show{display:flex}
+  .confirm span{font-size:11.5px;color:#ffb3bc;flex:1}
+
+  /* flags */
+  .flag-row{display:flex;align-items:center;gap:12px;padding:10px 2px;border-bottom:1px solid var(--line)}
+  .flag-row:last-child{border-bottom:0}
+  .flag-row .info{flex:1;min-width:0}
+  .flag-row .name{font-size:13.5px;font-weight:600}
+  .flag-row .desc{font-size:11.5px;color:var(--mut)}
+
+  /* table */
+  .tbl-wrap{overflow-x:auto;margin:0 -4px}
+  table{width:100%;border-collapse:collapse;font-size:12.5px;min-width:520px}
+  th{font-size:10.5px;text-transform:uppercase;letter-spacing:1px;color:var(--mut-2);
+     text-align:left;padding:6px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+  td{padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap;color:#cdd6e8}
+  tr:last-child td{border-bottom:0}
+  td.time{font-variant-numeric:tabular-nums;color:var(--mut)}
+  .risk-b{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:800;
+     padding:2px 9px;border-radius:999px;font-variant-numeric:tabular-nums}
+  .risk-b.high{background:var(--red-soft);color:var(--red)}
+  .risk-b.medium{background:var(--yellow-soft);color:var(--yellow)}
+  .risk-b.low{background:var(--green-soft);color:var(--green)}
+  .deg-b{font-size:10.5px;color:var(--yellow);background:var(--yellow-soft);
+     padding:1px 7px;border-radius:999px}
+  .empty{padding:22px 10px;text-align:center;color:var(--mut-2);font-size:12.5px}
+
+  /* campaigns */
+  .camp{display:flex;flex-direction:column;gap:8px}
+  .camp-card{background:linear-gradient(135deg,rgba(255,93,108,.11),rgba(255,93,108,.04));
+     border:1px solid rgba(255,93,108,.3);border-radius:var(--r-md);padding:11px 13px;
+     display:flex;align-items:center;gap:10px}
+  .camp-dot{width:8px;height:8px;border-radius:50%;background:var(--red);flex:none;
+     animation:blink 1.5s ease-in-out infinite}
+  @keyframes blink{50%{opacity:.35}}
+  .camp-card .t{font-weight:700;font-size:13px}
+  .camp-card .m{font-size:11.5px;color:var(--mut)}
+  .camp-card .peak{margin-left:auto;font-weight:800;color:var(--red);font-size:15px;
+     font-variant-numeric:tabular-nums}
+  .camp-card .peak small{font-weight:600;color:var(--mut-2);font-size:10px;display:block;text-align:right}
+
+  /* system */
+  .sys{display:flex;flex-direction:column;gap:10px}
+  .sys-row{display:flex;align-items:center;gap:9px;font-size:13px}
+  .ind{width:9px;height:9px;border-radius:50%;flex:none;background:var(--mut-2)}
+  .ind.ok{background:var(--green);box-shadow:0 0 8px rgba(46,230,168,.6)}
+  .ind.bad{background:var(--red);box-shadow:0 0 8px rgba(255,93,108,.6)}
+  .ind.warn{background:var(--yellow);box-shadow:0 0 8px rgba(255,178,36,.6)}
+  .sys-row .val{margin-left:auto;font-size:11.5px;color:var(--mut);font-family:ui-monospace,Consolas,monospace}
+  .links{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
+  .links a{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--acc);
+     text-decoration:none;background:var(--acc-soft);border:1px solid rgba(91,140,255,.25);
+     padding:6px 11px;border-radius:999px;transition:transform .15s var(--ease)}
+  .links a:hover{transform:translateY(-1px)}
+
+  /* toasts */
+  .toasts{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:60;
+     display:flex;flex-direction:column;gap:8px;align-items:center;width:min(92vw,420px)}
+  .toast{background:var(--card);border:1px solid var(--line-strong);border-radius:var(--r-md);
+     padding:10px 15px;font-size:13px;box-shadow:var(--shadow);width:100%;text-align:center;
+     animation:tin .3s var(--ease)}
+  .toast.ok{border-color:rgba(46,230,168,.4)}
+  .toast.err{border-color:rgba(255,93,108,.45)}
+  .toast.out{opacity:0;transform:translateY(8px);transition:all .3s}
+  @keyframes tin{from{opacity:0;transform:translateY(10px)}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="top">
+    <svg class="logo" viewBox="0 0 32 32" aria-hidden="true">
+      <defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#ffb224"/><stop offset="1" stop-color="#5b8cff"/>
+      </linearGradient></defs>
+      <path d="M16 2 27 6.5v8.2c0 7-4.7 12.3-11 15.3-6.3-3-11-8.3-11-15.3V6.5L16 2z" fill="url(#lg)"/>
+      <path d="M10.5 15.5l4 4 7-7.5" fill="none" stroke="#080c16" stroke-width="3"
+            stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <div>
+      <h1>Qorǵau · Control Room</h1>
+      <p class="sub">пульт управления демо</p>
+    </div>
+    <div class="top-right">
+      <label class="pause"><span class="sw"><input type="checkbox" id="autoRef" checked><i></i></span>
+        автообновление</label>
+      <div class="token">
+        <label for="token">🔑 Admin token</label>
+        <input id="token" type="password" placeholder="пусто = без токена" autocomplete="off"/>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid">
+
+    <!-- ============ scenario ============ -->
+    <section class="sec span2">
+      <h2>Сценарий демо</h2>
+      <div class="scen">
+        <div class="scen-card">
+          <div class="ic">🌱</div>
+          <div class="name">Засеять историю</div>
+          <div class="desc">24 часа правдоподобных сигналов (~6/час): разные схемы, регионы, риски. Оживляет графики и статистику.</div>
+          <button class="btn acc full" id="seedBtn" type="button">Засеять</button>
+        </div>
+        <div class="scen-card">
+          <div class="ic">📈</div>
+          <div class="name">Запустить всплеск</div>
+          <div class="desc">Впрыск сигналов одной схемы за последние минуты — детектор поднимет кампанию на ближайшем тике.</div>
+          <div class="row">
+            <select class="mini-select" id="spikeScheme"></select>
+            <input class="mini-input" id="spikeCount" type="number" min="1" max="500" value="25"/>
+          </div>
+          <button class="btn warn full" id="spikeBtn" type="button">Всплеск</button>
+        </div>
+        <div class="scen-card">
+          <div class="ic">🧹</div>
+          <div class="name">Очистить аналитику</div>
+          <div class="desc">Полный сброс analytics (сигналы, индикаторы, кампании) для чистого прогона.</div>
+          <button class="btn danger full" id="clearBtn" type="button">Очистить…</button>
+          <div class="confirm" id="clearConfirm">
+            <span>Точно стереть всё?</span>
+            <button class="btn danger" id="clearYes" type="button">Да</button>
+            <button class="btn ghost" id="clearNo" type="button">Отмена</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ live feed ============ -->
+    <section class="sec">
+      <h2>Живой поток <span id="feedMeta" style="text-transform:none;letter-spacing:0;color:var(--mut-2);font-weight:600"></span></h2>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr>
+            <th>Время</th><th>Схема</th><th>Риск</th><th>Регион</th><th>Канал</th><th></th>
+          </tr></thead>
+          <tbody id="feedBody"></tbody>
+        </table>
+      </div>
+      <div class="empty" id="feedEmpty" style="display:none">
+        Пока пусто. Засей историю или проверь сообщение в чекере →
+      </div>
+    </section>
+
+    <div style="display:flex;flex-direction:column;gap:14px">
+
+      <!-- ============ flags ============ -->
+      <section class="sec">
+        <h2>Фичи</h2>
+        <div class="flag-row">
+          <div class="info">
+            <div class="name">Форсировать базовый режим</div>
+            <div class="desc">Ответы без LLM — показать эвристический фолбэк жюри</div>
+          </div>
+          <span class="sw"><input type="checkbox" id="f_force_degraded" disabled><i></i></span>
+        </div>
+        <div class="flag-row">
+          <div class="info">
+            <div class="name">TG-предупреждения</div>
+            <div class="desc">Broadcast подписчикам при новой кампании</div>
+          </div>
+          <span class="sw"><input type="checkbox" id="f_broadcast_enabled" disabled><i></i></span>
+        </div>
+        <div class="flag-row">
+          <div class="info">
+            <div class="name">Rate limit</div>
+            <div class="desc">Ограничение частоты запросов к /analyze</div>
+          </div>
+          <span class="sw"><input type="checkbox" id="f_rate_limit_enabled" disabled><i></i></span>
+        </div>
+      </section>
+
+      <!-- ============ campaigns ============ -->
+      <section class="sec">
+        <h2>Кампании</h2>
+        <div class="camp" id="campBox">
+          <div class="empty" id="campEmpty">Активных волн нет</div>
+        </div>
+      </section>
+
+      <!-- ============ system ============ -->
+      <section class="sec">
+        <h2>Система</h2>
+        <div class="sys">
+          <div class="sys-row"><span class="ind" id="indApi"></span> API <span class="val" id="valApi">—</span></div>
+          <div class="sys-row"><span class="ind" id="indDb"></span> PostgreSQL <span class="val" id="valDb">—</span></div>
+          <div class="sys-row"><span class="ind" id="indLlm"></span> LLM (Groq) <span class="val" id="valLlm">—</span></div>
+        </div>
+        <div class="links">
+          <a href="/" id="lnkChecker">🛡 Чекер</a>
+          <a href="http://localhost:3000/d/qorgau-radar" target="_blank" rel="noopener">📊 Grafana</a>
+          <a href="/threat-feed" target="_blank" rel="noopener" id="lnkFeed">🧾 Threat-feed</a>
+          <a href="/privacy/proof" target="_blank" rel="noopener" id="lnkProof">🔐 Privacy proof</a>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
+
+<div class="toasts" id="toasts"></div>
+
+<script>
+'use strict';
+const API = location.protocol === 'file:' ? 'http://localhost:8080' : '';
+const $ = id => document.getElementById(id);
+
+// file:// подстраховка: относительные ссылки ведём на localhost:8080
+if (location.protocol === 'file:') {
+  $('lnkChecker').href = API + '/';
+  $('lnkFeed').href = API + '/threat-feed';
+  $('lnkProof').href = API + '/privacy/proof';
+}
+
+/* ================= admin token ================= */
+const tokenInput = $('token');
+tokenInput.value = localStorage.getItem('qorgau_admin_token') || '';
+tokenInput.addEventListener('input', () => {
+  localStorage.setItem('qorgau_admin_token', tokenInput.value.trim());
+});
+function adminHeaders(json){
+  const h = {};
+  if (json) h['Content-Type'] = 'application/json';
+  const tok = tokenInput.value.trim();
+  if (tok) h['X-Admin-Token'] = tok;
+  return h;
+}
+async function adminPost(path, body){
+  const r = await fetch(API + path, {
+    method: 'POST', headers: adminHeaders(true), body: JSON.stringify(body || {})
+  });
+  if (r.status === 401 || r.status === 403) throw new Error('нет доступа — проверь Admin token');
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  return r.json().catch(() => ({}));
+}
+async function adminGet(path){
+  const r = await fetch(API + path, { headers: adminHeaders(false) });
+  if (r.status === 401 || r.status === 403) throw new Error('нет доступа — проверь Admin token');
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  return r.json();
+}
+
+/* ================= toasts ================= */
+function toast(msg, kind){
+  const box = $('toasts');
+  const el = document.createElement('div');
+  el.className = 'toast ' + (kind || '');
+  el.textContent = msg;
+  box.appendChild(el);
+  setTimeout(() => { el.classList.add('out'); setTimeout(() => el.remove(), 350); }, 3500);
+}
+
+/* ================= scenario ================= */
+const SCHEMES = [
+  ['bank_security', 'Служба безопасности банка'],
+  ['card_block', 'Блокировка карты'],
+  ['prize_payout', 'Выигрыш / выплата'],
+  ['relative_help', '«Родственник в беде»'],
+  ['phishing_link', 'Фишинговая ссылка'],
+  ['investment', 'Инвестиции'],
+  ['gov_payout', 'Госвыплата'],
+  ['remote_install', 'Удалённый доступ']
+];
+const spikeSel = $('spikeScheme');
+SCHEMES.forEach(([code, title]) => {
+  const o = document.createElement('option');
+  o.value = code; o.textContent = title;
+  spikeSel.appendChild(o);
+});
+spikeSel.value = 'bank_security';
+
+async function doAction(btn, label, fn){
+  btn.disabled = true;
+  const old = btn.textContent;
+  btn.textContent = '…';
+  try {
+    const res = await fn();
+    toast(label + (res && res.inserted != null ? ' — вставлено: ' + res.inserted : ' — готово'), 'ok');
+    refreshAll();
+  } catch (e) {
+    toast(label + ': ошибка (' + e.message + ')', 'err');
+  }
+  btn.disabled = false;
+  btn.textContent = old;
+}
+$('seedBtn').addEventListener('click', () =>
+  doAction($('seedBtn'), 'Засев истории', () =>
+    adminPost('/admin/seed', { history_hours: 24, per_hour: 6 })));
+$('spikeBtn').addEventListener('click', () => {
+  const count = Math.max(1, Math.min(500, parseInt($('spikeCount').value, 10) || 25));
+  const scheme = spikeSel.value;
+  doAction($('spikeBtn'), 'Всплеск ' + scheme + ' ×' + count, () =>
+    adminPost('/admin/spike', { scheme, count }));
+});
+$('clearBtn').addEventListener('click', () => {
+  $('clearBtn').style.display = 'none';
+  $('clearConfirm').classList.add('show');
+});
+$('clearNo').addEventListener('click', () => {
+  $('clearConfirm').classList.remove('show');
+  $('clearBtn').style.display = '';
+});
+$('clearYes').addEventListener('click', async () => {
+  $('clearConfirm').classList.remove('show');
+  $('clearBtn').style.display = '';
+  await doAction($('clearBtn'), 'Очистка аналитики', () => adminPost('/admin/clear', {}));
+});
+
+/* ================= feature flags ================= */
+const FLAG_IDS = ['force_degraded', 'broadcast_enabled', 'rate_limit_enabled'];
+let flagsLoaded = false;
+async function loadFlags(){
+  try {
+    const f = await adminGet('/admin/flags');
+    FLAG_IDS.forEach(k => {
+      const cb = $('f_' + k);
+      cb.checked = !!f[k];
+      cb.disabled = false;
+    });
+    flagsLoaded = true;
+  } catch (_) { /* флаги недоступны — тумблеры остаются выключенными/disabled */ }
+}
+FLAG_IDS.forEach(k => {
+  $('f_' + k).addEventListener('change', async e => {
+    const cb = e.target;
+    const val = cb.checked; // оптимистично уже переключено
+    try {
+      await adminPost('/admin/flags', { [k]: val });
+      toast('Флаг ' + k + ' → ' + (val ? 'on' : 'off'), 'ok');
+    } catch (err) {
+      cb.checked = !val; // откат
+      toast('Флаг ' + k + ': ошибка (' + err.message + ')', 'err');
+    }
+  });
+});
+
+/* ================= live feed ================= */
+const RISK_ICON = { high: '⛔', medium: '⚠', low: '✓' };
+function fmtTime(iso){
+  const d = new Date(iso);
+  if (isNaN(d)) return '—';
+  return d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+}
+async function loadRecent(){
+  try {
+    const list = await adminGet('/admin/recent?limit=20');
+    const rows = Array.isArray(list) ? list : [];
+    const body = $('feedBody');
+    body.textContent = '';
+    $('feedEmpty').style.display = rows.length ? 'none' : '';
+    $('feedMeta').textContent = rows.length ? '· ' + rows.length : '';
+    rows.forEach(s => {
+      const tr = document.createElement('tr');
+      const td = (cls) => { const c = document.createElement('td'); if (cls) c.className = cls; tr.appendChild(c); return c; };
+      td('time').textContent = fmtTime(s.created_at);
+      td().textContent = s.title || s.scheme || '—';
+      const riskTd = td();
+      const b = document.createElement('span');
+      const lvl = s.risk_level || 'low';
+      b.className = 'risk-b ' + lvl;
+      b.textContent = (RISK_ICON[lvl] || '') + ' ' + (s.risk_score != null ? s.risk_score : '—');
+      riskTd.appendChild(b);
+      td().textContent = s.region || '—';
+      td().textContent = s.channel || '—';
+      const dTd = td();
+      if (s.degraded) {
+        const dg = document.createElement('span');
+        dg.className = 'deg-b'; dg.textContent = 'degraded';
+        dTd.appendChild(dg);
+      }
+      body.appendChild(tr);
+    });
+  } catch (_) {
+    $('feedEmpty').style.display = '';
+    $('feedMeta').textContent = '';
+  }
+}
+
+/* ================= campaigns ================= */
+async function loadCampaigns(){
+  try {
+    const r = await fetch(API + '/campaigns/active');
+    if (!r.ok) throw 0;
+    const list = await r.json();
+    const box = $('campBox');
+    box.textContent = '';
+    if (!Array.isArray(list) || !list.length) {
+      const e = document.createElement('div');
+      e.className = 'empty'; e.textContent = 'Активных волн нет';
+      box.appendChild(e);
+      return;
+    }
+    list.forEach(c => {
+      const card = document.createElement('div');
+      card.className = 'camp-card';
+      const dot = document.createElement('span'); dot.className = 'camp-dot';
+      const info = document.createElement('div');
+      const tt = document.createElement('div'); tt.className = 't'; tt.textContent = c.title || c.scheme || '';
+      const m = document.createElement('div'); m.className = 'm';
+      m.textContent = 'с ' + fmtTime(c.started_at);
+      info.append(tt, m);
+      const peak = document.createElement('div'); peak.className = 'peak';
+      peak.textContent = String(c.peak != null ? c.peak : 0);
+      const small = document.createElement('small'); small.textContent = 'пик/час';
+      peak.appendChild(small);
+      card.append(dot, info, peak);
+      box.appendChild(card);
+    });
+  } catch (_) { /* оставляем как есть */ }
+}
+
+/* ================= health ================= */
+function setInd(id, valId, state, text){
+  const ind = $(id);
+  ind.className = 'ind' + (state ? ' ' + state : '');
+  $(valId).textContent = text;
+}
+async function loadHealth(){
+  try {
+    const r = await fetch(API + '/healthz');
+    if (!r.ok) throw 0;
+    let h = null;
+    try { h = await r.json(); } catch (_) {} // бэк мог ещё не перейти на JSON-контракт
+    setInd('indApi', 'valApi', 'ok', (h && h.status) || 'ok');
+    if (h && 'db' in h) setInd('indDb', 'valDb', h.db ? 'ok' : 'bad', h.db ? 'up' : 'down');
+    else setInd('indDb', 'valDb', '', '—');
+    if (h && h.llm) setInd('indLlm', 'valLlm', h.llm === 'groq' ? 'ok' : 'warn', h.llm);
+    else setInd('indLlm', 'valLlm', '', '—');
+  } catch (_) {
+    setInd('indApi', 'valApi', 'bad', 'нет связи');
+    setInd('indDb', 'valDb', '', '—');
+    setInd('indLlm', 'valLlm', '', '—');
+  }
+}
+
+/* ================= auto refresh ================= */
+function refreshAll(){ loadRecent(); loadCampaigns(); loadHealth(); }
+setInterval(() => { if ($('autoRef').checked) loadRecent(); }, 10000);
+setInterval(() => { if ($('autoRef').checked) { loadCampaigns(); loadHealth(); } }, 30000);
+$('autoRef').addEventListener('change', e => {
+  if (e.target.checked) { refreshAll(); toast('Автообновление включено', 'ok'); }
+  else toast('Автообновление на паузе', '');
+});
+
+/* ================= boot ================= */
+loadFlags();
+refreshAll();
+</script>
+</body>
+</html>

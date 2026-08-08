@@ -1,0 +1,9 @@
+.git
+.env
+.env.*
+*.exe
+*.log
+.claude
+.idea
+.vscode
+grafana

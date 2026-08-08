@@ -1,5 +1,8 @@
 -- Qorǵau — схема БД. Две зоны: pii (сырьё) и analytics (обезличенное).
 -- Разделение зон — ключевая архитектурная фишка (GDPR/152-ФЗ) на защите.
+-- Схема идемпотентна: её безопасно выполнять повторно (bootstrap при старте API).
+
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 CREATE SCHEMA IF NOT EXISTS pii;
 CREATE SCHEMA IF NOT EXISTS analytics;
@@ -7,13 +10,19 @@ CREATE SCHEMA IF NOT EXISTS analytics;
 -- === ЗОНА PII: только сырьё, короткий TTL, сюда не ходит аналитика ===
 CREATE TABLE IF NOT EXISTS pii.raw_submission (
     id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    raw_text    TEXT NOT NULL,              -- в проде: шифровать (pgcrypto). В MVP допустимо plain + TTL.
+    raw_text    BYTEA NOT NULL,             -- pgp_sym_encrypt(текст, PII_ENC_KEY)
     channel     TEXT NOT NULL,              -- tg | web
     created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
     expires_at  TIMESTAMPTZ NOT NULL        -- created_at + PII_TTL
 );
--- Очистка по TTL (запускать по крону / фоновым тикером в API):
+-- Очистка по TTL выполняется фоновым тикером API:
 -- DELETE FROM pii.raw_submission WHERE expires_at < now();
+
+-- Подписчики бота (chat_id — идентификатор, поэтому зона pii).
+CREATE TABLE IF NOT EXISTS pii.subscriber (
+    chat_id     BIGINT PRIMARY KEY,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
 
 -- === ЗОНА ANALYTICS: обезличенные признаки, живёт долго ===
 CREATE TABLE IF NOT EXISTS analytics.scheme (
@@ -43,16 +52,19 @@ CREATE TABLE IF NOT EXISTS analytics.signal (
     impersonated_brand  TEXT,
     region              TEXT,
     lang                TEXT NOT NULL DEFAULT 'ru',
+    channel             TEXT NOT NULL DEFAULT 'web',     -- web | tg
     degraded            BOOLEAN NOT NULL DEFAULT false,  -- вердикт из фолбэка
     created_at          TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+-- Для баз, созданных по старой версии схемы:
+ALTER TABLE analytics.signal ADD COLUMN IF NOT EXISTS channel TEXT NOT NULL DEFAULT 'web';
 CREATE INDEX IF NOT EXISTS idx_signal_scheme_time ON analytics.signal (scheme_code, created_at);
 
 CREATE TABLE IF NOT EXISTS analytics.ioc (
     id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     signal_id   UUID NOT NULL REFERENCES analytics.signal(id) ON DELETE CASCADE,
     type        TEXT NOT NULL,             -- domain | phone | iban | url
-    value_hash  TEXT NOT NULL             -- хэш/маска, НЕ сырьё
+    value_hash  TEXT NOT NULL             -- маска/хэш, НЕ сырьё
 );
 
 CREATE TABLE IF NOT EXISTS analytics.campaign (
@@ -60,8 +72,10 @@ CREATE TABLE IF NOT EXISTS analytics.campaign (
     scheme_code  TEXT NOT NULL REFERENCES analytics.scheme(code),
     started_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
     peak_value   INT NOT NULL,
-    status       TEXT NOT NULL DEFAULT 'active'  -- active | closed
+    status       TEXT NOT NULL DEFAULT 'active',  -- active | closed
+    closed_at    TIMESTAMPTZ
 );
+ALTER TABLE analytics.campaign ADD COLUMN IF NOT EXISTS closed_at TIMESTAMPTZ;
 
 -- === Витрины для Grafana ===
 -- Динамика по схемам (по часам):

@@ -2,203 +2,665 @@
 <html lang="ru">
 <head>
 <meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+<meta name="theme-color" content="#080c16"/>
 <title>Qorǵau — проверка на мошенничество</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%235b8cff'/%3E%3Cstop offset='1' stop-color='%232ee6a8'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M16 2 27 6.5v8.2c0 7-4.7 12.3-11 15.3-6.3-3-11-8.3-11-15.3V6.5L16 2z' fill='url(%23g)'/%3E%3Cpath d='M10.5 15.5l4 4 7-7.5' fill='none' stroke='%23080c16' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"/>
 <style>
-  :root{--bg:#0b0f17;--card:#141a26;--mut:#8a97ad;--line:#243044;
-        --red:#ff4d5e;--yellow:#ffb020;--green:#22c98a;--txt:#e8edf6}
+  :root{
+    --bg:#080c16; --bg-glow1:rgba(91,140,255,.13); --bg-glow2:rgba(46,230,168,.05);
+    --card:#101a2e; --card-2:#0c1424; --input:#0b1220;
+    --line:rgba(148,166,204,.14); --line-strong:rgba(148,166,204,.26);
+    --txt:#e9eef8; --mut:#8b98b6; --mut-2:#5f6c8a;
+    --acc:#5b8cff; --acc-soft:rgba(91,140,255,.14);
+    --red:#ff5d6c; --red-soft:rgba(255,93,108,.13);
+    --yellow:#ffb224; --yellow-soft:rgba(255,178,36,.13);
+    --green:#2ee6a8; --green-soft:rgba(46,230,168,.12);
+    --r-lg:20px; --r-md:14px; --r-sm:10px;
+    --shadow:0 12px 40px rgba(2,6,16,.55), 0 2px 8px rgba(2,6,16,.4);
+    --ease:cubic-bezier(.22,.9,.3,1);
+  }
   *{box-sizing:border-box}
-  body{margin:0;font-family:system-ui,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--txt)}
-  .wrap{max-width:640px;margin:0 auto;padding:32px 20px 64px}
-  h1{font-size:26px;margin:0 0 4px}
-  .sub{color:var(--mut);margin:0 0 20px;font-size:14px}
-  textarea{width:100%;min-height:120px;background:var(--card);color:var(--txt);
-           border:1px solid var(--line);border-radius:12px;padding:14px;font-size:15px;resize:vertical}
-  textarea:focus{outline:none;border-color:#3b82f6}
-  button{margin-top:12px;width:100%;padding:14px;border:0;border-radius:12px;
-         background:#3b82f6;color:#fff;font-size:16px;font-weight:600;cursor:pointer}
-  button:disabled{opacity:.6;cursor:default}
-  .ex{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
-  .ex button{width:auto;padding:8px 12px;font-size:13px;font-weight:500;background:#1e2636;color:var(--mut)}
-  .hint{color:var(--mut);font-size:12px;text-align:center;margin-top:8px}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0; color:var(--txt);
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;
+    background:
+      radial-gradient(900px 480px at 85% -8%, var(--bg-glow1), transparent 70%),
+      radial-gradient(700px 420px at -10% 30%, var(--bg-glow2), transparent 70%),
+      var(--bg);
+    min-height:100vh; line-height:1.5;
+  }
+  .wrap{max-width:680px;margin:0 auto;padding:20px 16px calc(28px + env(safe-area-inset-bottom))}
+  @media(min-width:760px){.wrap{padding-top:36px}}
 
-  /* Баннер кампании: главный «вау»-элемент — платформа знает, что происходит прямо сейчас. */
-  .alert{display:none;margin:0 0 18px;padding:14px 16px;border-radius:12px;
-         background:linear-gradient(135deg,#2a1620,#331a24);border:1px solid #5c2333}
-  .alert .t{font-weight:700;color:#ffb4bd;font-size:14px;margin-bottom:6px}
-  .alert .b{color:#e7c9cf;font-size:13px;line-height:1.5}
-  .alert .b b{color:#fff}
+  /* ---------- header ---------- */
+  header{display:flex;align-items:center;gap:12px;margin-bottom:20px}
+  .logo{width:44px;height:44px;flex:none;filter:drop-shadow(0 4px 14px rgba(91,140,255,.35))}
+  .brand h1{font-size:22px;margin:0;line-height:1.15;letter-spacing:.2px;font-weight:800}
+  .brand p{margin:1px 0 0;font-size:12.5px;color:var(--mut)}
+  .lang{margin-left:auto;display:flex;background:var(--card-2);border:1px solid var(--line);
+        border-radius:999px;padding:3px;flex:none}
+  .lang button{border:0;background:transparent;color:var(--mut);font:inherit;font-size:12.5px;
+        font-weight:700;padding:5px 12px;border-radius:999px;cursor:pointer;transition:all .2s var(--ease)}
+  .lang button.on{background:var(--acc-soft);color:var(--acc)}
 
-  .card{margin-top:20px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;display:none}
-  .gauge{display:flex;align-items:center;gap:16px}
-  .score{font-size:42px;font-weight:800;line-height:1}
-  .lvl{font-size:13px;text-transform:uppercase;letter-spacing:.5px;padding:4px 10px;border-radius:999px}
-  .bar{height:10px;background:#0e1420;border-radius:999px;overflow:hidden;margin:14px 0}
-  .bar > div{height:100%;border-radius:999px;transition:width .5s}
-  .scheme{font-size:18px;font-weight:700;margin:4px 0 2px}
-  .flags{display:flex;gap:6px;flex-wrap:wrap;margin:12px 0}
-  .flag{background:#2a1620;color:#ffb4bd;border:1px solid #48212c;border-radius:999px;padding:4px 10px;font-size:12px}
-  .expl{color:#d4dbe8;line-height:1.5;margin:8px 0}
-  .act{margin:6px 0 0;padding-left:18px}
-  .act li{margin:4px 0}
-  .iocs{margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
-  .iocs .h{font-size:12px;color:var(--mut);margin-bottom:6px}
-  .ioc{display:inline-block;background:#0e1420;border:1px solid var(--line);border-radius:8px;
-       padding:3px 8px;font-size:12px;margin:0 6px 6px 0;font-family:ui-monospace,Consolas,monospace}
-  .badge{font-size:11px;color:var(--mut);margin-top:10px}
-  .err{color:#ffb4bd;font-size:13px;margin-top:10px;display:none}
+  /* ---------- campaign banner ---------- */
+  .banner{overflow:hidden;max-height:0;opacity:0;transform:translateY(-6px);
+          transition:max-height .5s var(--ease),opacity .4s,transform .4s var(--ease);margin-bottom:0}
+  .banner.show{max-height:260px;opacity:1;transform:none;margin-bottom:16px}
+  .banner-in{background:linear-gradient(135deg,rgba(255,93,108,.13),rgba(255,93,108,.05));
+             border:1px solid rgba(255,93,108,.32);border-radius:var(--r-md);padding:13px 15px}
+  .banner-head{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+  .live-dot{width:8px;height:8px;border-radius:50%;background:var(--red);position:relative;flex:none}
+  .live-dot::after{content:"";position:absolute;inset:-4px;border-radius:50%;
+             border:2px solid var(--red);opacity:0;animation:ping 1.6s ease-out infinite}
+  @keyframes ping{0%{transform:scale(.4);opacity:.9}80%,100%{transform:scale(1.4);opacity:0}}
+  .live-lbl{font-size:11px;font-weight:800;letter-spacing:1.5px;color:var(--red)}
+  .banner-row{font-size:13.5px;color:#f4d7db;margin:3px 0}
+  .banner-row b{color:#fff;font-weight:700}
+
+  /* ---------- input card ---------- */
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);
+        padding:18px;box-shadow:var(--shadow)}
+  textarea{width:100%;min-height:128px;background:var(--input);color:var(--txt);
+        border:1px solid var(--line);border-radius:var(--r-md);padding:13px 14px;
+        font:inherit;font-size:15px;resize:vertical;transition:border-color .2s,box-shadow .2s}
+  textarea:focus{outline:none;border-color:var(--acc);box-shadow:0 0 0 3px var(--acc-soft)}
+  textarea::placeholder{color:var(--mut-2)}
+  .under{display:flex;align-items:center;gap:10px;margin-top:8px}
+  .counter{font-size:11.5px;color:var(--mut-2);font-variant-numeric:tabular-nums;margin-left:auto}
+  .counter.warn{color:var(--yellow)}
+  select{appearance:none;-webkit-appearance:none;background:var(--input) no-repeat right 10px center;
+        background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%238b98b6' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E");
+        color:var(--txt);border:1px solid var(--line);border-radius:var(--r-sm);
+        padding:7px 28px 7px 11px;font:inherit;font-size:13px;cursor:pointer;max-width:52%}
+  select:focus{outline:none;border-color:var(--acc)}
+  .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+  .chip{border:1px solid var(--line);background:var(--card-2);color:var(--mut);
+        font:inherit;font-size:12.5px;padding:7px 12px;border-radius:999px;cursor:pointer;
+        transition:all .2s var(--ease)}
+  .chip:hover{border-color:var(--acc);color:var(--txt);transform:translateY(-1px)}
+  .go{margin-top:14px;width:100%;padding:15px;border:0;border-radius:var(--r-md);cursor:pointer;
+        background:linear-gradient(135deg,#4f82ff,#6a95ff);color:#fff;font:inherit;font-size:16px;
+        font-weight:800;letter-spacing:.2px;display:flex;justify-content:center;align-items:center;gap:10px;
+        box-shadow:0 8px 24px rgba(79,130,255,.35);transition:transform .15s var(--ease),box-shadow .2s,opacity .2s}
+  .go:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 10px 28px rgba(79,130,255,.45)}
+  .go:active:not(:disabled){transform:scale(.985)}
+  .go:disabled{opacity:.65;cursor:default}
+  .spin{width:16px;height:16px;border-radius:50%;border:2.5px solid rgba(255,255,255,.35);
+        border-top-color:#fff;animation:rot .7s linear infinite;display:none}
+  .go.busy .spin{display:block}
+  @keyframes rot{to{transform:rotate(360deg)}}
+  .hint{font-size:11.5px;color:var(--mut-2);text-align:center;margin-top:9px}
+  kbd{background:var(--card-2);border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;
+      padding:1px 5px;font-family:inherit;font-size:10.5px;color:var(--mut)}
+  .err{display:none;margin-top:12px;padding:11px 13px;border-radius:var(--r-sm);font-size:13.5px;
+      background:var(--red-soft);border:1px solid rgba(255,93,108,.3);color:#ffc2ca}
+  .err.show{display:block;animation:fadeup .3s var(--ease)}
+
+  /* ---------- result ---------- */
+  .result{display:none;margin-top:18px}
+  .result.show{display:block;animation:fadeup .45s var(--ease)}
+  @keyframes fadeup{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  .gauge-wrap{position:relative;width:min(250px,72vw);margin:4px auto 0}
+  .gauge-wrap svg{display:block;width:100%;height:auto;overflow:visible}
+  .g-track{stroke:#182338;stroke-width:13;fill:none;stroke-linecap:round}
+  .g-val{stroke:var(--mut);stroke-width:13;fill:none;stroke-linecap:round;
+         transition:stroke-dashoffset 1s var(--ease),stroke .5s}
+  .g-needle{transition:transform 1s var(--ease);transform-box:view-box;transform-origin:110px 104px}
+  .g-needle path{transition:fill .5s}
+  .g-num{position:absolute;left:0;right:0;bottom:2px;text-align:center;pointer-events:none}
+  .g-num .n{font-size:42px;font-weight:800;line-height:1;letter-spacing:-1px;
+            font-variant-numeric:tabular-nums;transition:color .5s}
+  .g-num .of{font-size:12px;color:var(--mut-2);font-weight:600}
+  .lvl-badge{display:flex;justify-content:center;margin-top:12px}
+  .lvl-badge span{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:800;
+            letter-spacing:.6px;text-transform:uppercase;padding:6px 14px;border-radius:999px;
+            border:1px solid transparent}
+  .scheme{font-size:19px;font-weight:800;text-align:center;margin:14px 0 2px;line-height:1.3}
+  .brand-note{font-size:12.5px;color:var(--mut);text-align:center;margin:0 0 4px}
+  .flags{display:flex;gap:7px;flex-wrap:wrap;justify-content:center;margin:12px 0 2px}
+  .flag{background:var(--red-soft);color:#ffb3bc;border:1px solid rgba(255,93,108,.25);
+        border-radius:999px;padding:5px 11px;font-size:12px}
+  .flag.calm{background:var(--green-soft);color:#9df0d2;border-color:rgba(46,230,168,.25)}
+  .expl{color:#cdd6e8;font-size:14.5px;line-height:1.6;margin:12px 0 0;text-align:left}
+  .todo{margin:16px 0 0;padding:14px 15px;background:var(--card-2);border:1px solid var(--line);
+        border-radius:var(--r-md)}
+  .todo .h{font-size:11.5px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;
+        color:var(--mut);margin-bottom:9px}
+  .todo ul{margin:0;padding:0;list-style:none}
+  .todo li{display:flex;gap:9px;font-size:13.5px;line-height:1.45;margin:7px 0;color:#dbe3f2}
+  .todo li::before{content:"✓";flex:none;color:var(--green);font-weight:800;font-size:13px}
+  .iocs{margin-top:14px}
+  .iocs .h{font-size:11.5px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;
+        color:var(--mut);margin-bottom:8px}
+  .ioc{display:inline-flex;gap:6px;background:var(--input);border:1px solid var(--line);
+       border-radius:8px;padding:4px 9px;font-size:12px;margin:0 6px 6px 0;
+       font-family:ui-monospace,SFMono-Regular,Consolas,monospace}
+  .ioc .t{color:var(--mut-2)}
+  .degraded{display:none;margin-top:14px;padding:9px 13px;border-radius:var(--r-sm);font-size:12.5px;
+       background:var(--yellow-soft);border:1px solid rgba(255,178,36,.3);color:#ffd88a}
+  .degraded.show{display:flex;gap:8px;align-items:center}
+
+  /* skeleton */
+  .skel-box{display:none;margin-top:18px}
+  .skel-box.show{display:block}
+  .skel{background:linear-gradient(100deg,var(--card-2) 40%,#1a2540 50%,var(--card-2) 60%);
+        background-size:200% 100%;animation:shim 1.3s linear infinite;border-radius:10px}
+  @keyframes shim{to{background-position:-200% 0}}
+  .skel.arc{width:200px;height:100px;border-radius:110px 110px 0 0;margin:10px auto 18px}
+  .skel.l1{height:22px;width:60%;margin:0 auto 12px}
+  .skel.l2{height:13px;width:92%;margin:8px auto}
+  .skel.l3{height:13px;width:80%;margin:8px auto}
+
+  /* ---------- stats strip ---------- */
+  .stats{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;align-items:center;
+        margin:22px 0 0;font-size:12.5px;color:var(--mut);opacity:0;transition:opacity .6s;
+        min-height:20px}
+  .stats.show{opacity:1}
+  .stats b{color:var(--txt);font-weight:700}
+  .stats .dot{color:var(--mut-2)}
+
+  /* ---------- footer ---------- */
+  footer{margin-top:26px;text-align:center;font-size:12px;color:var(--mut);line-height:1.7}
+  footer .link{background:none;border:0;padding:0;color:var(--acc);font:inherit;font-size:12px;
+        cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+
+  /* ---------- modal ---------- */
+  .modal{position:fixed;inset:0;display:none;align-items:flex-end;justify-content:center;
+        background:rgba(4,7,14,.7);backdrop-filter:blur(4px);z-index:50;padding:16px}
+  @media(min-width:560px){.modal{align-items:center}}
+  .modal.show{display:flex;animation:fade .25s}
+  @keyframes fade{from{opacity:0}}
+  .modal-card{background:var(--card);border:1px solid var(--line-strong);border-radius:var(--r-lg);
+        max-width:480px;width:100%;padding:20px;box-shadow:var(--shadow);
+        animation:fadeup .35s var(--ease);max-height:86vh;overflow:auto}
+  .modal-card h3{margin:0 0 4px;font-size:17px}
+  .modal-card .sub{color:var(--mut);font-size:13px;margin:0 0 14px}
+  .modal-x{float:right;background:var(--card-2);border:1px solid var(--line);color:var(--mut);
+        width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:14px;line-height:1}
+  .zones{width:100%;height:auto;display:block;margin:6px 0 4px}
+  .modal-note{font-size:12px;color:var(--mut);margin:10px 0 0;line-height:1.6}
+
+  @media(prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation-duration:.01ms !important;transition-duration:.01ms !important}
+  }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>🛡️ Qorǵau</h1>
-  <p class="sub">Вставьте подозрительную СМС или переписку — ИИ разберёт её за пару секунд.</p>
 
-  <div class="alert" id="alert">
-    <div class="t">🚨 Сейчас идёт волна мошенничества</div>
-    <div class="b" id="alertBody"></div>
-  </div>
-
-  <textarea id="txt" placeholder="Например: Служба безопасности банка. Назовите код из СМС, иначе спишутся деньги..."></textarea>
-  <div class="ex">
-    <button onclick="ex(0)">Пример: код от «банка»</button>
-    <button onclick="ex(1)">Пример: выигрыш по ссылке</button>
-    <button onclick="ex(2)">Пример: обычное сообщение</button>
-  </div>
-  <button id="go" onclick="run()">Проверить</button>
-  <div class="hint">Ctrl + Enter — проверить</div>
-  <div class="err" id="err"></div>
-
-  <div class="card" id="card">
-    <div class="gauge">
-      <div class="score" id="score">0</div>
-      <div>
-        <span class="lvl" id="lvl">—</span>
-        <div class="scheme" id="scheme">—</div>
-      </div>
+  <header>
+    <svg class="logo" viewBox="0 0 32 32" aria-hidden="true">
+      <defs>
+        <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#5b8cff"/><stop offset="1" stop-color="#2ee6a8"/>
+        </linearGradient>
+      </defs>
+      <path d="M16 2 27 6.5v8.2c0 7-4.7 12.3-11 15.3-6.3-3-11-8.3-11-15.3V6.5L16 2z" fill="url(#lg)"/>
+      <path d="M10.5 15.5l4 4 7-7.5" fill="none" stroke="#080c16" stroke-width="3"
+            stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <div class="brand">
+      <h1>Qorǵau</h1>
+      <p data-i18n="slogan">Национальный радар мошенничества</p>
     </div>
-    <div class="bar"><div id="fill" style="width:0%"></div></div>
+    <div class="lang" role="group" aria-label="Language">
+      <button id="langRu" type="button">RU</button>
+      <button id="langKz" type="button">QZ</button>
+    </div>
+  </header>
+
+  <div class="banner" id="banner" aria-live="polite">
+    <div class="banner-in">
+      <div class="banner-head">
+        <span class="live-dot"></span><span class="live-lbl">LIVE</span>
+      </div>
+      <div id="bannerBody"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <textarea id="txt" maxlength="4000" rows="5"></textarea>
+    <div class="under">
+      <select id="region" aria-label="Region"></select>
+      <span class="counter" id="counter">0 / 4000</span>
+    </div>
+    <div class="chips" id="chips"></div>
+    <button class="go" id="go" type="button">
+      <span class="spin"></span><span id="goLbl" data-i18n="check">Проверить</span>
+    </button>
+    <div class="hint"><kbd>Ctrl</kbd> + <kbd>Enter</kbd> — <span data-i18n="hintCheck">проверить</span></div>
+    <div class="err" id="err"></div>
+  </div>
+
+  <!-- skeleton while analyzing -->
+  <div class="card skel-box" id="skel">
+    <div class="skel arc"></div>
+    <div class="skel l1"></div>
+    <div class="skel l2"></div>
+    <div class="skel l3"></div>
+  </div>
+
+  <!-- result -->
+  <div class="card result" id="result">
+    <div class="gauge-wrap">
+      <svg viewBox="0 0 220 120" aria-hidden="true">
+        <path class="g-track" d="M 24 104 A 86 86 0 0 1 196 104"/>
+        <path class="g-val" id="gArc" d="M 24 104 A 86 86 0 0 1 196 104"
+              stroke-dasharray="270.2" stroke-dashoffset="270.2"/>
+        <g class="g-needle" id="gNeedle" style="transform:rotate(-90deg)">
+          <path id="gNeedlePath" d="M 110 36 L 114 100 A 6 6 0 1 1 106 100 Z" fill="#8b98b6"/>
+          <circle cx="110" cy="104" r="3.2" fill="#080c16"/>
+        </g>
+      </svg>
+      <div class="g-num"><span class="n" id="gNum">0</span><span class="of"> / 100</span></div>
+    </div>
+    <div class="lvl-badge"><span id="lvlBadge"></span></div>
+    <div class="scheme" id="scheme"></div>
+    <p class="brand-note" id="brandNote" style="display:none"></p>
     <div class="flags" id="flags"></div>
     <p class="expl" id="expl"></p>
-    <ul class="act" id="act"></ul>
+    <div class="todo" id="todo" style="display:none">
+      <div class="h" data-i18n="whatToDo">Что делать</div>
+      <ul id="actions"></ul>
+    </div>
     <div class="iocs" id="iocs" style="display:none">
-      <div class="h">Найденные индикаторы (обезличены)</div>
+      <div class="h" data-i18n="iocs">Индикаторы (обезличены)</div>
       <div id="iocList"></div>
     </div>
-    <div class="badge" id="badge"></div>
+    <div class="degraded" id="degraded"><span>⚙️</span><span id="degradedTxt"></span></div>
+  </div>
+
+  <div class="stats" id="stats"></div>
+
+  <footer>
+    <div>🔒 <span data-i18n="privacy">Текст удаляется через 24 часа. В аналитике — только обезличенные признаки.</span></div>
+    <button class="link" id="howBtn" type="button" data-i18n="how">Как это работает</button>
+  </footer>
+</div>
+
+<!-- modal: how it works -->
+<div class="modal" id="modal" role="dialog" aria-modal="true">
+  <div class="modal-card">
+    <button class="modal-x" id="modalX" type="button" aria-label="Close">✕</button>
+    <h3 data-i18n="how">Как это работает</h3>
+    <p class="sub" data-i18n="howSub">Две изолированные зоны данных</p>
+    <svg class="zones" viewBox="0 0 440 240" aria-hidden="true">
+      <defs>
+        <marker id="arr" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto">
+          <path d="M0 0 L8 4 L0 8 Z" fill="#5f6c8a"/>
+        </marker>
+      </defs>
+      <!-- raw text -->
+      <rect x="10" y="92" width="118" height="52" rx="10" fill="#0b1220" stroke="#8b98b6" stroke-opacity=".4"/>
+      <text x="69" y="114" text-anchor="middle" fill="#e9eef8" font-size="12.5" font-weight="700" data-i18n="zRaw">Сырой текст</text>
+      <text x="69" y="131" text-anchor="middle" fill="#8b98b6" font-size="10.5" data-i18n="zRaw2">СМС / переписка</text>
+      <!-- pii zone -->
+      <rect x="188" y="26" width="136" height="58" rx="10" fill="rgba(255,93,108,.08)" stroke="#ff5d6c" stroke-opacity=".5"/>
+      <text x="256" y="47" text-anchor="middle" fill="#ffb3bc" font-size="12" font-weight="700" data-i18n="zPii">Зона PII</text>
+      <text x="256" y="63" text-anchor="middle" fill="#d79aa3" font-size="10" data-i18n="zPii2">шифрование · TTL 24 ч</text>
+      <text x="256" y="77" text-anchor="middle" fill="#d79aa3" font-size="10">pgp_sym_encrypt</text>
+      <!-- deleted -->
+      <rect x="352" y="36" width="80" height="40" rx="10" fill="#0b1220" stroke="#5f6c8a" stroke-dasharray="4 3"/>
+      <text x="392" y="53" text-anchor="middle" fill="#8b98b6" font-size="10" data-i18n="zDel">Удалено</text>
+      <text x="392" y="67" text-anchor="middle" fill="#8b98b6" font-size="10" data-i18n="zDel2">навсегда</text>
+      <!-- analytics zone -->
+      <rect x="188" y="152" width="136" height="58" rx="10" fill="rgba(46,230,168,.07)" stroke="#2ee6a8" stroke-opacity=".5"/>
+      <text x="256" y="173" text-anchor="middle" fill="#9df0d2" font-size="12" font-weight="700" data-i18n="zAn">Только признаки</text>
+      <text x="256" y="189" text-anchor="middle" fill="#84c9ae" font-size="10" data-i18n="zAn2">схема · риск · регион</text>
+      <text x="256" y="203" text-anchor="middle" fill="#84c9ae" font-size="10" data-i18n="zAn3">маскированные индикаторы</text>
+      <!-- radar -->
+      <rect x="336" y="156" width="100" height="50" rx="10" fill="rgba(91,140,255,.1)" stroke="#5b8cff" stroke-opacity=".6"/>
+      <text x="386" y="177" text-anchor="middle" fill="#aec7ff" font-size="10.5" font-weight="700" data-i18n="zRadar">Радар</text>
+      <text x="386" y="192" text-anchor="middle" fill="#8fa8d8" font-size="9" data-i18n="zRadar2">кампании · банки</text>
+      <!-- arrows -->
+      <path d="M128 106 C 156 100, 158 72, 186 60" fill="none" stroke="#5f6c8a" stroke-width="1.6" marker-end="url(#arr)"/>
+      <path d="M128 130 C 156 136, 158 168, 186 178" fill="none" stroke="#5f6c8a" stroke-width="1.6" marker-end="url(#arr)"/>
+      <path d="M324 56 L 350 56" fill="none" stroke="#5f6c8a" stroke-width="1.6" stroke-dasharray="4 3" marker-end="url(#arr)"/>
+      <path d="M324 181 L 334 181" fill="none" stroke="#5f6c8a" stroke-width="1.6" marker-end="url(#arr)"/>
+      <text x="160" y="52" text-anchor="middle" fill="#5f6c8a" font-size="9" data-i18n="zEnc">шифр</text>
+      <text x="337" y="46" text-anchor="middle" fill="#5f6c8a" font-size="9">24ч</text>
+    </svg>
+    <p class="modal-note" data-i18n="howNote">Сырой текст живёт максимум сутки и только в зашифрованном виде. В национальный радар попадают только обезличенные признаки — по ним нельзя восстановить ни текст, ни отправителя.</p>
   </div>
 </div>
 
 <script>
-// Страницу отдаёт сам API, поэтому по умолчанию тот же origin.
-// Если открыли файл напрямую (file://) — идём на локальный сервер.
+'use strict';
+// Страницу отдаёт сам API → тот же origin. Для file:// — локальный сервер.
 const API = location.protocol === 'file:' ? 'http://localhost:8080' : '';
 
-const EX = [
-  "Здравствуйте! Служба безопасности Kaspi. Зафиксирована подозрительная операция по вашей карте. Срочно назовите код из СМС, иначе деньги спишутся.",
-  "Поздравляем! Вам начислена компенсация 250 000 тг. Получите по ссылке: http://egov-vyplata.xyz",
-  "Привет, во сколько завтра встречаемся у метро?"
-];
-function ex(i){ document.getElementById('txt').value = EX[i]; }
-
-const COLOR = {high:'var(--red)', medium:'var(--yellow)', low:'var(--green)'};
-const LVL   = {high:'высокий риск', medium:'средний риск', low:'низкий риск'};
-
-document.addEventListener('keydown', e => {
-  if (e.ctrlKey && e.key === 'Enter') run();
-});
-
-async function run(){
-  const txt = document.getElementById('txt').value.trim();
-  if(!txt) return;
-  const go = document.getElementById('go');
-  const err = document.getElementById('err');
-  err.style.display = 'none';
-  go.disabled = true; go.textContent = 'Анализирую…';
-  try{
-    const r = await fetch(API + '/analyze', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({text: txt, channel:'web'})
-    });
-    if(!r.ok) throw new Error('HTTP ' + r.status);
-    render(await r.json());
-    loadCampaigns();          // свежее обращение могло поднять кампанию
-  }catch(e){
-    err.textContent = 'Не удалось связаться с сервисом. Запущен ли API на :8080?';
-    err.style.display = 'block';
+/* ================= i18n ================= */
+const I18N = {
+  ru: {
+    slogan:'Национальный радар мошенничества',
+    check:'Проверить', checking:'Анализирую…', hintCheck:'проверить',
+    ph:'Вставьте подозрительное сообщение. Например: «Служба безопасности банка. По вашей карте зафиксирована подозрительная операция, срочно назовите код из СМС…»',
+    regionNone:'Регион: не указывать',
+    exBank:'💳 Код от «банка»', exPrize:'🎁 Выигрыш по ссылке', exMom:'🆘 «Мама, я в беде»', exOk:'💬 Обычное сообщение',
+    lvlHigh:'Высокий риск', lvlMedium:'Средний риск', lvlLow:'Низкий риск',
+    whatToDo:'Что делать', iocs:'Индикаторы (обезличены)',
+    degraded:'Базовый режим: ИИ временно недоступен, вердикт вынесен по правилам.',
+    brandNote:'Выдают себя за:',
+    errNet:'Не удалось связаться с сервисом. Проверьте соединение и попробуйте ещё раз.',
+    errRate:'Слишком много запросов. Подождите немного и повторите.',
+    errBad:'Не получилось разобрать сообщение. Попробуйте ещё раз.',
+    wave:'Новая волна:', perHour:'обращений за час',
+    stChecks:'проверок', stTop:'топ схема', stWaves:'активных волн',
+    privacy:'Текст удаляется через 24 часа. В аналитике — только обезличенные признаки.',
+    how:'Как это работает', howSub:'Две изолированные зоны данных',
+    howNote:'Сырой текст живёт максимум сутки и только в зашифрованном виде. В национальный радар попадают только обезличенные признаки — по ним нельзя восстановить ни текст, ни отправителя.',
+    zRaw:'Сырой текст', zRaw2:'СМС / переписка', zPii:'Зона PII', zPii2:'шифрование · TTL 24 ч',
+    zDel:'Удалено', zDel2:'навсегда', zAn:'Только признаки', zAn2:'схема · риск · регион',
+    zAn3:'маскированные индикаторы', zRadar:'Радар', zRadar2:'кампании · банки', zEnc:'шифр',
+    title:'Qorǵau — проверка на мошенничество'
+  },
+  kz: {
+    slogan:'Алаяқтықтың ұлттық радары',
+    check:'Тексеру', checking:'Талдап жатырмын…', hintCheck:'тексеру',
+    ph:'Күдікті хабарламаны осында қойыңыз. Мысалы: «Банктің қауіпсіздік қызметі. Картаңыз бойынша күдікті операция тіркелді, СМС-тегі кодты дереу айтыңыз…»',
+    regionNone:'Аймақ: көрсетпеу',
+    exBank:'💳 «Банктен» код', exPrize:'🎁 Сілтемедегі ұтыс', exMom:'🆘 «Анашым, көмектесші»', exOk:'💬 Қарапайым хабарлама',
+    lvlHigh:'Жоғары қауіп', lvlMedium:'Орташа қауіп', lvlLow:'Төмен қауіп',
+    whatToDo:'Не істеу керек', iocs:'Индикаторлар (иесіздендірілген)',
+    degraded:'Базалық режим: ЖИ уақытша қолжетімсіз, шешім ережелер бойынша шығарылды.',
+    brandNote:'Өздерін былай деп таныстырады:',
+    errNet:'Сервиспен байланыс орнатылмады. Қосылымды тексеріп, қайталап көріңіз.',
+    errRate:'Сұраныс тым көп. Сәл күтіп, қайталаңыз.',
+    errBad:'Хабарламаны талдау мүмкін болмады. Қайталап көріңіз.',
+    wave:'Жаңа толқын:', perHour:'өтініш/сағат',
+    stChecks:'тексеріс', stTop:'топ схема', stWaves:'белсенді толқын',
+    privacy:'Мәтін 24 сағаттан кейін жойылады. Аналитикада — тек иесіздендірілген белгілер.',
+    how:'Бұл қалай жұмыс істейді', howSub:'Екі оқшауланған деректер аймағы',
+    howNote:'Бастапқы мәтін ең көбі бір тәулік және тек шифрланған күйде сақталады. Ұлттық радарға тек иесіздендірілген белгілер түседі — олар арқылы мәтінді де, жіберушіні де қалпына келтіру мүмкін емес.',
+    zRaw:'Бастапқы мәтін', zRaw2:'СМС / хат-хабар', zPii:'PII аймағы', zPii2:'шифрлау · TTL 24 сағ',
+    zDel:'Біржола', zDel2:'жойылады', zAn:'Тек белгілер', zAn2:'схема · қауіп · аймақ',
+    zAn3:'маскаланған индикаторлар', zRadar:'Радар', zRadar2:'кампаниялар · банктер', zEnc:'шифр',
+    title:'Qorǵau — алаяқтықты тексеру'
   }
-  go.disabled = false; go.textContent = 'Проверить';
+};
+const REGIONS = [
+  ['Almaty','Алматы','Алматы'], ['Astana','Астана','Астана'], ['Shymkent','Шымкент','Шымкент'],
+  ['Karaganda','Караганда','Қарағанды'], ['Aktobe','Актобе','Ақтөбе'], ['Atyrau','Атырау','Атырау']
+];
+let lang = localStorage.getItem('qorgau_lang') || 'ru';
+if (!I18N[lang]) lang = 'ru';
+const t = k => (I18N[lang] && I18N[lang][k]) || I18N.ru[k] || k;
+const $ = id => document.getElementById(id);
+
+function applyLang(){
+  document.documentElement.lang = lang;
+  document.title = t('title');
+  document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
+  $('txt').placeholder = t('ph');
+  $('langRu').classList.toggle('on', lang === 'ru');
+  $('langKz').classList.toggle('on', lang === 'kz');
+  buildRegions(); buildChips();
+  if (lastResult) render(lastResult);
+  if (lastStats) renderStats(lastStats);
+  if (lastCampaigns) renderBanner(lastCampaigns);
+}
+function setLang(l){ lang = l; localStorage.setItem('qorgau_lang', l); applyLang(); }
+$('langRu').addEventListener('click', () => setLang('ru'));
+$('langKz').addEventListener('click', () => setLang('kz'));
+
+/* ================= region select ================= */
+function buildRegions(){
+  const sel = $('region');
+  const saved = localStorage.getItem('qorgau_region') || '';
+  sel.textContent = '';
+  const none = document.createElement('option');
+  none.value = ''; none.textContent = t('regionNone');
+  sel.appendChild(none);
+  REGIONS.forEach(([val, ru, kz]) => {
+    const o = document.createElement('option');
+    o.value = val; o.textContent = lang === 'kz' ? kz : ru;
+    sel.appendChild(o);
+  });
+  sel.value = [...sel.options].some(o => o.value === saved) ? saved : '';
+}
+$('region').addEventListener('change', e => localStorage.setItem('qorgau_region', e.target.value));
+
+/* ================= example chips ================= */
+const EXAMPLES = [
+  ['exBank', 'Здравствуйте! Служба безопасности Kaspi Bank. По вашей карте зафиксирована подозрительная операция на 180 000 тг. Для отмены срочно назовите код из СМС, иначе средства будут списаны.'],
+  ['exPrize', 'Поздравляем! Вы выиграли 500 000 тенге в акции «Halyk Bonus»! Заберите приз до конца дня по ссылке: http://halyk-bonus-kz.top/prize'],
+  ['exMom', 'Мама, это я с чужого номера. Я попал в аварию, срочно нужны деньги на операцию. Переведи 250 000 на карту 4400 4302 5566 7788, потом всё объясню. Не звони, телефон разряжен.'],
+  ['exOk', 'Привет! Завтра встречаемся в 18:00 у входа в Mega. Захвати, пожалуйста, мою книгу. До встречи!']
+];
+function buildChips(){
+  const box = $('chips');
+  box.textContent = '';
+  EXAMPLES.forEach(([key, text]) => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'chip'; b.textContent = t(key);
+    b.addEventListener('click', () => {
+      const ta = $('txt');
+      ta.value = text; ta.dispatchEvent(new Event('input')); ta.focus();
+    });
+    box.appendChild(b);
+  });
 }
 
+/* ================= counter ================= */
+$('txt').addEventListener('input', () => {
+  const n = $('txt').value.length;
+  const c = $('counter');
+  c.textContent = n + ' / 4000';
+  c.classList.toggle('warn', n > 3600);
+});
+
+/* ================= analyze ================= */
+const LVL = {
+  high:   { color:'var(--red)',    soft:'var(--red-soft)',    border:'rgba(255,93,108,.4)',  icon:'⛔', key:'lvlHigh' },
+  medium: { color:'var(--yellow)', soft:'var(--yellow-soft)', border:'rgba(255,178,36,.4)',  icon:'⚠️', key:'lvlMedium' },
+  low:    { color:'var(--green)',  soft:'var(--green-soft)',  border:'rgba(46,230,168,.4)',  icon:'✅', key:'lvlLow' }
+};
+let lastResult = null;
+let busy = false;
+
+async function run(){
+  if (busy) return;
+  const text = $('txt').value.trim();
+  if (!text) { $('txt').focus(); return; }
+  busy = true;
+  const go = $('go');
+  go.disabled = true; go.classList.add('busy');
+  $('goLbl').textContent = t('checking');
+  $('err').classList.remove('show');
+  $('result').classList.remove('show');
+  $('skel').classList.add('show');
+  try {
+    const r = await fetch(API + '/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, channel: 'web', region: $('region').value })
+    });
+    if (r.status === 429) {
+      let wait = 0;
+      try { wait = (await r.json()).retry_after_sec || 0; } catch (_) {}
+      throw { kind: 'rate', wait };
+    }
+    if (r.status === 400) throw { kind: 'bad' };
+    if (!r.ok) throw { kind: 'net' };
+    const data = await r.json();
+    lastResult = data;
+    $('skel').classList.remove('show');
+    render(data);
+    loadCampaigns(); loadStats(); // свежее обращение могло изменить картину
+  } catch (e) {
+    $('skel').classList.remove('show');
+    const err = $('err');
+    err.textContent =
+      e && e.kind === 'rate' ? t('errRate') + (e.wait ? ' (' + e.wait + ' c)' : '') :
+      e && e.kind === 'bad'  ? t('errBad') : t('errNet');
+    err.classList.add('show');
+  }
+  busy = false;
+  go.disabled = false; go.classList.remove('busy');
+  $('goLbl').textContent = t('check');
+}
+$('go').addEventListener('click', run);
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') run();
+});
+
+/* ================= render (только textContent — текст приходит от LLM) ================= */
+const ARC_LEN = 270.2;
 function render(d){
-  document.getElementById('card').style.display = 'block';
-  const c = COLOR[d.risk_level] || 'var(--mut)';
+  const lvl = LVL[d.risk_level] || LVL.low;
+  const score = Math.max(0, Math.min(100, Number(d.risk_score) || 0));
+  $('result').classList.add('show');
 
-  const score = document.getElementById('score');
-  score.textContent = d.risk_score;
-  score.style.color = c;
+  // gauge: сброс → анимация к значению
+  const arc = $('gArc'), needle = $('gNeedle');
+  arc.style.stroke = lvl.color;
+  $('gNeedlePath').setAttribute('fill', lvl.color);
+  arc.style.transition = 'none'; needle.style.transition = 'none';
+  arc.setAttribute('stroke-dashoffset', ARC_LEN);
+  needle.style.transform = 'rotate(-90deg)';
+  void arc.getBoundingClientRect(); // reflow, чтобы анимация стартовала с нуля
+  arc.style.transition = ''; needle.style.transition = '';
+  arc.setAttribute('stroke-dashoffset', String(ARC_LEN * (1 - score / 100)));
+  needle.style.transform = 'rotate(' + (score * 1.8 - 90) + 'deg)';
 
-  const lvl = document.getElementById('lvl');
-  lvl.textContent = LVL[d.risk_level] || d.risk_level;
-  lvl.style.background = c;
-  lvl.style.color = '#0b0f17';
+  // счётчик числа
+  const num = $('gNum');
+  num.style.color = lvl.color;
+  const t0 = performance.now();
+  (function tick(now){
+    const p = Math.min(1, (now - t0) / 950);
+    num.textContent = Math.round(score * (1 - Math.pow(1 - p, 3)));
+    if (p < 1 && lastResult === d) requestAnimationFrame(tick);
+  })(t0);
 
-  document.getElementById('scheme').textContent = d.scheme_title || '';
-  const fill = document.getElementById('fill');
-  fill.style.width = d.risk_score + '%';
-  fill.style.background = c;
+  // бейдж уровня (цвет + иконка + подпись: цвет не несёт смысл в одиночку)
+  const badge = $('lvlBadge');
+  badge.textContent = lvl.icon + ' ' + t(lvl.key);
+  badge.style.background = lvl.soft;
+  badge.style.color = lvl.color;
+  badge.style.borderColor = lvl.border;
 
+  $('scheme').textContent = d.scheme_title || '';
+  const bn = $('brandNote');
+  if (d.impersonated_brand) {
+    bn.style.display = ''; bn.textContent = t('brandNote') + ' ' + d.impersonated_brand;
+  } else bn.style.display = 'none';
+
+  const calm = d.risk_level === 'low';
   fillList('flags', d.flags, f => {
     const s = document.createElement('span');
-    s.className = 'flag'; s.textContent = '🚩 ' + f;
+    s.className = 'flag' + (calm ? ' calm' : '');
+    s.textContent = (calm ? '' : '🚩 ') + f;
     return s;
   });
-  document.getElementById('expl').textContent = d.explanation || '';
-  fillList('act', d.recommended_actions, a => {
+  $('expl').textContent = d.explanation || '';
+
+  const acts = d.recommended_actions || [];
+  $('todo').style.display = acts.length ? '' : 'none';
+  fillList('actions', acts, a => {
     const li = document.createElement('li'); li.textContent = a; return li;
   });
 
   const iocs = d.iocs || [];
-  document.getElementById('iocs').style.display = iocs.length ? 'block' : 'none';
+  $('iocs').style.display = iocs.length ? '' : 'none';
   fillList('iocList', iocs, i => {
     const s = document.createElement('span');
-    s.className = 'ioc'; s.textContent = i.type + ': ' + i.value_masked;
+    s.className = 'ioc';
+    const type = document.createElement('span');
+    type.className = 't'; type.textContent = (i.type || '') + ':';
+    s.appendChild(type);
+    s.appendChild(document.createTextNode(' ' + (i.value_masked || '')));
     return s;
   });
 
-  document.getElementById('badge').textContent =
-    d.degraded ? 'базовый режим: ИИ временно недоступен, вердикт по правилам' : '';
+  $('degraded').classList.toggle('show', !!d.degraded);
+  $('degradedTxt').textContent = t('degraded');
 }
-
-// textContent вместо innerHTML: текст приходит от модели, вставлять его как разметку нельзя.
 function fillList(id, items, make){
-  const el = document.getElementById(id);
+  const el = $(id);
   el.textContent = '';
   (items || []).forEach(v => el.appendChild(make(v)));
 }
 
+/* ================= campaign banner ================= */
+let lastCampaigns = null;
 async function loadCampaigns(){
-  try{
+  try {
     const r = await fetch(API + '/campaigns/active');
+    if (!r.ok) throw 0;
     const list = await r.json();
-    const box = document.getElementById('alert');
-    if(!Array.isArray(list) || !list.length){ box.style.display = 'none'; return; }
-    const body = document.getElementById('alertBody');
-    body.textContent = '';
-    list.slice(0,3).forEach(c => {
-      const div = document.createElement('div');
-      const b = document.createElement('b');
-      b.textContent = c.title;
-      div.append(b, document.createTextNode(' — ' + c.peak + ' обращений за час'));
-      body.appendChild(div);
-    });
-    box.style.display = 'block';
-  }catch(e){ /* нет связи — просто не показываем баннер */ }
+    lastCampaigns = Array.isArray(list) ? list : [];
+    renderBanner(lastCampaigns);
+  } catch (_) { /* API молчит — баннер просто не показываем */ }
+}
+function renderBanner(list){
+  const banner = $('banner');
+  if (!list.length) { banner.classList.remove('show'); return; }
+  const body = $('bannerBody');
+  body.textContent = '';
+  list.slice(0, 3).forEach(c => {
+    const row = document.createElement('div');
+    row.className = 'banner-row';
+    const b = document.createElement('b');
+    b.textContent = c.title || c.scheme || '';
+    row.append('⚠ ' + t('wave') + ' ', b,
+      ' — ' + (c.peak != null ? c.peak : 0) + ' ' + t('perHour'));
+    body.appendChild(row);
+  });
+  banner.classList.add('show');
 }
 
-loadCampaigns();
+/* ================= live stats strip ================= */
+let lastStats = null;
+async function loadStats(){
+  try {
+    const r = await fetch(API + '/stats/summary');
+    if (!r.ok) throw 0;
+    lastStats = await r.json();
+    renderStats(lastStats);
+  } catch (_) { $('stats').classList.remove('show'); }
+}
+function renderStats(s){
+  const el = $('stats');
+  el.textContent = '';
+  const top = (s.top || []).find(x => x.scheme !== 'not_scam') || null;
+  const parts = [];
+  const seg = (before, strong, after) => {
+    const span = document.createElement('span');
+    if (before) span.append(before + ' ');
+    const b = document.createElement('b'); b.textContent = strong;
+    span.append(b);
+    if (after) span.append(' ' + after);
+    return span;
+  };
+  parts.push(seg('', fmtNum(s.total || 0), t('stChecks')));
+  if (top) parts.push(seg(t('stTop') + ':', top.title || top.scheme, ''));
+  // пока бэк не отдаёт campaigns_active — считаем по /campaigns/active
+  const waves = s.campaigns_active != null ? s.campaigns_active
+              : (lastCampaigns ? lastCampaigns.length : null);
+  if (waves != null) parts.push(seg(t('stWaves') + ':', String(waves), ''));
+  parts.forEach((p, i) => {
+    if (i) { const d = document.createElement('span'); d.className = 'dot'; d.textContent = '·'; el.appendChild(d); }
+    el.appendChild(p);
+  });
+  el.classList.add('show');
+}
+function fmtNum(n){ return Number(n).toLocaleString('ru-RU'); }
+
+/* ================= modal ================= */
+$('howBtn').addEventListener('click', () => $('modal').classList.add('show'));
+$('modalX').addEventListener('click', () => $('modal').classList.remove('show'));
+$('modal').addEventListener('click', e => { if (e.target === $('modal')) $('modal').classList.remove('show'); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') $('modal').classList.remove('show'); });
+
+/* ================= boot ================= */
+applyLang();
+loadCampaigns(); loadStats();
 setInterval(loadCampaigns, 30000);
+setInterval(loadStats, 30000);
 </script>
 </body>
 </html>

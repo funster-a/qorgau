@@ -1,4 +1,6 @@
 // Qorǵau Telegram-бот. Тонкий клиент: шлёт текст в API /analyze и красиво выводит вердикт.
+// Плюс подписка на оповещения: горутина поллит /campaigns/active и рассылает
+// предупреждение подписчикам при новой волне мошенничества.
 package main
 
 import (
@@ -6,6 +8,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -16,7 +19,10 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
-var apiURL string
+var (
+	apiURL    string
+	botAPIKey string // если задан BOT_API_KEY — шлём X-Bot-Key на /bot/*
+)
 
 type analyzeResp struct {
 	RiskScore          int      `json:"risk_score"`
@@ -33,9 +39,11 @@ type analyzeResp struct {
 }
 
 type campaign struct {
+	ID     string `json:"id"`
 	Scheme string `json:"scheme"`
 	Title  string `json:"title"`
 	Peak   int    `json:"peak"`
+	Status string `json:"status"`
 }
 
 const helpText = `🛡️ <b>Qorǵau</b> — проверка сообщений на мошенничество.
@@ -45,12 +53,15 @@ const helpText = `🛡️ <b>Qorǵau</b> — проверка сообщений
 Команды:
 /help — эта справка
 /campaigns — какие схемы мошенничества сейчас на подъёме
+/subscribe — получать предупреждения о новых волнах мошенничества
+/unsubscribe — отключить предупреждения
 
 ⚠️ Помните: банк и госорганы <b>никогда</b> не просят код из СМС.`
 
 func main() {
 	loadDotEnv()
 	apiURL = env("API_URL", "http://localhost:8080")
+	botAPIKey = os.Getenv("BOT_API_KEY")
 
 	token := os.Getenv("TELEGRAM_BOT_TOKEN")
 	if token == "" {
@@ -61,6 +72,8 @@ func main() {
 		log.Fatal(err)
 	}
 	log.Printf("Бот @%s запущен, API=%s", bot.Self.UserName, apiURL)
+
+	go broadcastLoop(bot)
 
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 30
@@ -84,13 +97,29 @@ func handle(bot *tgbotapi.BotAPI, m *tgbotapi.Message) {
 
 	switch {
 	case text == "/start":
-		send(bot, chatID, helpText)
+		send(bot, chatID, helpText+"\n\nСовет: подпишитесь на /subscribe — предупрежу, когда по стране пойдёт новая волна мошенничества.")
 		return
 	case text == "/help":
 		send(bot, chatID, helpText)
 		return
 	case text == "/campaigns":
 		send(bot, chatID, campaignsText())
+		return
+	case text == "/subscribe":
+		if err := botAPICall("/bot/subscribe", chatID); err != nil {
+			log.Printf("subscribe error: %v", err)
+			send(bot, chatID, "⚠️ Не получилось оформить подписку, попробуйте позже.")
+			return
+		}
+		send(bot, chatID, "🔔 Готово! Пришлю предупреждение, когда зафиксируем новую волну мошенничества. Отключить: /unsubscribe")
+		return
+	case text == "/unsubscribe":
+		if err := botAPICall("/bot/unsubscribe", chatID); err != nil {
+			log.Printf("unsubscribe error: %v", err)
+			send(bot, chatID, "⚠️ Не получилось отписаться, попробуйте позже.")
+			return
+		}
+		send(bot, chatID, "🔕 Подписка отключена. Вернуть предупреждения: /subscribe")
 		return
 	case strings.HasPrefix(text, "/"):
 		send(bot, chatID, "Не знаю такой команды. /help — что я умею.")
@@ -113,6 +142,8 @@ func handle(bot *tgbotapi.BotAPI, m *tgbotapi.Message) {
 	send(bot, chatID, format(res))
 }
 
+// ---------- вызовы API ----------
+
 func analyze(text string) (analyzeResp, error) {
 	body, _ := json.Marshal(map[string]string{"text": text, "channel": "tg"})
 	client := http.Client{Timeout: 15 * time.Second}
@@ -128,15 +159,147 @@ func analyze(text string) (analyzeResp, error) {
 	return out, json.NewDecoder(resp.Body).Decode(&out)
 }
 
-func campaignsText() string {
+// botAPICall — POST на /bot/subscribe|unsubscribe с X-Bot-Key (если задан).
+func botAPICall(path string, chatID int64) error {
+	body, _ := json.Marshal(map[string]int64{"chat_id": chatID})
+	req, _ := http.NewRequest(http.MethodPost, apiURL+path, bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	if botAPIKey != "" {
+		req.Header.Set("X-Bot-Key", botAPIKey)
+	}
+	client := http.Client{Timeout: 8 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	io.Copy(io.Discard, resp.Body)
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("api http %d", resp.StatusCode)
+	}
+	return nil
+}
+
+func fetchCampaigns() ([]campaign, error) {
 	client := http.Client{Timeout: 8 * time.Second}
 	resp, err := client.Get(apiURL + "/campaigns/active")
 	if err != nil {
-		return "⚠️ Не удалось получить сводку. Попробуйте позже."
+		return nil, err
 	}
 	defer resp.Body.Close()
 	var list []campaign
-	if err := json.NewDecoder(resp.Body).Decode(&list); err != nil || len(list) == 0 {
+	return list, json.NewDecoder(resp.Body).Decode(&list)
+}
+
+func fetchSubscribers() ([]int64, error) {
+	req, _ := http.NewRequest(http.MethodGet, apiURL+"/bot/subscribers", nil)
+	if botAPIKey != "" {
+		req.Header.Set("X-Bot-Key", botAPIKey)
+	}
+	client := http.Client{Timeout: 8 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	var out struct {
+		ChatIDs []int64 `json:"chat_ids"`
+	}
+	return out.ChatIDs, json.NewDecoder(resp.Body).Decode(&out)
+}
+
+// broadcastEnabled спрашивает флаг у API; при любой ошибке считаем true (fail-open).
+func broadcastEnabled() bool {
+	client := http.Client{Timeout: 5 * time.Second}
+	resp, err := client.Get(apiURL + "/admin/flags")
+	if err != nil {
+		return true
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return true
+	}
+	var f struct {
+		BroadcastEnabled *bool `json:"broadcast_enabled"`
+	}
+	if json.NewDecoder(resp.Body).Decode(&f) != nil || f.BroadcastEnabled == nil {
+		return true
+	}
+	return *f.BroadcastEnabled
+}
+
+// ---------- broadcast новых кампаний ----------
+
+// broadcastLoop поллит активные кампании раз в 30с и рассылает предупреждение
+// подписчикам по каждой ещё не виденной кампании.
+func broadcastLoop(bot *tgbotapi.BotAPI) {
+	seen := map[string]bool{}
+	t := time.NewTicker(30 * time.Second)
+	defer t.Stop()
+	for {
+		list, err := fetchCampaigns()
+		if err != nil {
+			log.Printf("broadcast: campaigns error: %v", err)
+		}
+		for _, c := range list {
+			if c.ID == "" || seen[c.ID] {
+				continue
+			}
+			seen[c.ID] = true
+			if !broadcastEnabled() {
+				log.Printf("broadcast: кампания %s (%s) — рассылка выключена флагом", c.ID, c.Scheme)
+				continue
+			}
+			broadcast(bot, c)
+		}
+		<-t.C
+	}
+}
+
+func broadcast(bot *tgbotapi.BotAPI, c campaign) {
+	subs, err := fetchSubscribers()
+	if err != nil {
+		log.Printf("broadcast: subscribers error: %v", err)
+		return
+	}
+	msg := fmt.Sprintf(`⚠️ <b>Новая волна мошенничества:</b> %s.
+За последний час %d обращений.
+
+Будьте осторожны:
+• Не называйте коды из СМС — даже «сотруднику банка»
+• Не переходите по подозрительным ссылкам
+• Перезванивайте в банк только по официальному номеру
+
+Проверить подозрительное сообщение — просто пришлите его мне.
+/unsubscribe — отключить предупреждения`, esc(c.Title), c.Peak)
+
+	sent := 0
+	for _, chatID := range subs {
+		m := tgbotapi.NewMessage(chatID, msg)
+		m.ParseMode = tgbotapi.ModeHTML
+		m.DisableWebPagePreview = true
+		if _, err := bot.Send(m); err != nil {
+			log.Printf("broadcast → %d: %v", chatID, err)
+			// Пользователь заблокировал бота — отписываем, чтобы не долбиться впустую.
+			if strings.Contains(err.Error(), "Forbidden") || strings.Contains(err.Error(), "blocked") {
+				botAPICall("/bot/unsubscribe", chatID)
+			}
+		} else {
+			sent++
+		}
+		time.Sleep(50 * time.Millisecond) // лимиты Telegram (~30 msg/сек)
+	}
+	log.Printf("broadcast: кампания «%s» — отправлено %d/%d подписчикам", c.Title, sent, len(subs))
+}
+
+// ---------- вывод вердикта ----------
+
+func campaignsText() string {
+	list, err := fetchCampaigns()
+	if err != nil {
+		return "⚠️ Не удалось получить сводку. Попробуйте позже."
+	}
+	if len(list) == 0 {
 		return "✅ Сейчас активных всплесков мошенничества не зафиксировано."
 	}
 	var b bytes.Buffer
