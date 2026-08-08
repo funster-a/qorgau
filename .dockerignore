@@ -1,0 +1,14 @@
+.git
+.env
+.env.*
+!.env.example
+*.exe
+*.log
+.claude
+.idea
+.vscode
+grafana
+docs
+README.md
+TZ.md
+CLAUDE.md
