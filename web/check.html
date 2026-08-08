@@ -3,76 +3,248 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
-<meta name="theme-color" content="#0B0E14"/>
+<meta name="theme-color" content="#0A0E1A"/>
 <title data-i18n-title="cTitle">Qorǵau — проверка</title>
 <meta name="description" content="Qorǵau — единая проверка: сообщение, ссылка, скриншот, номер телефона и карта. Спидометр риска и понятный разбор."/>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2338E0C8' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 22s8-4 8-10V5.2l-8-3-8 3V12c0 6 8 10 8 10Z'/%3E%3Cpath d='M9 12l2.2 2.2L15.5 10'/%3E%3C/svg%3E"/>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2338BDF8' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 22s8-4 8-10V5.2l-8-3-8 3V12c0 6 8 10 8 10Z'/%3E%3Cpath d='M9 12l2.2 2.2L15.5 10'/%3E%3C/svg%3E"/>
+<!-- прогрессивное улучшение: помечаем JS до первой отрисовки (без flash у reveal) -->
+<script>document.documentElement.classList.add('has-js');</script>
+<link rel="preload" href="assets/fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="assets/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="stylesheet" href="assets/app.css"/>
 <script src="assets/app.js" defer></script>
 <style>
-  /* Страничные компоненты хаба «Проверка» — на токенах app.css, без своих цветов вне семантики риска. */
+  /* ==========================================================================
+     Хаб «Проверка» — только на токенах app.css. Своих цветов вне семантики риска
+     нет. Neon/glow — исключительно для high. Всё движение уважает reduced-motion.
+     ========================================================================== */
   .check-head{padding-top:26px}
-  .check-tools{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end}
-  .check-tools .field{flex:1 1 220px;min-width:180px}
-  .tabs{width:100%}
+
+  /* строка управления: табы + регион */
+  /* Регион — компактной строкой сверху, табы — отдельной строкой во всю ширину
+     (чтобы все 5 режимов были видны на любом экране без горизонтального скролла). */
+  .check-bar{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end}
+  .check-bar .tabs{flex:1 1 100%;min-width:0;display:flex;width:auto}
+  .check-bar .tabs button{flex:1 1 auto;justify-content:center}
+  .region-field{order:-1;flex:0 0 auto;min-width:200px}
+  .region-field .label{margin-bottom:5px}
+  .region-field .select{padding:9px 34px 9px 12px;font-size:var(--fs-5)}
+
+  /* «тело» результата под табами — мягкая смена */
   .panel{display:none}
-  .panel.on{display:block;animation:qg-reveal .3s var(--ease)}
-  .ex-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;align-items:center}
-  .ex-lead{font-size:var(--fs-6);color:var(--muted-2);font-weight:600}
+  .panel.on{display:block;animation:panel-in .34s var(--ease-out) both}
+  @keyframes panel-in{from{opacity:0;transform:translateY(10px) scale(.995)}to{opacity:1;transform:none}}
+
+  .ex-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:2px;align-items:center}
+  .ex-lead{font-size:var(--fs-6);color:var(--muted-2);font-weight:700;letter-spacing:.04em;text-transform:uppercase}
   .field-foot{display:flex;justify-content:flex-end;margin-top:6px}
 
-  /* Drag&drop скриншота */
-  .drop{border:2px dashed var(--line);border-radius:var(--r-md);background:var(--bg);
-    padding:26px 18px;text-align:center;cursor:pointer;transition:border-color .18s var(--ease),background-color .18s var(--ease)}
-  .drop:hover,.drop.hot{border-color:var(--accent-line);background:var(--surface-2)}
-  .drop .drop-ic{width:34px;height:34px;color:var(--muted);margin:0 auto 10px}
-  .drop .drop-t{font-weight:700;font-size:var(--fs-4)}
-  .drop .drop-s{color:var(--muted);font-size:var(--fs-6);margin-top:4px}
-  .img-preview{margin-top:14px;position:relative;display:none}
-  .img-preview.on{display:block}
-  .img-preview img{width:100%;border-radius:var(--r-md);border:1px solid var(--line);max-height:320px;object-fit:contain;background:var(--bg)}
+  /* демо-чипы контраста (подделка ↔ оригинал) */
+  .chip.demo-bad{color:#FFB3BC;border-color:rgba(255,77,94,.32);background:var(--risk-high-soft)}
+  .chip.demo-bad .ic{color:var(--risk-high)}
+  .chip.demo-bad:hover{border-color:rgba(255,77,94,.6);color:#FFD3D8}
+  .chip.demo-ok{color:#A6EBCB;border-color:rgba(34,201,138,.32);background:var(--risk-low-soft)}
+  .chip.demo-ok .ic{color:var(--risk-low)}
+  .chip.demo-ok:hover{border-color:rgba(34,201,138,.6);color:#CFF4E4}
+
+  /* трекер демо-контраста: 100 против 0 */
+  .contrast{margin-top:14px;border:1px dashed var(--hairline);border-radius:var(--r-md);
+    padding:13px 15px;background:var(--bg-2)}
+  .contrast .ct-h{display:flex;align-items:center;gap:8px;font-size:var(--fs-6);font-weight:800;
+    letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+  .contrast .ct-h .ic{width:15px;height:15px;color:var(--accent)}
+  .contrast .ct-row{display:flex;align-items:center;gap:10px;margin-top:10px}
+  .contrast .ct-name{flex:0 0 auto;font-family:var(--mono);font-size:var(--fs-6);color:var(--muted);width:118px;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .contrast .ct-track{flex:1 1 auto;height:8px;border-radius:var(--r-pill);background:var(--surface-2);overflow:hidden}
+  .contrast .ct-fill{height:100%;width:0;border-radius:inherit;background:var(--muted-2);
+    transition:width .9s var(--ease),background-color .4s var(--ease)}
+  .contrast .ct-row.bad .ct-fill{background:var(--risk-high)}
+  .contrast .ct-row.ok .ct-fill{background:var(--risk-low)}
+  .contrast .ct-val{flex:0 0 auto;width:44px;text-align:right;font-weight:800;font-size:var(--fs-5);
+    font-variant-numeric:tabular-nums;color:var(--muted-2)}
+  .contrast .ct-row.bad .ct-val{color:var(--risk-high)}
+  .contrast .ct-row.ok .ct-val{color:var(--risk-low)}
+  .contrast .ct-note{font-size:var(--fs-6);color:var(--muted-2);margin-top:9px;line-height:1.5}
+
+  /* ---------------- Drag&drop скриншота ---------------- */
+  .drop{position:relative;border:1.5px dashed var(--hairline);border-radius:var(--r-md);background:var(--bg-2);
+    padding:28px 18px;text-align:center;cursor:pointer;overflow:hidden;
+    transition:border-color .18s var(--ease),background-color .18s var(--ease),transform .18s var(--ease)}
+  .drop:hover{border-color:var(--accent-line);background:var(--surface-2)}
+  .drop.hot{border-color:var(--accent);background:var(--accent-soft);transform:scale(1.005)}
+  .drop .drop-ic{width:40px;height:40px;margin:0 auto 10px;border-radius:var(--r-md);display:grid;place-items:center;
+    background:var(--accent-soft);border:1px solid var(--accent-line);color:var(--accent)}
+  .drop .drop-ic .ic{width:22px;height:22px}
+  .drop .drop-t{font-family:var(--font-display);font-weight:800;font-size:var(--fs-4);letter-spacing:-.01em}
+  .drop .drop-s{color:var(--muted);font-size:var(--fs-6);margin-top:5px}
+  .drop kbd{font-family:var(--mono);font-size:.92em;border:1px solid var(--hairline);border-radius:6px;
+    padding:1px 5px;background:var(--surface);color:var(--muted)}
+  .img-preview{margin-top:4px;position:relative;display:none}
+  .img-preview.on{display:block;animation:qg-reveal .35s var(--ease)}
+  .img-preview img{width:100%;border-radius:var(--r-md);border:1px solid var(--hairline);
+    max-height:320px;object-fit:contain;background:var(--bg)}
   .img-preview .img-x{position:absolute;top:8px;right:8px;width:32px;height:32px;border-radius:50%;
-    display:grid;place-items:center;background:rgba(11,14,20,.82);border:1px solid var(--line);
-    color:var(--txt);cursor:pointer}
+    display:grid;place-items:center;background:rgba(10,14,26,.82);border:1px solid var(--hairline);
+    color:var(--txt);cursor:pointer;transition:border-color .18s,transform .16s var(--ease)}
+  .img-preview .img-x:hover{border-color:var(--accent-line);transform:scale(1.06)}
   .img-preview .img-x .ic{width:16px;height:16px}
 
-  /* Извлечённый текст / доп.блоки */
-  .extracted{margin-top:16px;padding:14px 16px;background:var(--bg);border:1px solid var(--line);
+  /* ---------------- Общие блоки результата ---------------- */
+  .block-h{font-size:var(--fs-6);font-weight:800;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--muted);display:flex;align-items:center;gap:8px}
+  .block-h .ic{width:15px;height:15px;color:var(--accent)}
+
+  .extracted{margin-top:16px;padding:15px 17px;background:var(--bg-2);border:1px solid var(--hairline);
     border-radius:var(--r-md)}
-  .extracted .v-h{font-size:var(--fs-6);font-weight:800;letter-spacing:.1em;text-transform:uppercase;
-    color:var(--muted);margin-bottom:8px}
-  .extracted p{white-space:pre-wrap;font-size:var(--fs-5);line-height:1.6;color:var(--txt)}
+  .extracted p{white-space:pre-wrap;font-size:var(--fs-5);line-height:1.6;color:var(--txt);margin-top:9px}
 
-  /* Карточки-факты (ссылка) + строки деталей (номер/карта) */
-  .facts{margin-top:16px}
-  .facts .v-h{font-size:var(--fs-6);font-weight:800;letter-spacing:.1em;text-transform:uppercase;
-    color:var(--muted);margin-bottom:10px}
-  .fact-grid{display:grid;gap:10px}
-  @media(min-width:560px){.fact-grid{grid-template-columns:1fr 1fr}}
-  .fact{display:flex;align-items:center;justify-content:space-between;gap:12px;
-    padding:12px 14px;background:var(--bg);border:1px solid var(--line);border-radius:var(--r-md)}
-  .fact .f-l{display:flex;align-items:center;gap:9px;color:var(--muted);font-size:var(--fs-5)}
-  .fact .f-l .ic{width:17px;height:17px;flex:none;color:var(--muted-2)}
-  .fact .f-v{font-weight:700;font-size:var(--fs-5);text-align:right}
-  .fact.ok .f-v{color:var(--risk-low)} .fact.ok .f-l .ic{color:var(--risk-low)}
-  .fact.warn .f-v{color:var(--risk-med)} .fact.warn .f-l .ic{color:var(--risk-med)}
-  .fact.bad{border-color:rgba(255,84,104,.32)} .fact.bad .f-v{color:var(--risk-high)} .fact.bad .f-l .ic{color:var(--risk-high)}
+  /* «поддельный интерфейс» — заметно, high-семантика */
+  .spoof{margin-top:16px;display:flex;align-items:flex-start;gap:12px;padding:15px 17px;border-radius:var(--r-md);
+    background:var(--risk-high-soft);border:1px solid rgba(255,77,94,.45);
+    box-shadow:0 0 0 1px rgba(255,77,94,.18),0 0 26px -6px var(--risk-high-glow);
+    animation:spoof-pulse 2s var(--ease) infinite}
+  @keyframes spoof-pulse{0%,100%{box-shadow:0 0 0 1px rgba(255,77,94,.18),0 0 20px -8px var(--risk-high-glow)}
+    50%{box-shadow:0 0 0 1px rgba(255,77,94,.42),0 0 34px -2px var(--risk-high-glow)}}
+  .spoof .sp-ic{width:38px;height:38px;flex:none;border-radius:var(--r-sm);display:grid;place-items:center;
+    background:rgba(255,77,94,.16);border:1px solid rgba(255,77,94,.4);color:var(--risk-high)}
+  .spoof .sp-ic .ic{width:20px;height:20px}
+  .spoof .sp-t{font-family:var(--font-display);font-weight:800;color:var(--risk-high);font-size:var(--fs-4)}
+  .spoof .sp-s{color:#FFB3BC;font-size:var(--fs-5);line-height:1.5;margin-top:3px}
 
-  /* Результат номера/карты (нет risk_score — свой заголовок) */
-  .lookup{display:block;animation:qg-reveal .45s var(--ease)}
-  .lookup .lk-top{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
-  .lookup .lk-num{font-size:44px;font-weight:800;line-height:1;letter-spacing:-1px;font-variant-numeric:tabular-nums}
-  .lookup .lk-num.low{color:var(--risk-low)} .lookup .lk-num.med{color:var(--risk-med)} .lookup .lk-num.high{color:var(--risk-high)}
-  .lookup .lk-numlabel{color:var(--muted);font-size:var(--fs-5);max-width:22ch}
-  .lookup .lk-masked{font-family:var(--mono);font-size:var(--fs-5);color:var(--muted);margin-top:6px}
-  .lookup .lk-verdict{color:var(--txt);font-size:var(--fs-4);line-height:1.6;margin-top:16px}
-  .warn-banner{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;margin-top:14px;
+  /* ---------------- Панель «вскрытия» ссылки ---------------- */
+  .xray{margin-top:16px;overflow:hidden}
+  .xray .xr-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+    padding:15px 18px;border-bottom:1px solid var(--hairline);background:var(--bg-2)}
+  .xray .xr-head .block-h{flex:1 1 auto}
+  .xr-row{display:flex;align-items:center;gap:12px;padding:13px 18px;border-bottom:1px solid var(--hairline)}
+  .xr-row:last-child{border-bottom:0}
+  .xr-ic{width:32px;height:32px;flex:none;border-radius:9px;display:grid;place-items:center;
+    background:var(--surface-2);border:1px solid var(--hairline);color:var(--muted)}
+  .xr-ic .ic{width:17px;height:17px}
+  .xr-l{flex:1 1 auto;min-width:0}
+  .xr-lab{font-size:var(--fs-5);color:var(--muted)}
+  .xr-val{font-weight:700;font-size:var(--fs-5);margin-top:1px;word-break:break-word}
+  .xr-tag{flex:0 0 auto;font-size:var(--fs-6);font-weight:800;letter-spacing:.06em;text-transform:uppercase;
+    padding:5px 11px;border-radius:var(--r-pill);border:1px solid var(--hairline);color:var(--muted);
+    background:var(--surface)}
+  .xr-row.ok .xr-ic{color:var(--risk-low);border-color:rgba(34,201,138,.34);background:var(--risk-low-soft)}
+  .xr-row.ok .xr-tag{color:var(--risk-low);border-color:rgba(34,201,138,.34);background:var(--risk-low-soft)}
+  .xr-row.warn .xr-ic{color:var(--risk-med);border-color:rgba(255,176,32,.34);background:var(--risk-med-soft)}
+  .xr-row.warn .xr-tag{color:var(--risk-med);border-color:rgba(255,176,32,.34);background:var(--risk-med-soft)}
+  .xr-row.bad .xr-ic{color:var(--risk-high);border-color:rgba(255,77,94,.4);background:var(--risk-high-soft)}
+  .xr-row.bad .xr-tag{color:var(--risk-high);border-color:rgba(255,77,94,.4);background:var(--risk-high-soft)}
+  .xr-row.bad{background:linear-gradient(90deg,rgba(255,77,94,.06),transparent 62%)}
+
+  /* ---------------- Результат номера/карты ---------------- */
+  .lookup{display:block;margin-top:16px;animation:qg-reveal .45s var(--ease)}
+  .lookup .lk-top{display:flex;align-items:center;gap:16px;flex-wrap:wrap;justify-content:space-between}
+  .lookup .lk-top .badge{flex:none}
+  .lookup .lk-masked{font-family:var(--mono);font-size:var(--fs-5);color:var(--muted);margin-top:10px}
+  .lookup .lk-verdict{color:var(--txt);font-size:var(--fs-4);line-height:1.6;margin-top:14px}
+
+  /* счётчик жалоб + анимированный бар */
+  .reports{flex:1 1 240px;min-width:190px}
+  .reports .rp-num{font-family:var(--font-display);font-size:clamp(40px,11vw,58px);font-weight:800;line-height:1;
+    letter-spacing:-.04em;font-variant-numeric:tabular-nums;color:var(--muted)}
+  .reports[data-level="low"] .rp-num{color:var(--risk-low)}
+  .reports[data-level="medium"] .rp-num{color:var(--risk-med)}
+  .reports[data-level="high"] .rp-num{color:var(--risk-high);text-shadow:0 0 24px var(--risk-high-glow)}
+  .reports .rp-lab{color:var(--muted);font-size:var(--fs-5);margin-top:4px;max-width:24ch}
+  .reports .rp-track{margin-top:14px;height:10px;border-radius:var(--r-pill);background:var(--surface-2);
+    overflow:hidden;position:relative}
+  .reports .rp-fill{height:100%;width:0;border-radius:inherit;background:var(--risk-low);
+    transition:width 1s var(--ease),background-color .5s var(--ease)}
+  .reports[data-level="medium"] .rp-fill{background:var(--risk-med)}
+  .reports[data-level="high"] .rp-fill{background:var(--risk-high);
+    box-shadow:0 0 14px 0 var(--risk-high-glow)}
+  .reports .rp-scale{display:flex;justify-content:space-between;font-size:var(--fs-6);color:var(--muted-2);
+    margin-top:6px;font-variant-numeric:tabular-nums}
+
+  /* ---------------- Карта: 3D-переворот ---------------- */
+  .cc-wrap{perspective:1200px;margin-top:4px}
+  .cc{position:relative;width:100%;max-width:352px;margin:0 auto;aspect-ratio:1.586/1;min-height:186px;
+    transform-style:preserve-3d;transition:transform .85s var(--ease-out);will-change:transform}
+  .cc.flipped{transform:rotateY(180deg)}
+  .cc-face{position:absolute;inset:0;border-radius:var(--r-lg);border:1px solid var(--hairline);
+    padding:16px 18px;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;
+    backface-visibility:hidden;-webkit-backface-visibility:hidden;
+    background:linear-gradient(140deg,var(--surface-2),var(--bg-2) 62%,var(--bg));
+    box-shadow:var(--shadow)}
+  .cc-face::after{content:"";position:absolute;inset:0;pointer-events:none;
+    background:radial-gradient(70% 90% at 8% 0%,var(--accent-soft),transparent 62%)}
+  .cc-face.back{transform:rotateY(180deg)}
+  .cc-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;position:relative}
+  .cc-chip{width:38px;height:28px;border-radius:6px;background:linear-gradient(140deg,#C9A227,#8C6D14);
+    border:1px solid rgba(255,255,255,.22);position:relative;opacity:.9}
+  .cc-chip::before,.cc-chip::after{content:"";position:absolute;left:5px;right:5px;height:1px;
+    background:rgba(0,0,0,.35)}
+  .cc-chip::before{top:9px} .cc-chip::after{top:18px}
+  .cc-brand{font-family:var(--font-display);font-weight:800;letter-spacing:.08em;font-size:var(--fs-5);
+    color:var(--txt);opacity:.92;text-transform:uppercase}
+  .cc-num{font-family:var(--mono);font-size:clamp(16px,4.6vw,20px);letter-spacing:.08em;color:var(--txt);
+    position:relative}
+  .cc-bot{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;position:relative}
+  .cc-cap{font-size:var(--fs-6);color:var(--muted-2);letter-spacing:.1em;text-transform:uppercase;font-weight:700}
+  .cc-bank{font-weight:700;font-size:var(--fs-5);margin-top:2px;max-width:20ch}
+  .cc-stripe{position:absolute;left:0;right:0;top:22px;height:38px;background:#05070D;opacity:.92}
+  .cc-face.back{justify-content:flex-end;padding-top:76px}
+  .cc-sign{position:relative;background:rgba(232,237,246,.9);border-radius:5px;height:26px;display:flex;
+    align-items:center;padding:0 9px;font-family:var(--mono);font-size:var(--fs-6);color:#0A0E1A;
+    letter-spacing:.12em}
+  .cc-back-rows{position:relative;margin-top:10px;display:flex;flex-wrap:wrap;gap:7px}
+  .cc-pill{display:inline-flex;align-items:center;gap:6px;font-size:var(--fs-6);font-weight:700;
+    padding:5px 10px;border-radius:var(--r-pill);border:1px solid var(--hairline);background:var(--surface);
+    color:var(--muted)}
+  .cc-pill .ic{width:14px;height:14px}
+  .cc-pill.ok{color:var(--risk-low);border-color:rgba(34,201,138,.36);background:var(--risk-low-soft)}
+  .cc-pill.bad{color:var(--risk-high);border-color:rgba(255,77,94,.4);background:var(--risk-high-soft)}
+  .cc-actions{display:flex;justify-content:center;margin-top:12px}
+  .cc-flip{display:inline-flex;align-items:center;gap:7px;background:transparent;border:1px solid var(--hairline);
+    color:var(--muted);border-radius:var(--r-pill);padding:6px 13px;font-size:var(--fs-6);font-weight:600;
+    cursor:pointer;transition:color .18s,border-color .18s}
+  .cc-flip:hover{color:var(--accent);border-color:var(--accent-line)}
+  .cc-flip .ic{width:15px;height:15px}
+
+  /* ---------------- Мелочи ---------------- */
+  .warn-banner{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;
     background:var(--risk-med-soft);border:1px solid rgba(255,176,32,.4);border-radius:var(--r-md);
     font-size:var(--fs-5);line-height:1.5;color:var(--txt)}
   .warn-banner .ic{width:19px;height:19px;flex:none;color:var(--risk-med);margin-top:1px}
+  .badge.demo{text-transform:none;letter-spacing:0;font-weight:600;color:var(--muted);
+    background:var(--surface);border-color:var(--hairline)}
+  .badge.demo .ic{color:var(--muted-2)}
+  .result-scroll{scroll-margin-top:78px}
 
-  .result-scroll{scroll-margin-top:80px}
-  .spoof-row{display:flex;justify-content:center;margin-top:14px}
+  /* скан-панель вместо спиннера */
+  .scanpanel{display:flex;align-items:center;gap:13px}
+  .scanpanel .sc-ic{width:38px;height:38px;flex:none;border-radius:var(--r-sm);display:grid;place-items:center;
+    background:var(--accent-soft);border:1px solid var(--accent-line);color:var(--accent)}
+  .scanpanel .sc-ic .ic{width:20px;height:20px}
+  .scanpanel .sc-t{font-weight:700;font-size:var(--fs-5)}
+  .scanpanel .sc-body{flex:1 1 auto;min-width:0}
+  .scanpanel .qg-scan{margin-top:9px}
+
+  /* .v-actions используется и вне .verdict (номер/карта) — повторяем оформление */
+  .lookup .v-actions{margin-top:18px;padding:16px 18px;background:var(--bg-2);
+    border:1px solid var(--hairline);border-radius:var(--r-md)}
+  .lookup .v-actions .v-h{font-size:var(--fs-6);font-weight:800;letter-spacing:.1em;
+    text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+  .lookup .v-actions ul{margin:0;padding:0;list-style:none}
+  .lookup .v-actions li{display:flex;gap:10px;font-size:var(--fs-5);line-height:1.5;margin:9px 0;color:var(--txt)}
+  .lookup .v-actions li .ic{width:18px;height:18px;flex:none;color:var(--accent);margin-top:1px}
+
+  @media(max-width:520px){
+    .region-field{flex:1 1 100%}
+    .check-bar .tabs button{flex:0 0 auto;padding:8px 11px}
+    .xr-row{padding:12px 14px;gap:10px}
+    .contrast .ct-name{width:96px}
+  }
+  @media(prefers-reduced-motion:reduce){
+    .cc{transition:none}
+    .spoof{animation:none}
+    .panel.on{animation:none}
+  }
 </style>
 </head>
 <body>
@@ -84,14 +256,24 @@
     <div class="stack lg check-head">
 
       <div class="stack">
-        <div class="eyebrow" data-i18n="cEyebrow">Проверка</div>
+        <div class="eyebrow accent" data-i18n="cEyebrow">Проверка</div>
         <h1 data-i18n="cTitleH">Одна проверка на всё</h1>
         <p class="lead" data-i18n="cLead">Сообщение, ссылка, скриншот, номер или карта — Qorǵau разберёт и покажет уровень риска понятным языком.</p>
+        <div class="row">
+          <span class="badge accent"><span data-icon="shield-check"></span><span data-i18n="cTrust">Ссылки разбираем пассивно · текст удаляется через 24 часа</span></span>
+        </div>
       </div>
 
-      <!-- Регион (общий, сохраняется) + сегмент-контрол -->
-      <div class="check-tools">
-        <label class="field">
+      <!-- Табы (скользящий индикатор) + регион (общий, сохраняется) -->
+      <div class="check-bar">
+        <div class="tabs" id="tabs" data-ink role="tablist">
+          <button type="button" role="tab" aria-selected="true" data-mode="message" class="on"><span data-icon="message"></span><span data-i18n="cTabMsg">Сообщение</span></button>
+          <button type="button" role="tab" data-mode="link"><span data-icon="link"></span><span data-i18n="cTabLink">Ссылка</span></button>
+          <button type="button" role="tab" data-mode="image"><span data-icon="scan"></span><span data-i18n="cTabImg">Скриншот</span></button>
+          <button type="button" role="tab" data-mode="phone"><span data-icon="phone"></span><span data-i18n="cTabPhone">Номер</span></button>
+          <button type="button" role="tab" data-mode="card"><span data-icon="card"></span><span data-i18n="cTabCard">Карта</span></button>
+        </div>
+        <label class="field region-field">
           <span class="label" data-i18n="cRegionLabel">Регион</span>
           <span class="control">
             <select class="select" id="region">
@@ -110,17 +292,9 @@
         </label>
       </div>
 
-      <div class="tabs" id="tabs" role="tablist">
-        <button type="button" data-mode="message" class="on"><span data-icon="message"></span><span data-i18n="cTabMsg">Сообщение</span></button>
-        <button type="button" data-mode="link"><span data-icon="link"></span><span data-i18n="cTabLink">Ссылка</span></button>
-        <button type="button" data-mode="image"><span data-icon="scan"></span><span data-i18n="cTabImg">Скриншот</span></button>
-        <button type="button" data-mode="phone"><span data-icon="phone"></span><span data-i18n="cTabPhone">Номер</span></button>
-        <button type="button" data-mode="card"><span data-icon="card"></span><span data-i18n="cTabCard">Карта</span></button>
-      </div>
-
       <!-- ================= Панель: Сообщение ================= -->
       <div class="panel on" data-panel="message">
-        <div class="card pad stack">
+        <div class="card glass pad stack">
           <label class="field">
             <span class="label" data-i18n="cMsgLabel">Текст сообщения</span>
             <span class="control">
@@ -130,18 +304,18 @@
           </label>
           <div class="ex-row">
             <span class="ex-lead" data-i18n="cExamples">Примеры:</span>
-            <button type="button" class="chip" data-ex-msg="1" data-i18n="cMsgEx1">«Служба безопасности банка»</button>
-            <button type="button" class="chip" data-ex-msg="2" data-i18n="cMsgEx2">«Выигрыш / приз»</button>
+            <button type="button" class="chip" data-ex-msg="1"><span data-icon="alert"></span><span data-i18n="cMsgEx1">«Служба безопасности банка»</span></button>
+            <button type="button" class="chip" data-ex-msg="2"><span data-icon="alert"></span><span data-i18n="cMsgEx2">«Выигрыш / приз»</span></button>
           </div>
           <button type="button" class="btn block" id="msgBtn">
-            <span class="spin"></span><span data-icon="scan"></span><span data-i18n="cAnalyze">Проверить</span>
+            <span data-icon="scan"></span><span data-i18n="cAnalyze">Проверить</span>
           </button>
         </div>
       </div>
 
       <!-- ================= Панель: Ссылка ================= -->
       <div class="panel" data-panel="link">
-        <div class="card pad stack">
+        <div class="card glass pad stack">
           <label class="field">
             <span class="label" data-i18n="cLinkLabel">Ссылка (URL)</span>
             <span class="control">
@@ -151,23 +325,37 @@
             <span class="hint" data-i18n="cLinkHint">Мы разбираем ссылку пассивно — не переходя на неё.</span>
           </label>
           <div class="ex-row">
-            <span class="ex-lead" data-i18n="cExamples">Примеры:</span>
-            <button type="button" class="chip" data-ex-link="http://kaspi-bonus.xyz/win">kaspi-bonus.xyz</button>
-            <button type="button" class="chip" data-ex-link="https://kaspi.kz">kaspi.kz</button>
+            <span class="ex-lead" data-i18n="cDemoPair">Демо-контраст:</span>
+            <button type="button" class="chip demo-bad" data-ex-link="http://kaspi-bonus.xyz/win"><span data-icon="alert"></span><span>kaspi-bonus.xyz</span></button>
+            <button type="button" class="chip demo-ok" data-ex-link="https://kaspi.kz"><span data-icon="shield-check"></span><span>kaspi.kz</span></button>
+          </div>
+          <div class="contrast" id="contrast">
+            <div class="ct-h"><span data-icon="scales"></span><span data-i18n="cContrastH">Подделка против оригинала</span></div>
+            <div class="ct-row" id="ctBad">
+              <span class="ct-name">kaspi-bonus.xyz</span>
+              <span class="ct-track"><span class="ct-fill"></span></span>
+              <span class="ct-val">—</span>
+            </div>
+            <div class="ct-row" id="ctOk">
+              <span class="ct-name">kaspi.kz</span>
+              <span class="ct-track"><span class="ct-fill"></span></span>
+              <span class="ct-val">—</span>
+            </div>
+            <div class="ct-note" data-i18n="cContrastNote">Проверьте оба примера: один и тот же движок даёт 100 для двойника и 0 для официального домена.</div>
           </div>
           <button type="button" class="btn block" id="linkBtn">
-            <span class="spin"></span><span data-icon="link"></span><span data-i18n="cAnalyze">Проверить</span>
+            <span data-icon="link"></span><span data-i18n="cAnalyze">Проверить</span>
           </button>
         </div>
       </div>
 
       <!-- ================= Панель: Скриншот ================= -->
       <div class="panel" data-panel="image">
-        <div class="card pad stack">
+        <div class="card glass pad stack">
           <div class="drop" id="drop" tabindex="0" role="button" aria-label="Загрузить скриншот">
-            <span class="drop-ic" data-icon="scan"></span>
+            <span class="drop-ic"><span data-icon="scan"></span></span>
             <div class="drop-t" data-i18n="cImgDropT">Перетащите скриншот сюда</div>
-            <div class="drop-s" data-i18n="cImgDropS">или нажмите, чтобы выбрать · можно вставить из буфера (Ctrl+V)</div>
+            <div class="drop-s"><span data-i18n="cImgDropS">или нажмите, чтобы выбрать · можно вставить из буфера</span> <kbd>Ctrl</kbd>+<kbd>V</kbd></div>
             <input type="file" id="imgFile" accept="image/*" hidden/>
           </div>
           <div class="img-preview" id="imgPreview">
@@ -176,14 +364,14 @@
           </div>
           <span class="hint" data-i18n="cImgHint">PNG или JPG, до 5 МБ. Текст со скриншота распознаётся ИИ.</span>
           <button type="button" class="btn block" id="imgBtn">
-            <span class="spin"></span><span data-icon="scan"></span><span data-i18n="cAnalyze">Проверить</span>
+            <span data-icon="scan"></span><span data-i18n="cAnalyze">Проверить</span>
           </button>
         </div>
       </div>
 
       <!-- ================= Панель: Номер ================= -->
       <div class="panel" data-panel="phone">
-        <div class="card pad stack">
+        <div class="card glass pad stack">
           <label class="field">
             <span class="label" data-i18n="cPhoneLabel">Номер телефона</span>
             <span class="control">
@@ -193,14 +381,14 @@
             <span class="hint" data-i18n="cPhoneHint">Проверяем по базе обезличенных жалоб — сколько раз номер уже встречался.</span>
           </label>
           <button type="button" class="btn block" id="phoneBtn">
-            <span class="spin"></span><span data-icon="phone"></span><span data-i18n="cCheckBase">Пробить по базе</span>
+            <span data-icon="phone"></span><span data-i18n="cCheckBase">Пробить по базе</span>
           </button>
         </div>
       </div>
 
       <!-- ================= Панель: Карта ================= -->
       <div class="panel" data-panel="card">
-        <div class="card pad stack">
+        <div class="card glass pad stack">
           <label class="field">
             <span class="label" data-i18n="cCardLabel">Номер карты</span>
             <span class="control">
@@ -213,13 +401,13 @@
             <span data-i18n="cCardWarn">Никому не сообщайте полный номер карты, срок и CVV. Мы проверяем только банк-эмитент и контрольную сумму — сам номер не сохраняется.</span>
           </div>
           <button type="button" class="btn block" id="cardBtn">
-            <span class="spin"></span><span data-icon="card"></span><span data-i18n="cCheckCard">Проверить карту</span>
+            <span data-icon="card"></span><span data-i18n="cCheckCard">Проверить карту</span>
           </button>
         </div>
       </div>
 
       <!-- Общий результат -->
-      <div id="skeleton" class="card pad hidden"></div>
+      <div id="skeleton" class="card pad qg-scanbox hidden"></div>
       <div id="result" class="result-scroll"></div>
 
     </div>
@@ -230,6 +418,8 @@
   <div class="qg-footer-in">
     <span data-icon="shield-check"></span>
     <span data-i18n="cFoot">Сырой текст удаляется через 24 часа. В аналитике — только обезличенные признаки.</span>
+    <span class="sep">·</span>
+    <span data-i18n="cNoExternal">0 внешних запросов</span>
     <span class="sep">·</span>
     <a href="index.html" data-i18n="cFootHome">На главную</a>
   </div>
@@ -245,6 +435,7 @@ addEventListener('DOMContentLoaded', function () {
       cTitle: 'Qorǵau — проверка',
       cEyebrow: 'Проверка', cTitleH: 'Одна проверка на всё',
       cLead: 'Сообщение, ссылка, скриншот, номер или карта — Qorǵau разберёт и покажет уровень риска понятным языком.',
+      cTrust: 'Ссылки разбираем пассивно · текст удаляется через 24 часа',
       cRegionLabel: 'Регион', cRegionAny: 'Весь Казахстан',
       cTabMsg: 'Сообщение', cTabLink: 'Ссылка', cTabImg: 'Скриншот', cTabPhone: 'Номер', cTabCard: 'Карта',
       cAnalyze: 'Проверить', cCheckBase: 'Пробить по базе', cCheckCard: 'Проверить карту',
@@ -254,13 +445,14 @@ addEventListener('DOMContentLoaded', function () {
       cLinkLabel: 'Ссылка (URL)', cLinkPh: 'https://…',
       cLinkHint: 'Мы разбираем ссылку пассивно — не переходя на неё.',
       cImgDropT: 'Перетащите скриншот сюда',
-      cImgDropS: 'или нажмите, чтобы выбрать · можно вставить из буфера (Ctrl+V)',
+      cImgDropS: 'или нажмите, чтобы выбрать · можно вставить из буфера',
       cImgHint: 'PNG или JPG, до 5 МБ. Текст со скриншота распознаётся ИИ.',
       cPhoneLabel: 'Номер телефона', cPhonePh: '+7 701 234 56 78',
       cPhoneHint: 'Проверяем по базе обезличенных жалоб — сколько раз номер уже встречался.',
       cCardLabel: 'Номер карты', cCardPh: '4400 4302 1234 5678',
       cCardWarn: 'Никому не сообщайте полный номер карты, срок и CVV. Мы проверяем только банк-эмитент и контрольную сумму — сам номер не сохраняется.',
       cFoot: 'Сырой текст удаляется через 24 часа. В аналитике — только обезличенные признаки.',
+      cNoExternal: '0 внешних запросов',
       cFootHome: 'На главную',
       cEmptyText: 'Вставьте текст сообщения для проверки.',
       cEmptyUrl: 'Введите ссылку для проверки.',
@@ -269,26 +461,39 @@ addEventListener('DOMContentLoaded', function () {
       cEmptyCard: 'Введите номер карты.',
       cImgBig: 'Файл больше 5 МБ — выберите изображение поменьше.',
       cImgBad: 'Это не похоже на изображение.',
-      /* доп. подписи результата */
-      cFactsH: 'Что известно о домене',
+      /* скан-состояния */
+      cScanMsg: 'Разбираем сообщение…', cScanLink: 'Пассивно вскрываем домен…',
+      cScanImg: 'Распознаём текст и интерфейс…', cScanPhone: 'Ищем номер в базе жалоб…',
+      cScanCard: 'Считаем Luhn и определяем банк…',
+      /* вскрытие ссылки */
+      cXrayH: 'Вскрытие домена',
       cDomain: 'Домен', cDomainAge: 'Возраст домена', cSsl: 'HTTPS-сертификат',
-      cBrandSim: 'Похож на бренд', cBlock: 'Блок-лист Shield',
+      cBrandSim: 'Похож на бренд', cBrandGenuine: 'официальный домен', cBlock: 'Блок-лист Shield', cRegistrar: 'Регистратор',
       cAgeUnknown: 'неизвестен', cDays: 'дн.',
       cSslNone: 'нет', cSslSelf: 'самоподписанный', cSslOk: 'действующий', cSslBad: 'недействителен',
       cInBlock: 'уже заблокирован', cNotBlock: 'не найден', cNoSim: 'нет совпадений',
       cDist: 'расстояние',
+      cVOk: 'чисто', cVWarn: 'внимание', cVBad: 'опасно', cVNeutral: 'факт',
+      cDemoPair: 'Демо-контраст:',
+      cContrastH: 'Подделка против оригинала',
+      cContrastNote: 'Проверьте оба примера: один и тот же движок даёт 100 для двойника и 0 для официального домена.',
       cExtractedH: 'Распознанный текст',
-      cSpoof: 'Похоже на поддельный интерфейс',
+      cSpoofT: 'Поддельный интерфейс',
+      cSpoofS: 'На скриншоте — имитация экрана банка или госуслуг. Настоящее приложение так не выглядит: не вводите данные и закройте страницу.',
       cPhoneReports: 'упоминаний в жалобах', cPhoneNone: 'В базе жалоб не встречался.',
       cPhoneSchemes: 'Схемы, по которым проходил номер',
       cCardLuhnOk: 'Контрольная сумма верна', cCardLuhnBad: 'Не проходит проверку (Luhn)',
       cCardBank: 'Банк-эмитент', cCardBrand: 'Платёжная система', cCardUnknown: 'неизвестен',
+      cCardHolder: 'Проверка Qorǵau', cCardFlip: 'Перевернуть карту',
+      cDemoData: 'демо-данные',
+      cDemoDataHint: 'BIN нет в локальной таблице — показываем то, что определяется по номеру.',
       cLevelLow: 'Низкий риск', cLevelMed: 'Средний риск', cLevelHigh: 'Высокий риск'
     },
     kz: {
       cTitle: 'Qorǵau — тексеру',
       cEyebrow: 'Тексеру', cTitleH: 'Бәрін бір жерде тексеріңіз',
       cLead: 'Хабарлама, сілтеме, скриншот, нөмір немесе карта — Qorǵau талдап, қауіп деңгейін түсінікті тілмен көрсетеді.',
+      cTrust: 'Сілтемелерді пассивті талдаймыз · мәтін 24 сағаттан кейін жойылады',
       cRegionLabel: 'Аймақ', cRegionAny: 'Бүкіл Қазақстан',
       cTabMsg: 'Хабарлама', cTabLink: 'Сілтеме', cTabImg: 'Скриншот', cTabPhone: 'Нөмір', cTabCard: 'Карта',
       cAnalyze: 'Тексеру', cCheckBase: 'Базадан тексеру', cCheckCard: 'Картаны тексеру',
@@ -298,13 +503,14 @@ addEventListener('DOMContentLoaded', function () {
       cLinkLabel: 'Сілтеме (URL)', cLinkPh: 'https://…',
       cLinkHint: 'Сілтемені оған кірмей, пассивті түрде талдаймыз.',
       cImgDropT: 'Скриншотты осында сүйреңіз',
-      cImgDropS: 'немесе таңдау үшін басыңыз · буферден қоюға болады (Ctrl+V)',
+      cImgDropS: 'немесе таңдау үшін басыңыз · буферден қоюға болады',
       cImgHint: 'PNG немесе JPG, 5 МБ-қа дейін. Скриншот мәтінін ЖИ таниды.',
       cPhoneLabel: 'Телефон нөмірі', cPhonePh: '+7 701 234 56 78',
       cPhoneHint: 'Иесіздендірілген шағымдар базасынан тексереміз — нөмір қанша рет кездескен.',
       cCardLabel: 'Карта нөмірі', cCardPh: '4400 4302 1234 5678',
       cCardWarn: 'Картаның толық нөмірін, мерзімін және CVV-ды ешкімге айтпаңыз. Біз тек банк-эмитент пен бақылау санын тексереміз — нөмірдің өзі сақталмайды.',
       cFoot: 'Бастапқы мәтін 24 сағаттан кейін жойылады. Аналитикада — тек иесіздендірілген белгілер.',
+      cNoExternal: '0 сыртқы сұраныс',
       cFootHome: 'Басты бетке',
       cEmptyText: 'Тексеру үшін хабарлама мәтінін қойыңыз.',
       cEmptyUrl: 'Тексеру үшін сілтеме енгізіңіз.',
@@ -313,19 +519,30 @@ addEventListener('DOMContentLoaded', function () {
       cEmptyCard: 'Карта нөмірін енгізіңіз.',
       cImgBig: 'Файл 5 МБ-тан үлкен — кішірек сурет таңдаңыз.',
       cImgBad: 'Бұл суретке ұқсамайды.',
-      cFactsH: 'Домен туралы не белгілі',
+      cScanMsg: 'Хабарламаны талдап жатырмыз…', cScanLink: 'Доменді пассивті ашып жатырмыз…',
+      cScanImg: 'Мәтін мен интерфейсті танып жатырмыз…', cScanPhone: 'Нөмірді шағым базасынан іздеудеміз…',
+      cScanCard: 'Luhn есептеп, банкті анықтаудамыз…',
+      cXrayH: 'Доменді ашу',
       cDomain: 'Домен', cDomainAge: 'Домен жасы', cSsl: 'HTTPS-сертификат',
-      cBrandSim: 'Брендке ұқсас', cBlock: 'Shield блок-тізімі',
+      cBrandSim: 'Брендке ұқсас', cBrandGenuine: 'ресми домен', cBlock: 'Shield блок-тізімі', cRegistrar: 'Тіркеуші',
       cAgeUnknown: 'белгісіз', cDays: 'күн',
       cSslNone: 'жоқ', cSslSelf: 'өзі қол қойған', cSslOk: 'жарамды', cSslBad: 'жарамсыз',
       cInBlock: 'бұғатталған', cNotBlock: 'табылмады', cNoSim: 'сәйкестік жоқ',
       cDist: 'қашықтық',
+      cVOk: 'таза', cVWarn: 'назар', cVBad: 'қауіпті', cVNeutral: 'дерек',
+      cDemoPair: 'Демо-салыстыру:',
+      cContrastH: 'Жалғаны мен түпнұсқасы',
+      cContrastNote: 'Екі мысалды да тексеріңіз: бір қозғалтқыш жалғанға 100, ресми доменге 0 береді.',
       cExtractedH: 'Танылған мәтін',
-      cSpoof: 'Жалған интерфейске ұқсайды',
+      cSpoofT: 'Жалған интерфейс',
+      cSpoofS: 'Скриншотта — банк немесе мемқызмет экранының имитациясы. Нағыз қосымша олай көрінбейді: дерек енгізбей, бетті жабыңыз.',
       cPhoneReports: 'шағымда кездескен', cPhoneNone: 'Шағым базасында кездеспеген.',
       cPhoneSchemes: 'Нөмір өткен схемалар',
       cCardLuhnOk: 'Бақылау саны дұрыс', cCardLuhnBad: 'Тексеруден өтпейді (Luhn)',
       cCardBank: 'Банк-эмитент', cCardBrand: 'Төлем жүйесі', cCardUnknown: 'белгісіз',
+      cCardHolder: 'Qorǵau тексеруі', cCardFlip: 'Картаны аудару',
+      cDemoData: 'демо-дерек',
+      cDemoDataHint: 'BIN жергілікті кестеде жоқ — нөмір бойынша анықталғанын көрсетеміз.',
       cLevelLow: 'Төмен қауіп', cLevelMed: 'Орташа қауіп', cLevelHigh: 'Жоғары қауіп'
     }
   });
@@ -355,14 +572,28 @@ addEventListener('DOMContentLoaded', function () {
   var result = document.getElementById('result');
   var skel = document.getElementById('skeleton');
   function clearResult() { result.textContent = ''; }
-  function showSkeleton(withArc) { skel.classList.remove('hidden'); Q.skeleton.fill(skel, 4, withArc); }
-  function hideSkeleton() { skel.classList.add('hidden'); skel.textContent = ''; }
+  /* «сканирование» вместо спиннера (Qorgau.scanLoader) */
+  function showScan(labelKey) {
+    skel.textContent = '';
+    skel.classList.remove('hidden');
+    var wrap = el('div', 'scanpanel');
+    var ic = el('div', 'sc-ic'); ic.appendChild(Q.icon('scan'));
+    var body = el('div', 'sc-body');
+    var t = el('div', 'sc-t', i18n.t(labelKey));
+    t.setAttribute('data-i18n', labelKey);
+    body.appendChild(t);
+    Q.scanLoader(body);
+    wrap.appendChild(ic); wrap.appendChild(body);
+    skel.appendChild(wrap);
+    skel.appendChild(Q.skeleton.line(2));
+  }
+  function hideScan() { skel.classList.add('hidden'); skel.textContent = ''; }
   function busy(btn, on) { if (!btn) return; btn.classList.toggle('busy', on); btn.disabled = on; }
   function scrollToResult() {
     try { result.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (_) {}
   }
   function fail(err) {
-    hideSkeleton(); clearResult();
+    hideScan(); clearResult();
     var k = err && err.kind;
     var msg = k === 'rate' ? i18n.t('errRate') : k === 'bad' ? i18n.t('errBad') : i18n.t('errNet');
     if (k === 'rate' && err.wait) msg = i18n.t('errRate') + ' (' + err.wait + 's)';
@@ -387,18 +618,35 @@ addEventListener('DOMContentLoaded', function () {
     });
   }
 
+  /* Каскадное появление строк результата. Не зависит от прокрутки (в отличие от
+     Qorgau.reveal): строки результата обязаны показаться сразу. reduced-motion —
+     мгновенно, без задержек. */
+  function stagger(nodes) {
+    if (!nodes || !nodes.length) return;
+    if (Q.reduced()) {
+      nodes.forEach(function (n) { n.classList.add('is-in'); });
+      return;
+    }
+    void nodes[0].offsetWidth;              // reflow: фиксируем стартовое состояние
+    nodes.forEach(function (n, i) {
+      n.style.transitionDelay = Math.min(i, 8) * 70 + 'ms';
+      n.classList.add('is-in');
+    });
+  }
+
   /* ------------------------------ табы --------------------------------- */
   var tabs = document.getElementById('tabs');
   var panels = document.querySelectorAll('.panel');
   tabs.querySelectorAll('button').forEach(function (b) {
     b.addEventListener('click', function () {
-      tabs.querySelectorAll('button').forEach(function (x) { x.classList.remove('on'); });
-      b.classList.add('on');
+      tabs.querySelectorAll('button').forEach(function (x) { x.classList.remove('on'); x.setAttribute('aria-selected', 'false'); });
+      b.classList.add('on'); b.setAttribute('aria-selected', 'true');
       var mode = b.getAttribute('data-mode');
       panels.forEach(function (p) { p.classList.toggle('on', p.getAttribute('data-panel') === mode); });
-      clearResult(); hideSkeleton();
+      clearResult(); hideScan();
     });
   });
+  Q.tabs(tabs); // идемпотентно: скользящий индикатор
 
   /* ============================ 1. Сообщение =========================== */
   var msgText = document.getElementById('msgText');
@@ -422,10 +670,10 @@ addEventListener('DOMContentLoaded', function () {
   async function runMessage() {
     var text = msgText.value.trim();
     if (!text) { Q.toast(i18n.t('cEmptyText'), 'warn'); return; }
-    busy(msgBtn, true); clearResult(); showSkeleton(true);
+    busy(msgBtn, true); clearResult(); showScan('cScanMsg');
     try {
       var d = await post('/analyze', { text: text, channel: 'web', region: region() });
-      hideSkeleton(); Q.renderVerdict(result, d); scrollToResult();
+      hideScan(); Q.renderVerdict(result, d); scrollToResult();
     } catch (e) { fail(e); } finally { busy(msgBtn, false); }
   }
   msgBtn.addEventListener('click', runMessage);
@@ -439,26 +687,39 @@ addEventListener('DOMContentLoaded', function () {
   document.querySelectorAll('[data-ex-link]').forEach(function (c) {
     c.addEventListener('click', function () { linkUrl.value = c.getAttribute('data-ex-link'); linkUrl.focus(); });
   });
-  function buildLinkFacts(d) {
-    var wrap = el('div', 'card pad facts');
-    wrap.appendChild(el('div', 'v-h', i18n.t('cFactsH')));
-    var grid = el('div', 'fact-grid');
 
-    function fact(icon, label, value, tone) {
-      var f = el('div', 'fact' + (tone ? ' ' + tone : ''));
-      var l = el('div', 'f-l'); l.appendChild(Q.icon(icon)); l.appendChild(el('span', null, label));
-      f.appendChild(l);
-      f.appendChild(el('span', 'f-v', value));
-      grid.appendChild(f);
+  /* Панель «вскрытия»: строки-факты с вердиктом, staggered-reveal */
+  var TAG = { ok: 'cVOk', warn: 'cVWarn', bad: 'cVBad', neutral: 'cVNeutral' };
+  function buildXray(d) {
+    var wrap = el('div', 'card xray');
+    var head = el('div', 'xr-head');
+    var h = el('div', 'block-h');
+    h.appendChild(Q.icon('eye'));
+    h.appendChild(el('span', null, i18n.t('cXrayH')));
+    head.appendChild(h);
+    if (d.domain) {
+      var chip = el('span', 'chip mono static'); chip.textContent = d.domain;
+      head.appendChild(chip);
     }
+    wrap.appendChild(head);
 
-    // домен
-    if (d.domain) fact('link', i18n.t('cDomain'), d.domain, null);
+    var rows = [];
+    function row(icon, label, value, tone) {
+      var r = el('div', 'xr-row ' + (tone || 'neutral'));
+      r.setAttribute('data-reveal', 'left');
+      var ic = el('div', 'xr-ic'); ic.appendChild(Q.icon(icon)); r.appendChild(ic);
+      var l = el('div', 'xr-l');
+      l.appendChild(el('div', 'xr-lab', label));
+      l.appendChild(el('div', 'xr-val', value));
+      r.appendChild(l);
+      r.appendChild(el('span', 'xr-tag', i18n.t(TAG[tone || 'neutral'])));
+      wrap.appendChild(r); rows.push(r);
+    }
 
     // возраст домена
     var age = d.domain_age_days;
-    if (age === -1 || age == null) fact('eye', i18n.t('cDomainAge'), i18n.t('cAgeUnknown'), 'warn');
-    else fact('eye', i18n.t('cDomainAge'), age + ' ' + i18n.t('cDays'), age < 30 ? 'bad' : 'ok');
+    if (age === -1 || age == null) row('eye', i18n.t('cDomainAge'), i18n.t('cAgeUnknown'), 'warn');
+    else row('eye', i18n.t('cDomainAge'), age + ' ' + i18n.t('cDays'), age < 30 ? 'bad' : 'ok');
 
     // ssl
     var ssl = d.ssl || {};
@@ -467,30 +728,54 @@ addEventListener('DOMContentLoaded', function () {
     else if (ssl.self_signed) { sslTxt = i18n.t('cSslSelf'); sslTone = 'bad'; }
     else if (ssl.valid === false) { sslTxt = i18n.t('cSslBad'); sslTone = 'bad'; }
     else { sslTxt = i18n.t('cSslOk'); sslTone = 'ok'; }
-    fact('shield', i18n.t('cSsl'), sslTxt, sslTone);
+    if (ssl.present && ssl.issuer) sslTxt += ' · ' + ssl.issuer;
+    row('shield', i18n.t('cSsl'), sslTxt, sslTone);
 
     // похожесть на бренд
     var sim = (d.brand_similarity || [])[0];
-    if (sim) fact('alert', i18n.t('cBrandSim'), sim.brand + ' · ' + i18n.t('cDist') + ' ' + sim.distance,
-      sim.distance <= 3 ? 'bad' : 'warn');
-    else fact('shield-check', i18n.t('cBrandSim'), i18n.t('cNoSim'), 'ok');
+    if (sim && d.impersonated_brand) {
+      row('alert', i18n.t('cBrandSim'), sim.brand + ' · ' + i18n.t('cDist') + ' ' + sim.distance,
+        sim.distance <= 2 ? 'bad' : 'warn');
+    } else if (sim) {
+      row('shield-check', i18n.t('cBrandSim'), i18n.t('cBrandGenuine') + ' · ' + sim.brand, 'ok');
+    } else {
+      row('shield-check', i18n.t('cBrandSim'), i18n.t('cNoSim'), 'ok');
+    }
 
     // блок-лист
-    fact('shield', i18n.t('cBlock'), d.in_blocklist ? i18n.t('cInBlock') : i18n.t('cNotBlock'),
+    row('shield', i18n.t('cBlock'), d.in_blocklist ? i18n.t('cInBlock') : i18n.t('cNotBlock'),
       d.in_blocklist ? 'bad' : 'ok');
 
-    wrap.appendChild(grid);
-    return wrap;
+    // регистратор (нейтральный факт, если известен)
+    if (d.registrar) row('link', i18n.t('cRegistrar'), d.registrar, 'neutral');
+
+    return { node: wrap, rows: rows };
   }
+
+  /* Трекер демо-контраста: 100 (двойник) против 0 (оригинал) */
+  var DEMO = { 'kaspi-bonus.xyz': 'ctBad', 'kaspi.kz': 'ctOk' };
+  var DEMO_TONE = { ctBad: 'bad', ctOk: 'ok' };
+  function noteContrast(domain, score) {
+    var id = DEMO[String(domain || '').toLowerCase()];
+    if (!id) return;
+    var row = document.getElementById(id);
+    row.classList.add(DEMO_TONE[id]);
+    row.querySelector('.ct-fill').style.width = Math.max(2, Number(score) || 0) + '%';
+    Q.countUp(row.querySelector('.ct-val'), Number(score) || 0, { group: false, duration: 900 });
+  }
+
   async function runLink() {
     var url = linkUrl.value.trim();
     if (!url) { Q.toast(i18n.t('cEmptyUrl'), 'warn'); return; }
-    busy(linkBtn, true); clearResult(); showSkeleton(true);
+    busy(linkBtn, true); clearResult(); showScan('cScanLink');
     try {
       var d = await post('/analyze/link', { url: url, region: region() });
-      hideSkeleton();
+      hideScan();
       var v = el('div'); result.appendChild(v); Q.renderVerdict(v, d);
-      result.appendChild(buildLinkFacts(d));
+      var x = buildXray(d);
+      result.appendChild(x.node);
+      stagger(x.rows);
+      noteContrast(d.domain, d.risk_score);
       scrollToResult();
     } catch (e) { fail(e); } finally { busy(linkBtn, false); }
   }
@@ -545,20 +830,26 @@ addEventListener('DOMContentLoaded', function () {
   imgClear.addEventListener('click', clearImage);
   async function runImage() {
     if (!currentImage) { Q.toast(i18n.t('cEmptyImg'), 'warn'); return; }
-    busy(imgBtn, true); clearResult(); showSkeleton(true);
+    busy(imgBtn, true); clearResult(); showScan('cScanImg');
     try {
       var d = await post('/analyze/image', { image_base64: currentImage, region: region() });
-      hideSkeleton();
+      hideScan();
       var v = el('div'); result.appendChild(v); Q.renderVerdict(v, d);
       if (d.ui_spoofing) {
-        var row = el('div', 'spoof-row');
-        var b = el('span', 'badge high'); b.appendChild(Q.icon('alert'));
-        b.appendChild(el('span', null, i18n.t('cSpoof')));
-        row.appendChild(b); result.appendChild(row);
+        var sp = el('div', 'spoof');
+        var spIc = el('div', 'sp-ic'); spIc.appendChild(Q.icon('alert'));
+        var spBody = el('div');
+        spBody.appendChild(el('div', 'sp-t', i18n.t('cSpoofT')));
+        spBody.appendChild(el('div', 'sp-s', i18n.t('cSpoofS')));
+        sp.appendChild(spIc); sp.appendChild(spBody);
+        result.appendChild(sp);
       }
       if (d.extracted_text) {
         var ex = el('div', 'extracted');
-        ex.appendChild(el('div', 'v-h', i18n.t('cExtractedH')));
+        var exH = el('div', 'block-h');
+        exH.appendChild(Q.icon('scan'));
+        exH.appendChild(el('span', null, i18n.t('cExtractedH')));
+        ex.appendChild(exH);
         ex.appendChild(el('p', null, d.extracted_text));
         result.appendChild(ex);
       }
@@ -573,40 +864,65 @@ addEventListener('DOMContentLoaded', function () {
   function renderPhone(d) {
     var host = el('div', 'card pad lookup');
     var lvl = LVL[d.risk_level] ? d.risk_level : 'low';
-    var top = el('div', 'lk-top');
-    var numWrap = el('div');
     var reports = Number(d.reports) || 0;
-    numWrap.appendChild(el('div', 'lk-num ' + LVL[lvl], String(reports)));
-    numWrap.appendChild(el('div', 'lk-numlabel', reports ? i18n.t('cPhoneReports') : i18n.t('cPhoneNone')));
-    top.appendChild(numWrap);
+
+    var top = el('div', 'lk-top');
+    var rep = el('div', 'reports'); rep.setAttribute('data-level', lvl);
+    var num = el('div', 'rp-num', '0');
+    rep.appendChild(num);
+    rep.appendChild(el('div', 'rp-lab', reports ? i18n.t('cPhoneReports') : i18n.t('cPhoneNone')));
+    top.appendChild(rep);
     top.appendChild(levelBadge(lvl));
     host.appendChild(top);
+
+    // анимированный бар: 5+ жалоб = полная шкала
+    var track = el('div', 'rp-track');
+    var fill = el('div', 'rp-fill');
+    track.appendChild(fill);
+    rep.appendChild(track);
+    var scale = el('div', 'rp-scale');
+    scale.appendChild(el('span', null, '0'));
+    scale.appendChild(el('span', null, '5+'));
+    rep.appendChild(scale);
+
     if (d.phone_masked) host.appendChild(el('div', 'lk-masked', d.phone_masked));
     if (d.verdict) host.appendChild(el('div', 'lk-verdict', d.verdict));
 
     var schemes = Array.isArray(d.schemes) ? d.schemes : [];
     if (schemes.length) {
-      var sw = el('div', 'facts');
-      sw.appendChild(el('div', 'v-h', i18n.t('cPhoneSchemes')));
-      var grid = el('div', 'fact-grid');
+      var sw = el('div'); sw.style.marginTop = '18px';
+      var swH = el('div', 'block-h');
+      swH.appendChild(Q.icon('radar'));
+      swH.appendChild(el('span', null, i18n.t('cPhoneSchemes')));
+      sw.appendChild(swH);
+      var box = el('div', 'card'); box.style.marginTop = '10px'; box.style.overflow = 'hidden';
       schemes.forEach(function (s) {
-        var f = el('div', 'fact');
-        var l = el('div', 'f-l'); l.appendChild(Q.icon('alert')); l.appendChild(el('span', null, s.title || s.scheme));
-        f.appendChild(l); f.appendChild(el('span', 'f-v', '× ' + (s.count || 0)));
-        grid.appendChild(f);
+        var r = el('div', 'xr-row');
+        var ic = el('div', 'xr-ic'); ic.appendChild(Q.icon('alert')); r.appendChild(ic);
+        var l = el('div', 'xr-l');
+        l.appendChild(el('div', 'xr-val', s.title || s.scheme));
+        r.appendChild(l);
+        r.appendChild(el('span', 'xr-tag', '× ' + (s.count || 0)));
+        box.appendChild(r);
       });
-      sw.appendChild(grid); host.appendChild(sw);
+      sw.appendChild(box); host.appendChild(sw);
     }
     appendActions(host, d.recommended_actions);
     result.appendChild(host);
+
+    // анимации после вставки в DOM
+    Q.countUp(num, reports, { group: false, duration: 900 });
+    requestAnimationFrame(function () {
+      fill.style.width = (reports ? Math.min(100, reports / 5 * 100) : 3) + '%';
+    });
   }
   async function runPhone() {
     var phone = phoneInput.value.trim();
     if (!phone) { Q.toast(i18n.t('cEmptyPhone'), 'warn'); return; }
-    busy(phoneBtn, true); clearResult(); showSkeleton(false);
+    busy(phoneBtn, true); clearResult(); showScan('cScanPhone');
     try {
       var d = await post('/check/phone', { phone: phone });
-      hideSkeleton(); renderPhone(d); scrollToResult();
+      hideScan(); renderPhone(d); scrollToResult();
     } catch (e) { fail(e); } finally { busy(phoneBtn, false); }
   }
   phoneBtn.addEventListener('click', runPhone);
@@ -620,40 +936,121 @@ addEventListener('DOMContentLoaded', function () {
     var digits = cardInput.value.replace(/\D+/g, '').slice(0, 19);
     cardInput.value = digits.replace(/(.{4})/g, '$1 ').trim();
   });
+
+  /* Визуальная карта с 3D-переворотом (при reduced-motion — без анимации) */
+  function buildCardVisual(d) {
+    var bin = d.bin || {};
+    var wrap = el('div', 'cc-wrap');
+    var cc = el('div', 'cc');
+
+    // лицевая сторона
+    var front = el('div', 'cc-face front');
+    var fTop = el('div', 'cc-top');
+    fTop.appendChild(el('div', 'cc-chip'));
+    fTop.appendChild(el('div', 'cc-brand', bin.brand || 'CARD'));
+    front.appendChild(fTop);
+    front.appendChild(el('div', 'cc-num', d.card_masked || '**** **** **** ****'));
+    var fBot = el('div', 'cc-bot');
+    var bankBox = el('div');
+    bankBox.appendChild(el('div', 'cc-cap', i18n.t('cCardBank')));
+    bankBox.appendChild(el('div', 'cc-bank', bin.known ? (bin.bank || i18n.t('cCardUnknown')) : i18n.t('cCardUnknown')));
+    fBot.appendChild(bankBox);
+    fBot.appendChild(el('div', 'cc-cap', bin.country || ''));
+    front.appendChild(fBot);
+
+    // оборот
+    var back = el('div', 'cc-face back');
+    back.appendChild(el('div', 'cc-stripe'));
+    var sign = el('div', 'cc-sign', 'CVV · ***');
+    back.appendChild(sign);
+    var rows = el('div', 'cc-back-rows');
+    var luhn = el('span', 'cc-pill ' + (d.luhn_valid ? 'ok' : 'bad'));
+    luhn.appendChild(Q.icon(d.luhn_valid ? 'check' : 'alert'));
+    luhn.appendChild(el('span', null, d.luhn_valid ? i18n.t('cCardLuhnOk') : i18n.t('cCardLuhnBad')));
+    rows.appendChild(luhn);
+    if (!bin.known) {
+      var demo = el('span', 'cc-pill');
+      demo.appendChild(Q.icon('eye'));
+      demo.appendChild(el('span', null, i18n.t('cDemoData')));
+      rows.appendChild(demo);
+    }
+    back.appendChild(rows);
+
+    cc.appendChild(front); cc.appendChild(back);
+    wrap.appendChild(cc);
+
+    // кнопка переворота
+    var acts = el('div', 'cc-actions');
+    var flip = document.createElement('button');
+    flip.type = 'button'; flip.className = 'cc-flip';
+    flip.appendChild(Q.icon('scan'));
+    flip.appendChild(el('span', null, i18n.t('cCardFlip')));
+    flip.addEventListener('click', function () { cc.classList.toggle('flipped'); });
+    acts.appendChild(flip);
+    wrap.appendChild(acts);
+
+    // «выкладываем» карту оборотом вверх и плавно переворачиваем на лицо
+    if (!Q.reduced()) {
+      cc.classList.add('flipped');
+      setTimeout(function () { cc.classList.remove('flipped'); }, 420);
+    }
+    return wrap;
+  }
+
   function renderCard(d) {
     var host = el('div', 'card pad lookup');
     var lvl = LVL[d.risk_level] ? d.risk_level : 'low';
+    var bin = d.bin || {};
+
     var top = el('div', 'lk-top');
     top.appendChild(levelBadge(lvl));
+    if (!bin.known) {
+      var db = el('span', 'badge demo');
+      db.appendChild(Q.icon('eye'));
+      db.appendChild(el('span', null, i18n.t('cDemoData')));
+      db.setAttribute('title', i18n.t('cDemoDataHint'));
+      top.appendChild(db);
+    }
     host.appendChild(top);
-    if (d.card_masked) host.appendChild(el('div', 'lk-masked', d.card_masked));
+
+    host.appendChild(buildCardVisual(d));
+
     if (d.verdict) host.appendChild(el('div', 'lk-verdict', d.verdict));
 
-    var facts = el('div', 'facts');
-    var grid = el('div', 'fact-grid');
-    function fact(icon, label, value, tone) {
-      var f = el('div', 'fact' + (tone ? ' ' + tone : ''));
-      var l = el('div', 'f-l'); l.appendChild(Q.icon(icon)); l.appendChild(el('span', null, label));
-      f.appendChild(l); f.appendChild(el('span', 'f-v', value)); grid.appendChild(f);
+    // те же факты строками — доступно без переворота и при reduced-motion
+    var box = el('div', 'card'); box.style.marginTop = '16px'; box.style.overflow = 'hidden';
+    var rows = [];
+    function row(icon, label, value, tone) {
+      var r = el('div', 'xr-row ' + (tone || 'neutral'));
+      r.setAttribute('data-reveal', 'left');
+      var ic = el('div', 'xr-ic'); ic.appendChild(Q.icon(icon)); r.appendChild(ic);
+      var l = el('div', 'xr-l');
+      l.appendChild(el('div', 'xr-lab', label));
+      l.appendChild(el('div', 'xr-val', value));
+      r.appendChild(l);
+      r.appendChild(el('span', 'xr-tag', i18n.t(TAG[tone || 'neutral'])));
+      box.appendChild(r); rows.push(r);
     }
-    fact(d.luhn_valid ? 'check' : 'alert', 'Luhn',
+    row(d.luhn_valid ? 'check' : 'alert', 'Luhn',
       d.luhn_valid ? i18n.t('cCardLuhnOk') : i18n.t('cCardLuhnBad'),
       d.luhn_valid ? 'ok' : 'bad');
-    var bin = d.bin || {};
-    fact('card', i18n.t('cCardBank'), bin.known ? (bin.bank || i18n.t('cCardUnknown')) : i18n.t('cCardUnknown'), bin.known ? null : 'warn');
-    if (bin.brand) fact('card', i18n.t('cCardBrand'), bin.brand + (bin.country ? ' · ' + bin.country : ''), null);
-    facts.appendChild(grid); host.appendChild(facts);
+    row('card', i18n.t('cCardBank'),
+      bin.known ? (bin.bank || i18n.t('cCardUnknown')) : i18n.t('cCardUnknown'),
+      bin.known ? 'ok' : 'warn');
+    if (bin.brand) row('card', i18n.t('cCardBrand'), bin.brand + (bin.country ? ' · ' + bin.country : ''), 'neutral');
+    host.appendChild(box);
 
     appendActions(host, d.recommended_actions);
     result.appendChild(host);
+    stagger(rows);
   }
   async function runCard() {
     var card = cardInput.value.trim();
     if (!card) { Q.toast(i18n.t('cEmptyCard'), 'warn'); return; }
-    busy(cardBtn, true); clearResult(); showSkeleton(false);
+    busy(cardBtn, true); clearResult(); showScan('cScanCard');
     try {
       var d = await post('/check/card', { card: card });
-      hideSkeleton(); renderCard(d); scrollToResult();
+      hideScan(); renderCard(d); scrollToResult();
     } catch (e) { fail(e); } finally { busy(cardBtn, false); }
   }
   cardBtn.addEventListener('click', runCard);
@@ -663,7 +1060,7 @@ addEventListener('DOMContentLoaded', function () {
   function appendActions(host, acts) {
     acts = Array.isArray(acts) ? acts : [];
     if (!acts.length) return;
-    var box = el('div', 'v-actions'); box.style.marginTop = '18px';
+    var box = el('div', 'v-actions');
     box.appendChild(el('div', 'v-h', i18n.t('vActions')));
     var ul = document.createElement('ul');
     acts.forEach(function (a) {
@@ -673,19 +1070,10 @@ addEventListener('DOMContentLoaded', function () {
     box.appendChild(ul); host.appendChild(box);
   }
 
-  // .v-actions вне .verdict — подмешаем нужные стили инлайн через класс-обёртку
-  // (стили .v-actions заданы под .verdict; продублируем базовое оформление)
+  /* при смене языка результат остаётся как есть (данные с сервера),
+     а статические подписи обновляет i18n.apply() */
+  i18n.onChange(function () { resolveIcons(); });
 });
 </script>
-<style>
-  /* .v-actions используется и вне .verdict (номер/карта) — повторяем оформление */
-  .lookup .v-actions{margin-top:18px;padding:16px 18px;background:var(--bg);
-    border:1px solid var(--line);border-radius:var(--r-md)}
-  .lookup .v-actions .v-h{font-size:var(--fs-6);font-weight:800;letter-spacing:.1em;
-    text-transform:uppercase;color:var(--muted);margin-bottom:10px}
-  .lookup .v-actions ul{margin:0;padding:0;list-style:none}
-  .lookup .v-actions li{display:flex;gap:10px;font-size:var(--fs-5);line-height:1.5;margin:9px 0;color:var(--txt)}
-  .lookup .v-actions li .ic{width:18px;height:18px;flex:none;color:var(--accent);margin-top:1px}
-</style>
 </body>
 </html>

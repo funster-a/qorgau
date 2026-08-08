@@ -31,10 +31,36 @@
      NAV_ITEMS                 — массив пунктов навигации (id, href, i18n, icon)
      nav(items, current)       — вернуть <header.qg-nav> (items=null → NAV_ITEMS)
      mountNav(target, current) — смонтировать навигацию в target (селектор|Element)
-     Gauge(el, score, level)   — фирменный спидометр 0..100 (анимация дуги/стрелки/счётчика)
+     Gauge(el, score, level)   — фирменный спидометр 0..100 (анимация дуги/стрелки/счётчика,
+                                 плавная смена цвета дуги/числа при обновлении)
      renderVerdict(el, data)   — единый рендер ответа /analyze-совместимой формы
      toast(msg, kind)          — 'info'|'success'|'error'|'warn'
-     skeleton.show(el)/hide(el)/line(n) — состояние загрузки
+     skeleton.show(el)/hide(el)/fill(el,n,arc)/line(n) — состояние загрузки
+
+   ──────────────────────────────────────────────────────────────────────────
+   НОВОЕ в v2 (motion-утилиты, все с reduced-motion guard):
+     reduced()                 — true, если пользователь просит меньше движения
+     countUp(el, to, opts)     — плавный счётчик. opts:{from,duration,decimals,
+                                 prefix,suffix,locale,group:bool}. Пример:
+                                   Qorgau.countUp(node, 1240, {group:true, suffix:'+'})
+     reveal(target?)           — staggered-reveal через IntersectionObserver.
+                                 target: селектор | Element | NodeList (по умолч.
+                                 '[data-reveal]'). Разметка: <div data-reveal>…,
+                                 data-reveal="left|right|scale" — направление,
+                                 data-reveal-delay="120" — доп. задержка (мс).
+     shieldRadar(canvas, opts) — СИГНАТУРНЫЙ фон «щит + радар-скан» на Canvas
+                                 (метафора защитной сети). Возвращает {stop,start}.
+                                 Лёгкий, 60fps, стоп при reduced-motion/скрытой вкладке.
+     magnetic(el, opts?)       — «магнитная» кнопка (тянется к курсору). Авто на .btn.magnetic.
+     tilt(el, opts?)           — лёгкий 3D-наклон карточки. Авто на .card.tilt.
+     scanLoader(host?)         — «сканирование» вместо спиннера. Возвращает узел
+                                 с методом .stop() (удаляет себя). Без host — detached.
+     tabs(el)                  — плавный скользящий индикатор для .tabs[data-ink].
+                                 Авто-инициализация на всех .tabs[data-ink].
+
+   Авто-инициализация на DOMContentLoaded (идемпотентно):
+     .btn.magnetic → magnetic · .card.tilt → tilt · [data-reveal] → reveal ·
+     .tabs[data-ink] → tabs. Всё уважает prefers-reduced-motion.
 
    Контракт data для renderVerdict (docs/API.md §POST /analyze):
      { risk_score, risk_level:'low|medium|high', scheme_title, impersonated_brand,
@@ -43,6 +69,13 @@
    ========================================================================== */
 (function (window, document) {
   'use strict';
+
+  // Прогрессивное улучшение: помечаем документ, что JS активен (для reveal-скрытия).
+  document.documentElement.classList.add('has-js');
+
+  /* ------------------------------ motion guard ------------------------- */
+  var _rmq = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
+  function reduced() { return !!(_rmq && _rmq.matches); }
 
   /* ------------------------------ API ---------------------------------- */
   var API = location.protocol === 'file:' ? 'http://localhost:8080' : '';
@@ -333,8 +366,9 @@
     var calm = level === 'low';
 
     host.textContent = '';
-    var base = host.className.replace(/\bverdict\b/g, '').replace(/\breveal\b/g, '').replace(/\s+/g, ' ').trim();
-    host.className = (base + ' verdict reveal').trim();
+    var base = host.className.replace(/\bverdict\b/g, '').replace(/\breveal\b/g, '')
+      .replace(/\bis-high\b/g, '').replace(/\s+/g, ' ').trim();
+    host.className = (base + ' verdict reveal' + (level === 'high' ? ' is-high' : '')).trim();
 
     // gauge
     var g = el('div');
@@ -473,6 +507,278 @@
     }
   };
 
+  /* ============================================================================
+     v2 MOTION-УТИЛИТЫ (сигнатурный язык). Все с reduced-motion guard.
+     ========================================================================== */
+
+  /* ------------------------------ countUp ------------------------------ */
+  function countUp(node, to, opts) {
+    if (!node) return;
+    opts = opts || {};
+    to = Number(to) || 0;
+    var from = Number(opts.from) || 0;
+    var dur = opts.duration != null ? opts.duration : 1200;
+    var dec = opts.decimals != null ? opts.decimals : 0;
+    var pre = opts.prefix || '', suf = opts.suffix || '';
+    var group = opts.group !== false;
+    var locale = opts.locale || 'ru-RU';
+    function fmt(v) {
+      var s;
+      try {
+        s = group
+          ? v.toLocaleString(locale, { minimumFractionDigits: dec, maximumFractionDigits: dec })
+          : v.toFixed(dec);
+      } catch (_) { s = v.toFixed(dec); }
+      return pre + s + suf;
+    }
+    if (reduced() || dur <= 0) { node.textContent = fmt(to); return; }
+    var token = (node.__cuToken = (node.__cuToken || 0) + 1);
+    var t0 = performance.now();
+    (function tick(now) {
+      if (node.__cuToken !== token) return;
+      var p = Math.min(1, (now - t0) / dur);
+      var eased = 1 - Math.pow(1 - p, 3);            // easeOutCubic
+      node.textContent = fmt(from + (to - from) * eased);
+      if (p < 1) requestAnimationFrame(tick);
+      else node.textContent = fmt(to);
+    })(t0);
+  }
+
+  /* ------------------------------ reveal ------------------------------- */
+  var _revealIO = null, _revealSeen = new WeakSet();
+  function _resolveNodes(target) {
+    if (!target) return document.querySelectorAll('[data-reveal]');
+    if (typeof target === 'string') return document.querySelectorAll(target);
+    if (target.nodeType === 1) return [target];
+    if (target.length != null) return target;          // NodeList / Array
+    return [];
+  }
+  function reveal(target) {
+    var nodes = _resolveNodes(target);
+    if (!nodes || !nodes.length) return;
+    if (reduced() || !('IntersectionObserver' in window)) {
+      Array.prototype.forEach.call(nodes, function (n) { n.classList.add('is-in'); });
+      return;
+    }
+    if (!_revealIO) {
+      _revealIO = new IntersectionObserver(function (entries, obs) {
+        entries.forEach(function (e) {
+          if (!e.isIntersecting) return;
+          var n = e.target;
+          // stagger: индекс среди соседей с [data-reveal] в общем родителе
+          var extra = parseInt(n.getAttribute('data-reveal-delay') || '0', 10) || 0;
+          var idx = 0, sib = n;
+          while ((sib = sib.previousElementSibling)) if (sib.hasAttribute('data-reveal')) idx++;
+          n.style.transitionDelay = (Math.min(idx, 6) * 70 + extra) + 'ms';
+          n.classList.add('is-in');
+          obs.unobserve(n);
+        });
+      }, { rootMargin: '0px 0px -8% 0px', threshold: 0.08 });
+    }
+    Array.prototype.forEach.call(nodes, function (n) {
+      if (_revealSeen.has(n)) return;
+      _revealSeen.add(n);
+      _revealIO.observe(n);
+    });
+  }
+
+  /* ------------------------------ shieldRadar -------------------------- */
+  // Сигнатурный фон: концентрические кольца + вращающийся радар-скан + блипы,
+  // вписанные в контур щита. Приглушённо. 60fps. Стоп при reduced-motion.
+  function shieldRadar(canvas, opts) {
+    if (!canvas || !canvas.getContext) return { stop: function () {}, start: function () {} };
+    opts = opts || {};
+    var ctx = canvas.getContext('2d');
+    var c1 = opts.color1 || '59,130,246';     // blue
+    var c2 = opts.color2 || '34,211,238';     // cyan
+    var speed = opts.speed || 1;
+    var raf = 0, running = false, w = 0, h = 0, dpr = 1, angle = 0;
+    var blips = [];
+
+    function resize() {
+      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      var r = canvas.getBoundingClientRect();
+      w = Math.max(1, r.width); h = Math.max(1, r.height);
+      canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    function seed() {
+      blips = [];
+      for (var i = 0; i < 5; i++) {
+        blips.push({ a: Math.random() * Math.PI * 2, r: 0.28 + Math.random() * 0.66, lit: 0 });
+      }
+    }
+    function shieldPath(cx, cy, s) {
+      // контур щита (нормализованный, s = радиус)
+      ctx.beginPath();
+      ctx.moveTo(cx, cy - s);
+      ctx.bezierCurveTo(cx + s * 0.62, cy - s * 0.82, cx + s * 0.92, cy - s * 0.66, cx + s * 0.92, cy - s * 0.34);
+      ctx.bezierCurveTo(cx + s * 0.92, cy + s * 0.4, cx + s * 0.5, cy + s * 0.86, cx, cy + s);
+      ctx.bezierCurveTo(cx - s * 0.5, cy + s * 0.86, cx - s * 0.92, cy + s * 0.4, cx - s * 0.92, cy - s * 0.34);
+      ctx.bezierCurveTo(cx - s * 0.92, cy - s * 0.66, cx - s * 0.62, cy - s * 0.82, cx, cy - s);
+      ctx.closePath();
+    }
+    function frame() {
+      if (!running) return;
+      var cx = w * 0.5, cy = h * 0.5;
+      var s = Math.min(w, h) * 0.42;
+      ctx.clearRect(0, 0, w, h);
+      ctx.save();
+      shieldPath(cx, cy, s); ctx.clip();      // всё рисуем внутри щита
+
+      // концентрические кольца
+      for (var i = 1; i <= 4; i++) {
+        ctx.beginPath();
+        ctx.arc(cx, cy, s * (i / 4), 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(' + c1 + ',' + (0.05 + (4 - i) * 0.012) + ')';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+      // крестовина
+      ctx.strokeStyle = 'rgba(' + c1 + ',0.05)'; ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(cx - s, cy); ctx.lineTo(cx + s, cy);
+      ctx.moveTo(cx, cy - s); ctx.lineTo(cx, cy + s); ctx.stroke();
+
+      // радар-скан (сектор-градиент)
+      var grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, s);
+      grad.addColorStop(0, 'rgba(' + c2 + ',0.16)');
+      grad.addColorStop(1, 'rgba(' + c2 + ',0)');
+      ctx.save();
+      ctx.translate(cx, cy); ctx.rotate(angle);
+      ctx.beginPath(); ctx.moveTo(0, 0);
+      ctx.arc(0, 0, s, -0.42, 0); ctx.closePath();
+      ctx.fillStyle = grad; ctx.fill();
+      // передний луч
+      ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(s, 0);
+      ctx.strokeStyle = 'rgba(' + c2 + ',0.5)'; ctx.lineWidth = 1.5; ctx.stroke();
+      ctx.restore();
+
+      // блипы — загораются, когда луч проходит
+      blips.forEach(function (b) {
+        var beam = ((angle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+        var ba = ((b.a % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+        var d = Math.abs(beam - ba);
+        if (d < 0.12 || d > Math.PI * 2 - 0.12) b.lit = 1;
+        b.lit *= 0.965;
+        var bx = cx + Math.cos(b.a) * s * b.r, by = cy + Math.sin(b.a) * s * b.r;
+        ctx.beginPath(); ctx.arc(bx, by, 2.2, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(' + c2 + ',' + (0.15 + b.lit * 0.7) + ')'; ctx.fill();
+      });
+      ctx.restore();
+
+      // контур щита поверх
+      shieldPath(cx, cy, s);
+      ctx.strokeStyle = 'rgba(' + c1 + ',0.28)'; ctx.lineWidth = 1.5; ctx.stroke();
+
+      angle += 0.012 * speed;
+      raf = requestAnimationFrame(frame);
+    }
+    function staticFrame() {   // один кадр для reduced-motion
+      running = true; angle = -0.6; frame(); running = false; cancelAnimationFrame(raf);
+    }
+    function start() {
+      if (running) return;
+      if (reduced()) { resize(); seed(); staticFrame(); return; }
+      running = true; raf = requestAnimationFrame(frame);
+    }
+    function stop() { running = false; cancelAnimationFrame(raf); }
+
+    resize(); seed();
+    var onResize = function () { resize(); };
+    window.addEventListener('resize', onResize, { passive: true });
+    document.addEventListener('visibilitychange', function () {
+      if (document.hidden) stop(); else start();
+    });
+    start();
+    return {
+      start: start, stop: stop,
+      destroy: function () { stop(); window.removeEventListener('resize', onResize); }
+    };
+  }
+
+  /* ------------------------------ magnetic ----------------------------- */
+  function magnetic(node, opts) {
+    if (!node || node.__magnetic) return;
+    node.__magnetic = true;
+    opts = opts || {};
+    var strength = opts.strength != null ? opts.strength : 0.35;
+    var max = opts.max != null ? opts.max : 10;
+    if (reduced()) return;
+    function move(e) {
+      var r = node.getBoundingClientRect();
+      var x = (e.clientX - (r.left + r.width / 2)) * strength;
+      var y = (e.clientY - (r.top + r.height / 2)) * strength;
+      x = Math.max(-max, Math.min(max, x));
+      y = Math.max(-max, Math.min(max, y));
+      node.style.transform = 'translate(' + x.toFixed(1) + 'px,' + y.toFixed(1) + 'px)';
+    }
+    function leave() { node.style.transform = ''; }
+    node.addEventListener('pointermove', move);
+    node.addEventListener('pointerleave', leave);
+    node.addEventListener('pointercancel', leave);
+  }
+
+  /* ------------------------------ tilt --------------------------------- */
+  function tilt(node, opts) {
+    if (!node || node.__tilt) return;
+    node.__tilt = true;
+    opts = opts || {};
+    var max = opts.max != null ? opts.max : 7;
+    if (reduced()) return;
+    function move(e) {
+      var r = node.getBoundingClientRect();
+      var px = (e.clientX - r.left) / r.width - 0.5;
+      var py = (e.clientY - r.top) / r.height - 0.5;
+      node.style.transform = 'perspective(800px) rotateX(' + (-py * max).toFixed(2) +
+        'deg) rotateY(' + (px * max).toFixed(2) + 'deg)';
+    }
+    function leave() { node.style.transform = ''; }
+    node.addEventListener('pointermove', move);
+    node.addEventListener('pointerleave', leave);
+    node.addEventListener('pointercancel', leave);
+  }
+
+  /* ------------------------------ scanLoader --------------------------- */
+  function scanLoader(host) {
+    var bar = el('div', 'qg-scan');
+    bar.setAttribute('role', 'progressbar');
+    bar.setAttribute('aria-label', 'Сканирование');
+    bar.stop = function () { if (bar.parentNode) bar.parentNode.removeChild(bar); };
+    if (host) {
+      var h = typeof host === 'string' ? document.querySelector(host) : host;
+      if (h) h.appendChild(bar);
+    }
+    return bar;
+  }
+
+  /* ------------------------------ tabs (ink) --------------------------- */
+  // Плавный скользящий индикатор для .tabs[data-ink]. Синхронизируется с .on.
+  function tabs(container) {
+    if (!container || container.__tabsInk) return;
+    container.__tabsInk = true;
+    var ink = container.querySelector('.tab-ink');
+    if (!ink) { ink = el('span', 'tab-ink'); container.insertBefore(ink, container.firstChild); }
+    function position() {
+      var active = container.querySelector('button.on');
+      if (!active) { ink.style.opacity = '0'; return; }
+      ink.style.opacity = '1';
+      ink.style.width = active.offsetWidth + 'px';
+      ink.style.transform = 'translateX(' + (active.offsetLeft - 4) + 'px)';
+    }
+    container.addEventListener('click', function (e) {
+      if (e.target.closest('button')) requestAnimationFrame(position);
+    });
+    // класс .on может меняться программно — следим
+    var mo = new MutationObserver(function () { position(); });
+    container.querySelectorAll('button').forEach(function (b) {
+      mo.observe(b, { attributes: true, attributeFilter: ['class'] });
+    });
+    window.addEventListener('resize', function () { position(); }, { passive: true });
+    i18n.onChange(function () { requestAnimationFrame(position); });
+    requestAnimationFrame(position);
+  }
+
   /* ------------------------------ export ------------------------------- */
   window.Qorgau = {
     API: API,
@@ -487,9 +793,36 @@
     Gauge: Gauge,
     renderVerdict: renderVerdict,
     toast: toast,
-    skeleton: skeleton
+    skeleton: skeleton,
+    // — v2 motion-утилиты —
+    reduced: reduced,
+    countUp: countUp,
+    reveal: reveal,
+    shieldRadar: shieldRadar,
+    magnetic: magnetic,
+    tilt: tilt,
+    scanLoader: scanLoader,
+    tabs: tabs
   };
 
   // применить язык к статике сразу, как только DOM готов
   document.documentElement.lang = _lang === 'kz' ? 'kk' : 'ru';
+
+  /* ------------------------------ авто-инициализация ------------------- */
+  // Идемпотентно навешиваем поведение на opt-in классы/атрибуты. Не трогает
+  // страницы, которые ими не пользуются. Всё уважает prefers-reduced-motion.
+  function autoInit(root) {
+    root = root || document;
+    root.querySelectorAll('.btn.magnetic').forEach(function (n) { magnetic(n); });
+    root.querySelectorAll('.card.tilt').forEach(function (n) { tilt(n); });
+    root.querySelectorAll('.tabs[data-ink]').forEach(function (n) { tabs(n); });
+    if (root.querySelector('[data-reveal]')) reveal('[data-reveal]');
+  }
+  Qorgau.autoInit = autoInit;
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function () { autoInit(document); });
+  } else {
+    autoInit(document);
+  }
 })(window, document);

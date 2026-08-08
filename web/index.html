@@ -3,10 +3,15 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
-<meta name="theme-color" content="#0B0E14"/>
+<meta name="theme-color" content="#0A0E1A"/>
 <title data-i18n-title="lTitle">Qorǵau — проверка на мошенничество</title>
 <meta name="description" content="Qorǵau — антифрод-платформа Казахстана: проверка сообщений, ссылок и звонков, тренажёр, юридическая помощь и национальный радар мошенничества."/>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2338E0C8' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 22s8-4 8-10V5.2l-8-3-8 3V12c0 6 8 10 8 10Z'/%3E%3Cpath d='M9 12l2.2 2.2L15.5 10'/%3E%3C/svg%3E"/>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2338BDF8' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 22s8-4 8-10V5.2l-8-3-8 3V12c0 6 8 10 8 10Z'/%3E%3Cpath d='M9 12l2.2 2.2L15.5 10'/%3E%3C/svg%3E"/>
+<!-- прогрессивное улучшение: помечаем JS до первой отрисовки (без flash у reveal) -->
+<script>document.documentElement.classList.add('has-js');</script>
+<!-- преднагрузка самохостных шрифтов (latin-подмножества) -->
+<link rel="preload" href="assets/fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="assets/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="stylesheet" href="assets/app.css"/>
 <script src="assets/app.js" defer></script>
 </head>
@@ -19,11 +24,14 @@
   <!-- ============================ HERO ============================ -->
   <section class="container">
     <div class="hero stack lg">
-      <div class="eyebrow" data-i18n="lEyebrow">Антифрод-платформа Казахстана</div>
+      <!-- сигнатурный «щит + радар-скан» в фоне -->
+      <div class="hero-canvas-wrap" aria-hidden="true"><canvas id="heroRadar"></canvas></div>
+
+      <div class="eyebrow accent" data-i18n="lEyebrow">Антифрод-платформа Казахстана</div>
       <h1 data-i18n="lHeroTitle">Мошенник пишет как банк. Мы видим разницу.</h1>
       <p class="lead" data-i18n="lHeroLead">Qorǵau разбирает подозрительное сообщение, ссылку или звонок и объясняет простым языком, почему это развод — и что делать прямо сейчас.</p>
       <div class="cta-row row">
-        <a class="btn lg" href="check.html">
+        <a class="btn lg magnetic" href="check.html">
           <span data-icon="scan"></span>
           <span data-i18n="lCtaCheck">Проверить сообщение</span>
         </a>
@@ -32,6 +40,9 @@
           <span data-i18n="lCtaRadarGhost">Радар угроз</span>
         </a>
       </div>
+      <div class="row">
+        <span class="badge accent"><span data-icon="shield-check"></span><span data-i18n="lHeroTrust">0 внешних запросов · данные не покидают устройство</span></span>
+      </div>
     </div>
   </section>
 
@@ -39,17 +50,17 @@
   <section class="act">
     <div class="container section">
       <div class="act-grid">
-        <div class="act-stat">
+        <div class="act-stat" data-reveal="left">
           <div class="eyebrow" data-i18n="lAct1Eyebrow">До атаки</div>
           <div class="act-num" data-i18n="lAct1Num">9 из 10</div>
           <div class="act-painlabel" data-i18n="lAct1Pain">атак начинаются с сообщения или звонка</div>
         </div>
-        <div class="act-body">
+        <div class="act-body" data-reveal>
           <span class="act-ic" data-icon="message"></span>
           <h2 class="act-h" data-i18n="lAct1H">Проверьте, прежде чем поверить</h2>
           <p class="act-p" data-i18n="lAct1P">Вставьте СМС, ссылку, номер или скриншот — спидометр риска и понятный разбор покажут, развод это или нет.</p>
           <div class="act-features">
-            <a class="tile" href="check.html">
+            <a class="tile" href="check.html" data-reveal>
               <span class="tile-ic"><span data-icon="scan"></span></span>
               <span class="tile-body">
                 <span class="tile-title" data-i18n="lAct1F1t">Сообщение и ссылка</span>
@@ -57,7 +68,7 @@
               </span>
               <span class="tile-arrow" data-icon="chevron"></span>
             </a>
-            <a class="tile" href="check.html">
+            <a class="tile" href="check.html" data-reveal>
               <span class="tile-ic"><span data-icon="card"></span></span>
               <span class="tile-body">
                 <span class="tile-title" data-i18n="lAct1F2t">Номер и карта</span>
@@ -80,17 +91,17 @@
   <section class="act">
     <div class="container section">
       <div class="act-grid">
-        <div class="act-stat">
+        <div class="act-stat" data-reveal="left">
           <div class="eyebrow" data-i18n="lAct2Eyebrow">Во время звонка</div>
           <div class="act-num" data-i18n="lAct2Num">30 сек</div>
           <div class="act-painlabel" data-i18n="lAct2Pain">нужно мошеннику, чтобы выманить код из СМС</div>
         </div>
-        <div class="act-body">
+        <div class="act-body" data-reveal>
           <span class="act-ic" data-icon="phone"></span>
           <h2 class="act-h" data-i18n="lAct2H">Поддержка в момент атаки</h2>
           <p class="act-p" data-i18n="lAct2P">Живой суфлёр подсказывает ответы в реальном времени, тренажёр учит распознавать давление, а близкий человек получает алерт при опасности.</p>
           <div class="act-features">
-            <a class="tile" href="trainer.html">
+            <a class="tile" href="trainer.html" data-reveal>
               <span class="tile-ic"><span data-icon="graduation"></span></span>
               <span class="tile-body">
                 <span class="tile-title" data-i18n="lAct2F1t">Тренажёр</span>
@@ -98,7 +109,7 @@
               </span>
               <span class="tile-arrow" data-icon="chevron"></span>
             </a>
-            <a class="tile" href="guard.html">
+            <a class="tile" href="guard.html" data-reveal>
               <span class="tile-ic"><span data-icon="user-plus"></span></span>
               <span class="tile-body">
                 <span class="tile-title" data-i18n="lAct2F2t">Под защитой</span>
@@ -121,17 +132,17 @@
   <section class="act">
     <div class="container section">
       <div class="act-grid">
-        <div class="act-stat">
+        <div class="act-stat" data-reveal="left">
           <div class="eyebrow" data-i18n="lAct3Eyebrow">После атаки</div>
           <div class="act-num" data-i18n="lAct3Num">60 мин</div>
           <div class="act-painlabel" data-i18n="lAct3Pain">первый час решает, вернутся ли деньги</div>
         </div>
-        <div class="act-body">
+        <div class="act-body" data-reveal>
           <span class="act-ic" data-icon="scales"></span>
           <h2 class="act-h" data-i18n="lAct3H">Первая помощь, если уже перевели</h2>
           <p class="act-p" data-i18n="lAct3P">ИИ-юрист даёт пошаговый план: заблокировать карту, подать заявление, куда звонить — с реальными контактами банков и полиции Казахстана.</p>
           <div class="act-features">
-            <a class="tile" href="help.html">
+            <a class="tile" href="help.html" data-reveal>
               <span class="tile-ic"><span data-icon="scales"></span></span>
               <span class="tile-body">
                 <span class="tile-title" data-i18n="lAct3F1t">Юр-помощь</span>
@@ -139,7 +150,7 @@
               </span>
               <span class="tile-arrow" data-icon="chevron"></span>
             </a>
-            <a class="tile" href="shield.html">
+            <a class="tile" href="shield.html" data-reveal>
               <span class="tile-ic"><span data-icon="shield"></span></span>
               <span class="tile-body">
                 <span class="tile-title" data-i18n="lAct3F2t">Qorǵau Shield</span>
@@ -158,28 +169,30 @@
     </div>
   </section>
 
-  <!-- ============================ ДОВЕРИЕ ============================ -->
+  <!-- ============================ ДОВЕРИЕ (2 зоны) ============================ -->
   <section class="act">
     <div class="container section">
       <div class="stack lg">
-        <div class="stack">
-          <div class="eyebrow" data-i18n="lTrustEyebrow">Приватность по умолчанию</div>
+        <div class="stack" data-reveal>
+          <div class="eyebrow accent" data-i18n="lTrustEyebrow">Приватность по умолчанию</div>
           <h2 data-i18n="lTrustH">Ваш текст не станет чужими данными</h2>
         </div>
-        <div class="trust">
-          <div class="grid cols-2">
-            <div class="card pad stack">
-              <span class="badge accent"><span data-icon="shield"></span><span data-i18n="lTrustPiiT">Зона PII</span></span>
-              <p class="muted text-5" data-i18n="lTrustPiiS">Сырой текст зашифрован и удаляется через 24 часа.</p>
+        <div class="trust card glass" data-reveal>
+          <div class="zone-split">
+            <div class="zone pii">
+              <div class="zone-h"><span data-icon="alert"></span><span class="zone-tag" data-i18n="lTrustPiiTag">Зона PII</span></div>
+              <p class="zone-p" data-i18n="lTrustPiiS">Сырой текст зашифрован и удаляется через 24 часа.</p>
             </div>
-            <div class="card pad stack">
-              <span class="badge accent"><span data-icon="radar"></span><span data-i18n="lTrustAnT">Аналитика</span></span>
-              <p class="muted text-5" data-i18n="lTrustAnS">Только обезличенные признаки: схема, риск, регион, маскированные индикаторы.</p>
+            <div class="zone-flow" aria-hidden="true"><span data-icon="chevron"></span></div>
+            <div class="zone analytics">
+              <div class="zone-h"><span data-icon="radar"></span><span class="zone-tag" data-i18n="lTrustAnTag">Аналитика</span></div>
+              <p class="zone-p" data-i18n="lTrustAnS">Только обезличенные признаки: схема, риск, регион, маскированные индикаторы.</p>
             </div>
           </div>
           <p class="trust-note" data-i18n="lTrustNote">Телефоны и карты маскируются до записи. По данным радара нельзя восстановить ни текст, ни отправителя.</p>
           <div class="row mt-2">
             <span class="badge low"><span data-icon="check"></span><span data-i18n="lTrustBig">Текст удаляется через 24 часа</span></span>
+            <span class="badge accent"><span data-icon="shield-check"></span><span data-i18n="lNoExternal">0 внешних запросов</span></span>
           </div>
         </div>
       </div>
@@ -189,9 +202,9 @@
   <!-- ============================ ТИЗЕР РАДАРА ============================ -->
   <section class="act">
     <div class="container section">
-      <div class="card pad-lg stack lg">
+      <div class="card glass pad-lg stack lg" data-reveal="scale">
         <div class="stack">
-          <div class="eyebrow" data-i18n="lRadarEyebrow">Национальный радар</div>
+          <div class="eyebrow accent" data-i18n="lRadarEyebrow">Национальный радар</div>
           <h2 data-i18n="lRadarH">Каждая проверка усиливает защиту страны</h2>
           <p class="lead" data-i18n="lRadarP">Обезличенные сигналы складываются в живую карту мошенничества: всплески схем, активные кампании, индикаторы для банков и операторов.</p>
         </div>
@@ -228,6 +241,8 @@
     <span data-icon="shield-check"></span>
     <span data-i18n="lFootPrivacy">Текст удаляется через 24 часа. В аналитике — только обезличенные признаки.</span>
     <span class="sep">·</span>
+    <span data-i18n="lNoExternal">0 внешних запросов</span>
+    <span class="sep">·</span>
     <a href="password.html" data-i18n="lFootPassword">Проверка пароля</a>
     <span class="sep">·</span>
     <a href="shield.html">Qorǵau Shield</a>
@@ -247,6 +262,8 @@ addEventListener('DOMContentLoaded', function () {
       lHeroLead: 'Qorǵau разбирает подозрительное сообщение, ссылку или звонок и объясняет простым языком, почему это развод — и что делать прямо сейчас.',
       lCtaCheck: 'Проверить сообщение',
       lCtaRadarGhost: 'Радар угроз',
+      lHeroTrust: '0 внешних запросов · данные не покидают устройство',
+      lNoExternal: '0 внешних запросов',
 
       lAct1Eyebrow: 'Акт 1 · До атаки',
       lAct1Num: '9 из 10',
@@ -276,8 +293,8 @@ addEventListener('DOMContentLoaded', function () {
 
       lTrustEyebrow: 'Приватность по умолчанию',
       lTrustH: 'Ваш текст не станет чужими данными',
-      lTrustPiiT: 'Зона PII', lTrustPiiS: 'Сырой текст зашифрован и удаляется через 24 часа.',
-      lTrustAnT: 'Аналитика', lTrustAnS: 'Только обезличенные признаки: схема, риск, регион, маскированные индикаторы.',
+      lTrustPiiTag: 'Зона PII', lTrustPiiS: 'Сырой текст зашифрован и удаляется через 24 часа.',
+      lTrustAnTag: 'Аналитика', lTrustAnS: 'Только обезличенные признаки: схема, риск, регион, маскированные индикаторы.',
       lTrustNote: 'Телефоны и карты маскируются до записи. По данным радара нельзя восстановить ни текст, ни отправителя.',
       lTrustBig: 'Текст удаляется через 24 часа',
 
@@ -297,6 +314,8 @@ addEventListener('DOMContentLoaded', function () {
       lHeroLead: 'Qorǵau күдікті хабарламаны, сілтемені немесе қоңырауды талдап, неге бұл алаяқтық екенін қарапайым тілмен түсіндіреді және не істеу керегін айтады.',
       lCtaCheck: 'Хабарламаны тексеру',
       lCtaRadarGhost: 'Қауіп радары',
+      lHeroTrust: '0 сыртқы сұраныс · деректер құрылғыдан шықпайды',
+      lNoExternal: '0 сыртқы сұраныс',
 
       lAct1Eyebrow: '1-акт · Шабуылға дейін',
       lAct1Num: '10-нан 9',
@@ -326,8 +345,8 @@ addEventListener('DOMContentLoaded', function () {
 
       lTrustEyebrow: 'Әдепкі құпиялылық',
       lTrustH: 'Мәтініңіз бөгде деректерге айналмайды',
-      lTrustPiiT: 'PII аймағы', lTrustPiiS: 'Бастапқы мәтін шифрланған және 24 сағаттан кейін жойылады.',
-      lTrustAnT: 'Аналитика', lTrustAnS: 'Тек иесіздендірілген белгілер: схема, қауіп, аймақ, маскаланған индикаторлар.',
+      lTrustPiiTag: 'PII аймағы', lTrustPiiS: 'Бастапқы мәтін шифрланған және 24 сағаттан кейін жойылады.',
+      lTrustAnTag: 'Аналитика', lTrustAnS: 'Тек иесіздендірілген белгілер: схема, қауіп, аймақ, маскаланған индикаторлар.',
       lTrustNote: 'Телефондар мен карталар жазудан бұрын маскаланады. Радар деректері арқылы мәтінді де, жіберушіні де қалпына келтіру мүмкін емес.',
       lTrustBig: 'Мәтін 24 сағаттан кейін жойылады',
 
@@ -351,13 +370,20 @@ addEventListener('DOMContentLoaded', function () {
     slot.appendChild(Q.icon(slot.getAttribute('data-icon')));
   });
 
-  /* Живые счётчики радара — необязательно, тихо скрываются при недоступности API */
+  /* Сигнатурный фон hero: щит + радар-скан (сам стопается при reduced-motion) */
+  var heroCanvas = document.getElementById('heroRadar');
+  if (heroCanvas) Q.shieldRadar(heroCanvas);
+
+  /* Staggered-reveal при скролле (авто-инициализация в app.js уже подхватила
+     [data-reveal]; вызов идемпотентен — на случай отложенной вставки) */
+  Q.reveal('[data-reveal]');
+
+  /* Живые count-up счётчики радара — тихо скрываются при недоступности API */
   Q.fetchJSON('/stats/summary').then(function (s) {
     if (!s) return;
     var box = document.getElementById('radarStats');
-    var fmt = function (n) { return Number(n || 0).toLocaleString('ru-RU'); };
-    document.getElementById('rsTotal').textContent = fmt(s.total);
-    document.getElementById('rsCampaigns').textContent = fmt(s.campaigns_active);
+    Q.countUp(document.getElementById('rsTotal'), Number(s.total || 0), { group: true });
+    Q.countUp(document.getElementById('rsCampaigns'), Number(s.campaigns_active || 0), { group: true });
     var top = (s.top || []).filter(function (x) { return x.scheme !== 'not_scam'; })[0];
     document.getElementById('rsTop').textContent = top ? (top.title || top.scheme) : '—';
     box.classList.remove('hidden');
