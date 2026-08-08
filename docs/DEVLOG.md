@@ -2,6 +2,25 @@
 
 > Ведёт оркестратор. Новые записи — сверху. Формат: дата-время, что сделано, что дальше.
 
+## 2026-08-08 ~17:45 — Railway-инфраструктура готова (код ещё не задеплоен)
+
+- Пользователь авторизовал Railway CLI (`railway login --browserless`).
+- Проект `qorgau` (id 1f7a519a), окружение production. Сервисы: **Postgres**
+  (managed), **api**, **bot**.
+- Домен api: **https://api-production-029f.up.railway.app**
+- Переменные заданы (`--skip-deploys`): api — GROQ_API_KEY, GROQ_MODEL,
+  DATABASE_URL (reference на Postgres), ADMIN_TOKEN, BOT_API_KEY, PII_ENC_KEY;
+  bot — TELEGRAM_BOT_TOKEN, API_URL, BOT_API_KEY. Сгенерированные секреты
+  лежат в `.env.railway` (в git не попадает, добавлен паттерн в .gitignore).
+- GitHub-app Railway к аккаунту funster-a не подключён → `--repo` дал
+  Unauthorized. Деплой пойдёт через `railway up --service api|bot` из рабочей
+  копии (после интеграции кода агентов). Автодеплой из GitHub можно включить
+  позже в UI Railway одной кнопкой (Connect repo).
+- Секреты в логи/чат не выводились.
+
+**Дальше:** дождаться агентов (бэк: api/bot/db/engine; фронт: web) → интеграция
+и e2e локально → коммит → `railway up` обоих сервисов → проверка на проде.
+
 ## 2026-08-08 ~17:30 — оркестрация запущена
 
 **Состояние на входе:**
