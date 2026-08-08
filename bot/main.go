@@ -6,10 +6,12 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log"
+	"mime/multipart"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -36,6 +38,10 @@ type analyzeResp struct {
 		ValueMasked string `json:"value_masked"`
 	} `json:"iocs"`
 	Degraded bool `json:"degraded"`
+	// Доп. поля киллер-анализаторов (image/audio) — см. docs/API.md.
+	ExtractedText string `json:"extracted_text"` // текст, распознанный на скриншоте
+	UISpoofing    bool   `json:"ui_spoofing"`    // похоже на поддельный интерфейс
+	Transcript    string `json:"transcript"`     // расшифровка голосового
 }
 
 type campaign struct {
@@ -48,7 +54,10 @@ type campaign struct {
 
 const helpText = `🛡️ <b>Qorǵau</b> — проверка сообщений на мошенничество.
 
-Просто пришлите подозрительную СМС или скопированную переписку — я разберу её за пару секунд и объясню, что не так.
+Пришлите мне что угодно подозрительное — я разберу за пару секунд и объясню, что не так:
+• 💬 <b>текст</b> — СМС или скопированную переписку
+• 📸 <b>скриншот</b> переписки или сайта
+• 🎙 <b>голосовое</b> или запись звонка
 
 Команды:
 /help — эта справка
@@ -89,9 +98,20 @@ func handle(bot *tgbotapi.BotAPI, m *tgbotapi.Message) {
 	chatID := m.Chat.ID
 	text := strings.TrimSpace(m.Text)
 
-	// Пересланное фото/голосовое без подписи разобрать нечем — подсказываем, что делать.
+	// Скриншот переписки/сайта → vision-анализ. Берём фото макс. размера.
+	if len(m.Photo) > 0 {
+		handlePhoto(bot, m)
+		return
+	}
+	// Голосовое или аудио-запись звонка → расшифровка + анализ текста.
+	if m.Voice != nil || m.Audio != nil {
+		handleVoice(bot, m)
+		return
+	}
+
+	// Прочие вложения без текста разобрать нечем — подсказываем, что делать.
 	if text == "" {
-		send(bot, chatID, "Пришлите <b>текст</b> сообщения — скриншоты я пока не читаю. Скопируйте СМС и отправьте сюда.")
+		send(bot, chatID, "Пришлите <b>текст</b>, <b>скриншот</b> переписки или <b>голосовое</b> — я всё разберу.")
 		return
 	}
 
@@ -157,6 +177,166 @@ func analyze(text string) (analyzeResp, error) {
 	}
 	var out analyzeResp
 	return out, json.NewDecoder(resp.Body).Decode(&out)
+}
+
+// ---------- медиа: фото и голос ----------
+
+// mediaTimeout больше текстового (15с): vision и whisper считаются дольше.
+const mediaTimeout = 30 * time.Second
+
+// handlePhoto: скачивает фото макс. размера из Telegram и гонит его в /analyze/image.
+func handlePhoto(bot *tgbotapi.BotAPI, m *tgbotapi.Message) {
+	chatID := m.Chat.ID
+	bot.Send(tgbotapi.NewChatAction(chatID, tgbotapi.ChatUploadPhoto))
+	send(bot, chatID, "🔎 Анализирую изображение…")
+
+	// Последний элемент m.Photo — версия максимального разрешения.
+	photo := m.Photo[len(m.Photo)-1]
+	url, err := bot.GetFileDirectURL(photo.FileID)
+	if err != nil {
+		log.Printf("photo file url error: %v", err)
+		send(bot, chatID, "⚠️ Не удалось получить изображение из Telegram. Попробуйте ещё раз.")
+		return
+	}
+	data, err := downloadFile(url, 5*1024*1024)
+	if err != nil {
+		log.Printf("photo download error: %v", err)
+		send(bot, chatID, "⚠️ Не удалось загрузить изображение (слишком большое или сервис недоступен).")
+		return
+	}
+	dataURI := "data:" + mimeFromURL(url) + ";base64," + base64.StdEncoding.EncodeToString(data)
+
+	res, err := analyzeImage(dataURI)
+	if err != nil {
+		log.Printf("analyze image error: %v", err)
+		send(bot, chatID, "⚠️ Не удалось распознать изображение — сервис недоступен. Попробуйте позже.")
+		return
+	}
+	send(bot, chatID, format(res))
+}
+
+// handleVoice: скачивает голосовое/аудио и отправляет в /analyze/audio (multipart).
+func handleVoice(bot *tgbotapi.BotAPI, m *tgbotapi.Message) {
+	chatID := m.Chat.ID
+	bot.Send(tgbotapi.NewChatAction(chatID, tgbotapi.ChatTyping))
+	send(bot, chatID, "🎙 Слушаю запись…")
+
+	var fileID string
+	switch {
+	case m.Voice != nil:
+		fileID = m.Voice.FileID
+	case m.Audio != nil:
+		fileID = m.Audio.FileID
+	}
+	url, err := bot.GetFileDirectURL(fileID)
+	if err != nil {
+		log.Printf("voice file url error: %v", err)
+		send(bot, chatID, "⚠️ Не удалось получить запись из Telegram. Попробуйте ещё раз.")
+		return
+	}
+	data, err := downloadFile(url, 10*1024*1024)
+	if err != nil {
+		log.Printf("voice download error: %v", err)
+		send(bot, chatID, "⚠️ Не удалось загрузить запись (слишком большая или сервис недоступен).")
+		return
+	}
+
+	res, err := analyzeAudio(data, "voice.ogg")
+	if err != nil {
+		log.Printf("analyze audio error: %v", err)
+		send(bot, chatID, "⚠️ Не удалось распознать запись — сервис недоступен. Попробуйте позже.")
+		return
+	}
+	// Сначала показываем расшифровку — пользователь видит, что именно услышала модель.
+	if t := strings.TrimSpace(res.Transcript); t != "" {
+		send(bot, chatID, "🎙 Распознал: «"+esc(clip(t, 3500))+"»")
+	}
+	send(bot, chatID, format(res))
+}
+
+// analyzeImage — POST base64-картинки в /analyze/image (таймаут mediaTimeout).
+func analyzeImage(imageBase64 string) (analyzeResp, error) {
+	body, _ := json.Marshal(map[string]string{"image_base64": imageBase64, "channel": "tg"})
+	client := http.Client{Timeout: mediaTimeout}
+	resp, err := client.Post(apiURL+"/analyze/image", "application/json", bytes.NewReader(body))
+	if err != nil {
+		return analyzeResp{}, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return analyzeResp{}, fmt.Errorf("api http %d", resp.StatusCode)
+	}
+	var out analyzeResp
+	return out, json.NewDecoder(resp.Body).Decode(&out)
+}
+
+// analyzeAudio — POST аудио в /analyze/audio как multipart/form-data (поле "audio").
+func analyzeAudio(data []byte, filename string) (analyzeResp, error) {
+	var buf bytes.Buffer
+	w := multipart.NewWriter(&buf)
+	part, err := w.CreateFormFile("audio", filename)
+	if err != nil {
+		return analyzeResp{}, err
+	}
+	if _, err := part.Write(data); err != nil {
+		return analyzeResp{}, err
+	}
+	w.WriteField("channel", "tg")
+	if err := w.Close(); err != nil {
+		return analyzeResp{}, err
+	}
+	client := http.Client{Timeout: mediaTimeout}
+	resp, err := client.Post(apiURL+"/analyze/audio", w.FormDataContentType(), &buf)
+	if err != nil {
+		return analyzeResp{}, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return analyzeResp{}, fmt.Errorf("api http %d", resp.StatusCode)
+	}
+	var out analyzeResp
+	return out, json.NewDecoder(resp.Body).Decode(&out)
+}
+
+// downloadFile качает файл по URL с жёстким лимитом размера (защита от OOM).
+func downloadFile(url string, limit int64) ([]byte, error) {
+	client := http.Client{Timeout: mediaTimeout}
+	resp, err := client.Get(url)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("download http %d", resp.StatusCode)
+	}
+	// Читаем на 1 байт больше лимита, чтобы поймать превышение.
+	data, err := io.ReadAll(io.LimitReader(resp.Body, limit+1))
+	if err != nil {
+		return nil, err
+	}
+	if int64(len(data)) > limit {
+		return nil, fmt.Errorf("file exceeds %d bytes", limit)
+	}
+	return data, nil
+}
+
+// mimeFromURL угадывает MIME по расширению файла из Telegram-URL.
+// Для Telegram фото по умолчанию — image/jpeg.
+func mimeFromURL(u string) string {
+	ext := strings.ToLower(filepath.Ext(u))
+	if i := strings.IndexAny(ext, "?#"); i >= 0 { // отрезаем query/fragment, если есть
+		ext = ext[:i]
+	}
+	switch ext {
+	case ".png":
+		return "image/png"
+	case ".webp":
+		return "image/webp"
+	case ".gif":
+		return "image/gif"
+	default:
+		return "image/jpeg"
+	}
 }
 
 // botAPICall — POST на /bot/subscribe|unsubscribe с X-Bot-Key (если задан).
@@ -325,6 +505,9 @@ func format(r analyzeResp) string {
 	if r.SchemeTitle != "" {
 		fmt.Fprintf(&b, "Схема: %s\n", esc(r.SchemeTitle))
 	}
+	if r.UISpoofing {
+		b.WriteString("⚠️ <b>Похоже на поддельный интерфейс</b> банка/госоргана.\n")
+	}
 	b.WriteString("\n" + progressBar(r.RiskScore) + "\n")
 
 	if len(r.Flags) > 0 {
@@ -378,6 +561,16 @@ func send(bot *tgbotapi.BotAPI, chatID int64, text string) {
 func esc(s string) string {
 	r := strings.NewReplacer("&", "&amp;", "<", "&lt;", ">", "&gt;")
 	return r.Replace(s)
+}
+
+// clip обрезает длинную строку по рунам (расшифровка/распознанный текст могут
+// не влезть в лимит Telegram 4096 симв.), добавляя многоточие.
+func clip(s string, max int) string {
+	r := []rune(s)
+	if len(r) <= max {
+		return s
+	}
+	return string(r[:max]) + "…"
 }
 
 // loadDotEnv читает .env из рабочей директории или на уровень выше (запуск из bot/).

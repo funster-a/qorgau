@@ -156,7 +156,8 @@
   .and-opt p a{color:var(--acc);text-decoration:underline;text-underline-offset:3px}
 
   /* ---------- test ---------- */
-  .test-btn{display:flex;justify-content:center;align-items:center;gap:9px;width:100%;padding:14px;
+  .test-grid{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+  .test-btn{display:flex;justify-content:center;align-items:center;gap:9px;flex:1;min-width:210px;padding:14px;
         border:1px dashed rgba(255,93,108,.5);background:var(--red-soft);color:#ffb3bc;
         border-radius:var(--r-md);font:inherit;font-size:15px;font-weight:800;cursor:pointer;
         text-decoration:none;transition:all .2s var(--ease)}
@@ -197,8 +198,11 @@
 
   <nav class="nav-pages" aria-label="Qorǵau">
     <a href="index.html">🔍 <span data-i18n="navChecker">Проверка сообщений</span></a>
+    <a href="link.html">🔗 <span data-i18n="navLink">Ссылка</span></a>
+    <a href="scan.html">🖼 <span data-i18n="navScan">Скриншот</span></a>
     <a href="shield.html" class="on" aria-current="page">🛡 Shield</a>
     <a href="password.html">🔑 <span data-i18n="navPassword">Проверка пароля</span></a>
+    <a href="radar.html">📡 <span data-i18n="navRadar">Радар</span></a>
   </nav>
 
   <!-- ================= hero + live stats ================= -->
@@ -358,13 +362,18 @@
 
   <!-- ================= test ================= -->
   <section class="sect">
-    <h3 class="sect-title">🧪 <span data-i18n="testTitle">Проверь, что работает</span></h3>
-    <p class="sect-sub" data-i18n="testSub">kaspi-secure.xyz — тестовый домен из нашего блок-листа.</p>
+    <h3 class="sect-title">🧪 <span data-i18n="testTitle">Проверь, что защита реально работает</span></h3>
+    <p class="sect-sub" data-i18n="testSub">Эти два сайта — настоящие и существуют в интернете. Для наглядной демонстрации мы добавили их в блок-лист Shield.</p>
     <div class="card">
-      <a class="test-btn" href="http://kaspi-secure.xyz" target="_blank" rel="noopener">
-        ✂️ <span data-i18n="testBtn">Открыть тестовый фишинговый домен</span>
-      </a>
-      <p class="note" data-i18n="testNote">С включённым Shield этот сайт просто не откроется: браузер ответит «сайт не найден» — блокировка происходит на уровне DNS, до загрузки страницы. Без Shield ссылка откроется как обычная страница.</p>
+      <div class="test-grid">
+        <a class="test-btn" href="http://neverssl.com" target="_blank" rel="noopener">
+          🌐 <span data-i18n="testBtn">Открыть</span> <span class="dom">neverssl.com</span>
+        </a>
+        <a class="test-btn" href="http://example.com" target="_blank" rel="noopener">
+          🌐 <span data-i18n="testBtn">Открыть</span> <span class="dom">example.com</span>
+        </a>
+      </div>
+      <p class="note" data-i18n="testNote">Без Shield оба сайта открываются как обычно — они настоящие. С включённым Shield они заблокированы: браузер ответит «сайт не найден». Так ты своими глазами видишь, что защита реально работает — на уровне DNS, ещё до загрузки страницы.</p>
     </div>
   </section>
 
@@ -424,6 +433,7 @@ const I18N = {
   ru: {
     slogan:'DNS-защита от фишинга',
     navChecker:'Проверка сообщений', navPassword:'Проверка пароля',
+    navLink:'Ссылка', navScan:'Скриншот', navRadar:'Радар',
     heroTitle:'Фишинговые сайты не откроются. Вообще.',
     heroSub:'Блок-лист пополняется из жалоб граждан в реальном времени: пожаловался один — защищены все.',
     stDomains:'доменов в блок-листе', stBlocked:'заблокировано сегодня', stTopL:'Чаще всего блокируем',
@@ -454,9 +464,10 @@ const I18N = {
     andOpt2H:'Или проверяйте ссылки вручную',
     andOpt2:'Пришла подозрительная ссылка? Вставьте её в', andOpt2A:'чекер Qorǵau',
     andOpt2B:'— он распознает фишинг до того, как вы откроете сайт.',
-    testTitle:'Проверь, что работает', testSub:'kaspi-secure.xyz — тестовый домен из нашего блок-листа.',
-    testBtn:'Открыть тестовый фишинговый домен',
-    testNote:'С включённым Shield этот сайт просто не откроется: браузер ответит «сайт не найден» — блокировка происходит на уровне DNS, до загрузки страницы. Без Shield ссылка откроется как обычная страница.',
+    testTitle:'Проверь, что защита реально работает',
+    testSub:'Эти два сайта — настоящие и существуют в интернете. Для наглядной демонстрации мы добавили их в блок-лист Shield.',
+    testBtn:'Открыть',
+    testNote:'Без Shield оба сайта открываются как обычно — они настоящие. С включённым Shield они заблокированы: браузер ответит «сайт не найден». Так ты своими глазами видишь, что защита реально работает — на уровне DNS, ещё до загрузки страницы.',
     howTitle:'Как это устроено',
     dPhone:'Телефон', dReq:'DNS-запрос', dQ2:'блок-лист из жалоб граждан',
     dQ3:'обновляется в реальном времени', dBad:'фишинг', dBad2:'NXDOMAIN — не откроется',
@@ -468,6 +479,7 @@ const I18N = {
   kz: {
     slogan:'Фишингтен қорғайтын DNS',
     navChecker:'Хабарлама тексеру', navPassword:'Құпиясөзді тексеру',
+    navLink:'Сілтеме', navScan:'Скриншот', navRadar:'Радар',
     heroTitle:'Фишинг-сайттар мүлдем ашылмайды.',
     heroSub:'Блок-тізім азаматтардың шағымдарынан нақты уақытта толығады: біреу шағымданса — бәрі қорғалады.',
     stDomains:'блок-тізімдегі домен', stBlocked:'бүгін бұғатталды', stTopL:'Жиі бұғатталатындар',
@@ -498,9 +510,10 @@ const I18N = {
     andOpt2H:'Немесе сілтемелерді қолмен тексеріңіз',
     andOpt2:'Күдікті сілтеме келді ме? Оны', andOpt2A:'Qorǵau тексергішіне',
     andOpt2B:'қойыңыз — сайтты ашпай тұрып фишингті танып береді.',
-    testTitle:'Жұмыс істейтінін тексер', testSub:'kaspi-secure.xyz — блок-тізіміміздегі сынақ домені.',
-    testBtn:'Сынақ фишинг-доменін ашу',
-    testNote:'Shield қосулы болса, бұл сайт жай ғана ашылмайды: браузер «сайт табылмады» дейді — бұғаттау DNS деңгейінде, бет жүктелгенге дейін болады. Shield-сіз сілтеме қарапайым бет ретінде ашылады.',
+    testTitle:'Қорғаныс шынымен жұмыс істейтінін тексер',
+    testSub:'Бұл екі сайт — нағыз, интернетте бар. Көрнекі демонстрация үшін оларды Shield блок-тізіміне қостық.',
+    testBtn:'Ашу',
+    testNote:'Shield-сіз екі сайт та әдеттегідей ашылады — олар нағыз. Shield қосулы болса, олар бұғатталған: браузер «сайт табылмады» дейді. Осылай қорғаныстың шынымен жұмыс істейтінін өз көзіңмен көресің — DNS деңгейінде, бет жүктелгенге дейін.',
     howTitle:'Бұл қалай құрылған',
     dPhone:'Телефон', dReq:'DNS-сұраныс', dQ2:'азаматтар шағымының блок-тізімі',
     dQ3:'нақты уақытта жаңарады', dBad:'фишинг', dBad2:'NXDOMAIN — ашылмайды',

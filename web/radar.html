@@ -1,0 +1,607 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+<meta name="theme-color" content="#080c16"/>
+<title>Qorǵau — гео-радар Казахстана</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%235b8cff'/%3E%3Cstop offset='1' stop-color='%232ee6a8'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M16 2 27 6.5v8.2c0 7-4.7 12.3-11 15.3-6.3-3-11-8.3-11-15.3V6.5L16 2z' fill='url(%23g)'/%3E%3Cpath d='M10.5 15.5l4 4 7-7.5' fill='none' stroke='%23080c16' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"/>
+<style>
+  :root{
+    --bg:#080c16; --bg-glow1:rgba(91,140,255,.13); --bg-glow2:rgba(46,230,168,.05);
+    --card:#101a2e; --card-2:#0c1424; --input:#0b1220;
+    --line:rgba(148,166,204,.14); --line-strong:rgba(148,166,204,.26);
+    --txt:#e9eef8; --mut:#8b98b6; --mut-2:#5f6c8a;
+    --acc:#5b8cff; --acc-soft:rgba(91,140,255,.14);
+    --red:#ff5d6c; --red-soft:rgba(255,93,108,.13);
+    --yellow:#ffb224; --yellow-soft:rgba(255,178,36,.13);
+    --green:#2ee6a8; --green-soft:rgba(46,230,168,.12);
+    --r-lg:20px; --r-md:14px; --r-sm:10px;
+    --shadow:0 12px 40px rgba(2,6,16,.55), 0 2px 8px rgba(2,6,16,.4);
+    --ease:cubic-bezier(.22,.9,.3,1);
+    --mono:ui-monospace,SFMono-Regular,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0; color:var(--txt);
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;
+    background:
+      radial-gradient(1100px 560px at 85% -8%, var(--bg-glow1), transparent 70%),
+      radial-gradient(800px 480px at -10% 30%, var(--bg-glow2), transparent 70%),
+      var(--bg);
+    min-height:100vh; line-height:1.5;
+  }
+  .wrap{max-width:1000px;margin:0 auto;padding:20px 16px calc(28px + env(safe-area-inset-bottom))}
+  @media(min-width:760px){.wrap{padding-top:32px}}
+
+  header{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+  .logo{width:44px;height:44px;flex:none;filter:drop-shadow(0 4px 14px rgba(91,140,255,.35))}
+  .brand h1{font-size:22px;margin:0;line-height:1.15;letter-spacing:.2px;font-weight:800}
+  .brand p{margin:1px 0 0;font-size:12.5px;color:var(--mut)}
+  .lang{margin-left:auto;display:flex;background:var(--card-2);border:1px solid var(--line);
+        border-radius:999px;padding:3px;flex:none}
+  .lang button{border:0;background:transparent;color:var(--mut);font:inherit;font-size:12.5px;
+        font-weight:700;padding:5px 12px;border-radius:999px;cursor:pointer;transition:all .2s var(--ease)}
+  .lang button.on{background:var(--acc-soft);color:var(--acc)}
+  .nav-pages{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 18px}
+  .nav-pages a{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:700;
+        color:var(--mut);background:var(--card-2);border:1px solid var(--line);border-radius:999px;
+        padding:6px 12px;text-decoration:none;transition:all .2s var(--ease)}
+  .nav-pages a:hover{color:var(--txt);border-color:var(--acc);transform:translateY(-1px)}
+  .nav-pages a.on{color:var(--acc);background:var(--acc-soft);border-color:rgba(91,140,255,.4)}
+
+  /* hero title */
+  .r-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+  .r-head h2{font-size:clamp(24px,5.4vw,34px);line-height:1.1;margin:0;letter-spacing:-.6px}
+  .r-head .sub{color:var(--mut);font-size:13.5px;margin:4px 0 0}
+  .live{display:inline-flex;align-items:center;gap:7px;font-size:10.5px;font-weight:800;
+        letter-spacing:1.6px;color:var(--green);flex:none}
+  .live-dot{width:8px;height:8px;border-radius:50%;background:var(--green);position:relative;flex:none}
+  .live-dot::after{content:"";position:absolute;inset:-4px;border-radius:50%;
+        border:2px solid var(--green);opacity:0;animation:ping 1.8s ease-out infinite}
+  @keyframes ping{0%{transform:scale(.4);opacity:.9}80%,100%{transform:scale(1.4);opacity:0}}
+  .live .upd{color:var(--mut-2);letter-spacing:.3px;font-weight:600;text-transform:none}
+
+  /* KPI row */
+  .kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
+  @media(max-width:560px){.kpis{grid-template-columns:1fr}}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);padding:18px 18px 16px;
+        box-shadow:var(--shadow);position:relative;overflow:hidden}
+  .kpi::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px}
+  .kpi.k-total::before{background:var(--acc)}
+  .kpi.k-high::before{background:var(--red)}
+  .kpi.k-wave::before{background:var(--yellow)}
+  .kpi .kl{font-size:11.5px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:var(--mut)}
+  .kpi .kn{font-size:clamp(32px,7vw,46px);font-weight:800;letter-spacing:-1px;line-height:1.05;
+        font-variant-numeric:tabular-nums;margin-top:6px}
+  .kpi.k-total .kn{color:#cfe0ff} .kpi.k-high .kn{color:#ffb3bc} .kpi.k-wave .kn{color:#ffd88a}
+  .kpi .kh{font-size:12px;color:var(--mut);margin-top:3px}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);
+        padding:18px;box-shadow:var(--shadow)}
+  .sect-title{font-size:18px;font-weight:800;margin:0 0 2px;display:flex;align-items:center;gap:8px}
+  .sect-sub{font-size:13px;color:var(--mut);margin:0 0 14px}
+  .sect{margin-top:18px}
+
+  /* map */
+  .map-wrap{position:relative}
+  .map{width:100%;height:auto;display:block;overflow:visible;
+        background:radial-gradient(120% 120% at 50% 0%,rgba(91,140,255,.06),transparent 60%)}
+  .tile{cursor:default;transition:stroke .2s,filter .2s}
+  .tile:hover,.tile:focus{outline:none;filter:brightness(1.15) drop-shadow(0 0 6px rgba(91,140,255,.45))}
+  .tile rect{transition:fill .8s var(--ease)}
+  .tname{font-size:15px;font-weight:800;fill:#f2f6ff;paint-order:stroke;
+        stroke:rgba(4,7,14,.55);stroke-width:2.4px;pointer-events:none}
+  .tval{font-size:19px;font-weight:800;fill:#fff;font-variant-numeric:tabular-nums;paint-order:stroke;
+        stroke:rgba(4,7,14,.5);stroke-width:2.6px;pointer-events:none}
+  .tsub{font-size:11px;font-weight:700;fill:rgba(255,255,255,.72);pointer-events:none}
+  .sea{fill:rgba(46,120,200,.14);stroke:rgba(91,140,255,.3);stroke-dasharray:5 4}
+  .sealbl{font-size:12px;fill:#6f88b8;font-style:italic}
+
+  /* tooltip */
+  .tip{position:absolute;pointer-events:none;z-index:20;background:var(--card-2);
+        border:1px solid var(--line-strong);border-radius:var(--r-sm);padding:9px 12px;
+        box-shadow:var(--shadow);min-width:150px;opacity:0;transform:translateY(4px);
+        transition:opacity .15s,transform .15s;font-size:12.5px}
+  .tip.show{opacity:1;transform:none}
+  .tip .tt{font-weight:800;font-size:13.5px;margin-bottom:5px}
+  .tip .tr{display:flex;justify-content:space-between;gap:16px;color:var(--mut);margin:2px 0}
+  .tip .tr b{color:var(--txt);font-variant-numeric:tabular-nums}
+  .tip .tr.hi b{color:#ffb3bc}
+
+  /* legend */
+  .legend{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:14px;font-size:12px;color:var(--mut)}
+  .legend .scale{height:12px;width:200px;border-radius:999px;border:1px solid var(--line);
+        background:linear-gradient(90deg,#1e3a5c,#7a4d6e,#ff5d6c)}
+  .legend .ends{display:flex;justify-content:space-between;width:200px;font-size:11px;color:var(--mut-2)}
+  .legend .nd{display:inline-flex;align-items:center;gap:6px}
+  .legend .sw{width:13px;height:13px;border-radius:4px;background:var(--card-2);border:1px solid var(--line);flex:none}
+
+  /* top regions table */
+  .tbl{width:100%;border-collapse:collapse;font-size:13.5px}
+  .tbl th{text-align:left;font-size:11px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;
+        color:var(--mut-2);padding:0 10px 9px;border-bottom:1px solid var(--line)}
+  .tbl th.num,.tbl td.num{text-align:right;font-variant-numeric:tabular-nums}
+  .tbl td{padding:11px 10px;border-bottom:1px solid var(--line)}
+  .tbl tr:last-child td{border-bottom:0}
+  .tbl .rank{color:var(--mut-2);font-weight:800;width:26px}
+  .tbl .rn{font-weight:700}
+  .tbl .barcell{width:120px}
+  .sharebar{height:8px;border-radius:999px;background:var(--card-2);overflow:hidden;position:relative;min-width:70px}
+  .sharebar span{display:block;height:100%;border-radius:999px}
+  .share-num{font-size:12px;color:var(--mut);margin-top:3px;font-variant-numeric:tabular-nums}
+  .empty{color:var(--mut-2);font-size:13px;text-align:center;padding:22px 0}
+
+  /* campaigns */
+  .camp{display:flex;gap:12px;align-items:flex-start;padding:13px 0;border-top:1px solid var(--line)}
+  .camp:first-child{border-top:0;padding-top:2px}
+  .camp .cdot{width:9px;height:9px;border-radius:50%;background:var(--red);margin-top:6px;flex:none;position:relative}
+  .camp .cdot::after{content:"";position:absolute;inset:-4px;border-radius:50%;border:2px solid var(--red);
+        opacity:0;animation:ping 1.7s ease-out infinite}
+  .camp .cnm{font-size:14.5px;font-weight:800}
+  .camp .cmeta{font-size:12px;color:var(--mut);margin-top:2px}
+  .camp .cpeak{margin-left:auto;flex:none;text-align:right}
+  .camp .cpeak .pn{font-size:20px;font-weight:800;color:#ffb3bc;font-variant-numeric:tabular-nums;line-height:1}
+  .camp .cpeak .pl{font-size:10.5px;color:var(--mut-2);text-transform:uppercase;letter-spacing:.6px}
+
+  footer{margin-top:26px;text-align:center;font-size:12px;color:var(--mut);line-height:1.7}
+  footer a{color:var(--acc);text-decoration:underline;text-underline-offset:3px}
+
+  @media(prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation-duration:.01ms !important;transition-duration:.01ms !important}
+    .tile rect{transition:none}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <svg class="logo" viewBox="0 0 32 32" aria-hidden="true">
+      <defs>
+        <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#5b8cff"/><stop offset="1" stop-color="#2ee6a8"/>
+        </linearGradient>
+      </defs>
+      <path d="M16 2 27 6.5v8.2c0 7-4.7 12.3-11 15.3-6.3-3-11-8.3-11-15.3V6.5L16 2z" fill="url(#lg)"/>
+      <path d="M10.5 15.5l4 4 7-7.5" fill="none" stroke="#080c16" stroke-width="3"
+            stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <div class="brand">
+      <h1>Qorǵau</h1>
+      <p data-i18n="slogan">Национальный радар мошенничества</p>
+    </div>
+    <div class="lang" role="group" aria-label="Language">
+      <button id="langRu" type="button">RU</button>
+      <button id="langKz" type="button">QZ</button>
+    </div>
+  </header>
+
+  <nav class="nav-pages" aria-label="Qorǵau">
+    <a href="index.html">🔍 <span data-i18n="navChecker">Проверка сообщений</span></a>
+    <a href="link.html">🔗 <span data-i18n="navLink">Ссылка</span></a>
+    <a href="scan.html">🖼 <span data-i18n="navScan">Скриншот</span></a>
+    <a href="shield.html">🛡 Shield</a>
+    <a href="password.html">🔑 <span data-i18n="navPassword">Проверка пароля</span></a>
+    <a href="radar.html" class="on" aria-current="page">📡 <span data-i18n="navRadar">Радар</span></a>
+  </nav>
+
+  <div class="r-head">
+    <div>
+      <h2 data-i18n="heroTitle">Гео-радар мошенничества</h2>
+      <p class="sub" data-i18n="heroSub">Живая карта обращений граждан по регионам Казахстана.</p>
+    </div>
+    <div class="live"><span class="live-dot"></span><span>LIVE</span><span class="upd" id="upd"></span></div>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi k-total">
+      <div class="kl" data-i18n="kpiTotal">Всего сигналов</div>
+      <div class="kn" id="kTotal">—</div>
+      <div class="kh" id="kTotalH" data-i18n="kpiTotalH">за всё время</div>
+    </div>
+    <div class="kpi k-high">
+      <div class="kl" data-i18n="kpiHigh">Доля высокого риска</div>
+      <div class="kn" id="kHigh">—</div>
+      <div class="kh" data-i18n="kpiHighH">за последние 24 часа</div>
+    </div>
+    <div class="kpi k-wave">
+      <div class="kl" data-i18n="kpiWave">Активные волны</div>
+      <div class="kn" id="kWave">—</div>
+      <div class="kh" data-i18n="kpiWaveH">кампании прямо сейчас</div>
+    </div>
+  </div>
+
+  <!-- ================= MAP ================= -->
+  <section class="sect">
+    <div class="card">
+      <h3 class="sect-title">🗺 <span data-i18n="mapTitle">Тепловая карта регионов</span></h3>
+      <p class="sect-sub" data-i18n="mapSub">Цвет региона — доля обращений высокого риска. Число — сколько всего сигналов.</p>
+      <div class="map-wrap">
+        <svg class="map" id="map" viewBox="0 0 1000 560" role="img" aria-label="Карта Казахстана">
+          <path class="sea" d="M8 300 Q40 330 30 380 Q22 440 60 500 L60 520 L8 520 Z"/>
+          <text class="sealbl" x="16" y="470" data-i18n="sea">Каспий</text>
+          <g id="tiles"></g>
+        </svg>
+        <div class="tip" id="tip" role="status" aria-live="polite"></div>
+      </div>
+      <div class="legend">
+        <div>
+          <div class="scale" aria-hidden="true"></div>
+          <div class="ends"><span data-i18n="legLow">спокойно</span><span data-i18n="legHigh">высокий риск</span></div>
+        </div>
+        <span class="nd"><span class="sw"></span><span data-i18n="legND">нет данных</span></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= TOP REGIONS ================= -->
+  <section class="sect">
+    <div class="card">
+      <h3 class="sect-title">📊 <span data-i18n="topTitle">Топ регионов по активности</span></h3>
+      <p class="sect-sub" data-i18n="topSub">Где сейчас чаще всего сталкиваются с мошенничеством.</p>
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th class="rank">#</th>
+            <th data-i18n="thRegion">Регион</th>
+            <th class="num" data-i18n="thTotal">Сигналов</th>
+            <th class="num" data-i18n="thHigh">Высокий</th>
+            <th class="barcell" data-i18n="thShare">Доля риска</th>
+          </tr>
+        </thead>
+        <tbody id="topBody"></tbody>
+      </table>
+      <div class="empty" id="topEmpty" data-i18n="noData" hidden>Пока нет данных. Как только появятся обращения — регионы загорятся на карте.</div>
+    </div>
+  </section>
+
+  <!-- ================= CAMPAIGNS ================= -->
+  <section class="sect" id="campSect" hidden>
+    <div class="card">
+      <h3 class="sect-title">⚠️ <span data-i18n="campTitle">Активные волны мошенничества</span></h3>
+      <p class="sect-sub" data-i18n="campSub">Всплески одной схемы за короткое время — вероятно, скоординированная кампания.</p>
+      <div id="campList"></div>
+    </div>
+  </section>
+
+  <footer>
+    <div>🔒 <span data-i18n="privacy">Карта строится только по обезличенным признакам — без текста и отправителей.</span></div>
+    <div><a href="index.html" data-i18n="footLink">🔍 Проверить подозрительное сообщение</a></div>
+  </footer>
+</div>
+
+<script>
+'use strict';
+const API = location.protocol === 'file:' ? 'http://localhost:8080' : '';
+
+/* ================= i18n ================= */
+const I18N = {
+  ru: {
+    slogan:'Национальный радар мошенничества',
+    navChecker:'Проверка сообщений', navLink:'Ссылка', navScan:'Скриншот',
+    navPassword:'Проверка пароля', navRadar:'Радар',
+    heroTitle:'Гео-радар мошенничества',
+    heroSub:'Живая карта обращений граждан по регионам Казахстана.',
+    kpiTotal:'Всего сигналов', kpiTotalH:'за всё время',
+    kpiHigh:'Доля высокого риска', kpiHighH:'за последние 24 часа',
+    kpiWave:'Активные волны', kpiWaveH:'кампании прямо сейчас',
+    mapTitle:'Тепловая карта регионов',
+    mapSub:'Цвет региона — доля обращений высокого риска. Число — сколько всего сигналов.',
+    sea:'Каспий',
+    legLow:'спокойно', legHigh:'высокий риск', legND:'нет данных',
+    topTitle:'Топ регионов по активности', topSub:'Где сейчас чаще всего сталкиваются с мошенничеством.',
+    thRegion:'Регион', thTotal:'Сигналов', thHigh:'Высокий', thShare:'Доля риска',
+    noData:'Пока нет данных. Как только появятся обращения — регионы загорятся на карте.',
+    campTitle:'Активные волны мошенничества',
+    campSub:'Всплески одной схемы за короткое время — вероятно, скоординированная кампания.',
+    tipTotal:'Сигналов', tipHigh:'Высокий риск', tipShare:'Доля риска', tipNo:'нет обращений',
+    peak:'пик/час', updNow:'обновлено только что', updAgo:'обновлено {n} с назад',
+    privacy:'Карта строится только по обезличенным признакам — без текста и отправителей.',
+    footLink:'🔍 Проверить подозрительное сообщение',
+    title:'Qorǵau — гео-радар Казахстана'
+  },
+  kz: {
+    slogan:'Алаяқтықтың ұлттық радары',
+    navChecker:'Хабарлама тексеру', navLink:'Сілтеме', navScan:'Скриншот',
+    navPassword:'Құпиясөзді тексеру', navRadar:'Радар',
+    heroTitle:'Алаяқтықтың гео-радары',
+    heroSub:'Қазақстан аймақтары бойынша азаматтар өтінішінің тірі картасы.',
+    kpiTotal:'Барлық сигнал', kpiTotalH:'бүкіл уақытта',
+    kpiHigh:'Жоғары қауіп үлесі', kpiHighH:'соңғы 24 сағатта',
+    kpiWave:'Белсенді толқындар', kpiWaveH:'дәл қазіргі кампаниялар',
+    mapTitle:'Аймақтардың жылу картасы',
+    mapSub:'Аймақ түсі — жоғары қауіпті өтініш үлесі. Сан — барлық сигнал.',
+    sea:'Каспий',
+    legLow:'тыныш', legHigh:'жоғары қауіп', legND:'дерек жоқ',
+    topTitle:'Белсенділік бойынша топ аймақтар', topSub:'Қазір алаяқтықпен жиі кездесетін жерлер.',
+    thRegion:'Аймақ', thTotal:'Сигнал', thHigh:'Жоғары', thShare:'Қауіп үлесі',
+    noData:'Әзірге дерек жоқ. Өтініштер түскенде аймақтар картада жанады.',
+    campTitle:'Белсенді алаяқтық толқындары',
+    campSub:'Қысқа уақытта бір схеманың күрт өсуі — үйлестірілген кампания болуы мүмкін.',
+    tipTotal:'Сигнал', tipHigh:'Жоғары қауіп', tipShare:'Қауіп үлесі', tipNo:'өтініш жоқ',
+    peak:'шыңы/сағ', updNow:'жаңа ғана жаңартылды', updAgo:'{n} с бұрын жаңартылды',
+    privacy:'Карта тек иесіздендірілген белгілер бойынша құрылады — мәтінсіз, жіберушісіз.',
+    footLink:'🔍 Күдікті хабарламаны тексеру',
+    title:'Qorǵau — Қазақстан гео-радары'
+  }
+};
+let lang = localStorage.getItem('qorgau_lang') || 'ru';
+if (!I18N[lang]) lang = 'ru';
+const t = k => (I18N[lang] && I18N[lang][k]) || I18N.ru[k] || k;
+const $ = id => document.getElementById(id);
+const NS = 'http://www.w3.org/2000/svg';
+
+/* ================= region tiles (схематичная карта КЗ) =================
+   Координаты в системе 1000x560. Геоточность не нужна — важна узнаваемость:
+   запад слева (Каспий), север сверху, Алматы — ЮВ, Караганда — центр. */
+const TILES = [
+  { id:'Oral',      ru:'Уральск',        kz:'Орал',       x:95,  y:150, w:150, h:100, ids:['oral','уральск','wko','zko','западноказахстанская','западноказахстан','орал','batyskazakhstan'] },
+  { id:'Kostanay',  ru:'Костанай',       kz:'Қостанай',   x:300, y:75,  w:140, h:95,  ids:['kostanay','kostanai','костанай','қостанай'] },
+  { id:'Petropavl', ru:'Петропавловск',  kz:'Петропавл',  x:455, y:62,  w:140, h:80,  ids:['petropavl','петропавловск','петропавл','sko','северноказахстанская','северныйказахстан','northkazakhstan','soltustik'] },
+  { id:'Astana',    ru:'Астана',         kz:'Астана',     x:610, y:95,  w:130, h:90,  ids:['astana','астана','akmola','акмола','nursultan','акмолинская'] },
+  { id:'Pavlodar',  ru:'Павлодар',       kz:'Павлодар',   x:760, y:80,  w:135, h:95,  ids:['pavlodar','павлодар'] },
+  { id:'Atyrau',    ru:'Атырау',         kz:'Атырау',     x:70,  y:265, w:150, h:95,  ids:['atyrau','атырау'] },
+  { id:'Mangystau', ru:'Актау',          kz:'Ақтау',      x:60,  y:375, w:150, h:110, ids:['mangystau','маңғыстау','мангистау','мангыстау','aktau','актау'] },
+  { id:'Aktobe',    ru:'Актобе',         kz:'Ақтөбе',     x:260, y:195, w:175, h:130, ids:['aktobe','актобе','ақтөбе','актюбинская'] },
+  { id:'Karaganda', ru:'Караганда',      kz:'Қарағанды',  x:520, y:205, w:185, h:140, ids:['karaganda','karagandy','караганда','қарағанды','ulytau','ұлытау','улытау','карагандинская'] },
+  { id:'Oskemen',   ru:'Оскемен',        kz:'Өскемен',    x:815, y:200, w:140, h:150, ids:['oskemen','оскемен','устькаменогорск','vko','восточноказахстанская','восточныйказахстан','eastkazakhstan','abai','абай','шыгыс'] },
+  { id:'Kyzylorda', ru:'Кызылорда',      kz:'Қызылорда',  x:300, y:350, w:180, h:120, ids:['kyzylorda','кызылорда','қызылорда','кызылординская'] },
+  { id:'Shymkent',  ru:'Шымкент',        kz:'Шымкент',    x:500, y:395, w:120, h:95,  ids:['shymkent','шымкент','turkistan','түркістан','туркестан','туркестанская','оңтүстік'] },
+  { id:'Taraz',     ru:'Тараз',          kz:'Тараз',      x:635, y:375, w:130, h:110, ids:['taraz','тараз','zhambyl','жамбыл','жамбылская','джамбул'] },
+  { id:'Almaty',    ru:'Алматы',         kz:'Алматы',     x:780, y:380, w:175, h:130, ids:['almaty','алматы','алматинская','jetisu','жетісу','жетысу','талдыкорган'] }
+];
+// нормализация ключа региона из API
+function norm(s){ return String(s || '').toLowerCase().replace(/[^a-zа-яё]/g, ''); }
+const ALIAS = {};
+TILES.forEach(tile => { tile.ids.forEach(a => { ALIAS[norm(a)] = tile.id; }); ALIAS[norm(tile.id)] = tile.id; });
+function tileIdFor(region){ return ALIAS[norm(region)] || null; }
+
+/* цвет по доле высокого риска: спокойный сталь-синий → красный */
+function heatColor(share){
+  const s = Math.max(0, Math.min(100, Number(share) || 0)) / 100;
+  const c0 = [30, 58, 92], c1 = [255, 93, 108];       // #1e3a5c → #ff5d6c
+  const boost = Math.pow(s, 0.75);                      // чуть раньше «нагревается»
+  const r = Math.round(c0[0] + (c1[0] - c0[0]) * boost);
+  const g = Math.round(c0[1] + (c1[1] - c0[1]) * boost);
+  const b = Math.round(c0[2] + (c1[2] - c0[2]) * boost);
+  return 'rgb(' + r + ',' + g + ',' + b + ')';
+}
+const NODATA_FILL = '#0c1424';
+
+/* ================= build map skeleton ================= */
+const tileEls = {};   // id -> {rect,name,val,sub,g,data}
+function buildMap(){
+  const g = $('tiles'); g.textContent = '';
+  TILES.forEach(tile => {
+    const grp = document.createElementNS(NS, 'g');
+    grp.setAttribute('class', 'tile');
+    grp.setAttribute('tabindex', '0');
+    const rect = document.createElementNS(NS, 'rect');
+    rect.setAttribute('x', tile.x); rect.setAttribute('y', tile.y);
+    rect.setAttribute('width', tile.w); rect.setAttribute('height', tile.h);
+    rect.setAttribute('rx', '12');
+    rect.setAttribute('fill', NODATA_FILL);
+    rect.setAttribute('stroke', 'rgba(148,166,204,.22)');
+    rect.setAttribute('stroke-width', '1.4');
+    const cx = tile.x + tile.w / 2;
+    const name = document.createElementNS(NS, 'text');
+    name.setAttribute('class', 'tname'); name.setAttribute('x', cx);
+    name.setAttribute('y', tile.y + tile.h / 2 - 8); name.setAttribute('text-anchor', 'middle');
+    const val = document.createElementNS(NS, 'text');
+    val.setAttribute('class', 'tval'); val.setAttribute('x', cx);
+    val.setAttribute('y', tile.y + tile.h / 2 + 16); val.setAttribute('text-anchor', 'middle');
+    const sub = document.createElementNS(NS, 'text');
+    sub.setAttribute('class', 'tsub'); sub.setAttribute('x', cx);
+    sub.setAttribute('y', tile.y + tile.h / 2 + 32); sub.setAttribute('text-anchor', 'middle');
+    grp.append(rect, name, val, sub);
+    g.appendChild(grp);
+    tileEls[tile.id] = { rect, name, val, sub, g: grp, tile, data: null };
+
+    const showTip = () => tipFor(tile.id);
+    grp.addEventListener('mouseenter', showTip);
+    grp.addEventListener('focus', showTip);
+    grp.addEventListener('mousemove', moveTip);
+    grp.addEventListener('mouseleave', hideTip);
+    grp.addEventListener('blur', hideTip);
+  });
+  paintTiles();
+}
+
+/* ================= data ================= */
+let regionsData = [];   // из /stats/regions
+function labelFor(tile){ return lang === 'kz' ? tile.kz : tile.ru; }
+
+function paintTiles(){
+  const byId = {};
+  regionsData.forEach(r => { const id = tileIdFor(r.region); if (id) byId[id] = r; });
+  TILES.forEach(tile => {
+    const el = tileEls[tile.id]; if (!el) return;
+    const d = byId[tile.id] || null; el.data = d;
+    el.name.textContent = labelFor(tile);
+    if (d && (d.total | 0) > 0) {
+      el.rect.setAttribute('fill', heatColor(d.share_high));
+      el.rect.setAttribute('stroke', 'rgba(255,255,255,.28)');
+      el.val.textContent = fmtNum(d.total);
+      el.sub.textContent = (d.share_high | 0) + '%';
+      el.g.setAttribute('aria-label', labelFor(tile) + ': ' + d.total + ', ' + (d.share_high|0) + '%');
+    } else {
+      el.rect.setAttribute('fill', NODATA_FILL);
+      el.rect.setAttribute('stroke', 'rgba(148,166,204,.22)');
+      el.val.textContent = '';
+      el.sub.textContent = '';
+      el.g.setAttribute('aria-label', labelFor(tile) + ': ' + t('tipNo'));
+    }
+  });
+}
+
+/* ================= tooltip ================= */
+function tipFor(id){
+  const el = tileEls[id]; if (!el) return;
+  const tip = $('tip');
+  const tile = el.tile, d = el.data;
+  tip.textContent = '';
+  const h = document.createElement('div'); h.className = 'tt'; h.textContent = labelFor(tile);
+  tip.appendChild(h);
+  if (d && (d.total | 0) > 0) {
+    tip.appendChild(tipRow(t('tipTotal'), fmtNum(d.total)));
+    tip.appendChild(tipRow(t('tipHigh'), fmtNum(d.high || 0), true));
+    tip.appendChild(tipRow(t('tipShare'), (d.share_high | 0) + '%'));
+  } else {
+    const r = document.createElement('div'); r.className = 'tr'; r.textContent = t('tipNo');
+    tip.appendChild(r);
+  }
+  tip.classList.add('show');
+}
+function tipRow(label, value, hi){
+  const r = document.createElement('div'); r.className = 'tr' + (hi ? ' hi' : '');
+  const l = document.createElement('span'); l.textContent = label;
+  const b = document.createElement('b'); b.textContent = value;
+  r.append(l, b); return r;
+}
+function moveTip(e){
+  const tip = $('tip'), wrap = tip.parentElement.getBoundingClientRect();
+  let x = e.clientX - wrap.left + 14, y = e.clientY - wrap.top + 14;
+  const tw = tip.offsetWidth, th = tip.offsetHeight;
+  if (x + tw > wrap.width) x = e.clientX - wrap.left - tw - 14;
+  if (y + th > wrap.height) y = e.clientY - wrap.top - th - 14;
+  tip.style.left = Math.max(0, x) + 'px';
+  tip.style.top = Math.max(0, y) + 'px';
+}
+function hideTip(){ $('tip').classList.remove('show'); }
+
+/* ================= top regions table ================= */
+function renderTop(){
+  const body = $('topBody'); body.textContent = '';
+  const rows = regionsData.filter(r => (r.total | 0) > 0)
+                          .slice().sort((a, b) => (b.total | 0) - (a.total | 0)).slice(0, 10);
+  if (!rows.length) { $('topEmpty').hidden = false; return; }
+  $('topEmpty').hidden = true;
+  rows.forEach((r, i) => {
+    const id = tileIdFor(r.region);
+    const tile = TILES.find(x => x.id === id);
+    const name = tile ? labelFor(tile) : String(r.region || '—');
+    const tr = document.createElement('tr');
+    const c1 = document.createElement('td'); c1.className = 'rank'; c1.textContent = String(i + 1);
+    const c2 = document.createElement('td'); c2.className = 'rn'; c2.textContent = name;
+    const c3 = document.createElement('td'); c3.className = 'num'; c3.textContent = fmtNum(r.total | 0);
+    const c4 = document.createElement('td'); c4.className = 'num'; c4.textContent = fmtNum(r.high | 0);
+    const c5 = document.createElement('td'); c5.className = 'barcell';
+    const bar = document.createElement('div'); bar.className = 'sharebar';
+    const fill = document.createElement('span');
+    const sh = Math.max(0, Math.min(100, r.share_high | 0));
+    fill.style.width = sh + '%'; fill.style.background = heatColor(sh);
+    bar.appendChild(fill);
+    const sn = document.createElement('div'); sn.className = 'share-num'; sn.textContent = sh + '%';
+    c5.append(bar, sn);
+    tr.append(c1, c2, c3, c4, c5);
+    body.appendChild(tr);
+  });
+}
+
+/* ================= summary KPIs ================= */
+let lastSummary = null, lastCampaigns = [];
+function renderSummary(s){
+  $('kTotal').textContent = fmtNum(s.total || 0);
+  $('kHigh').textContent = (s.high_share_24h != null ? (s.high_share_24h | 0) : 0) + '%';
+  const waves = s.campaigns_active != null ? s.campaigns_active : lastCampaigns.length;
+  $('kWave').textContent = fmtNum(waves || 0);
+}
+
+/* ================= campaigns ================= */
+function renderCampaigns(list){
+  const sect = $('campSect'), box = $('campList');
+  box.textContent = '';
+  if (!list.length) { sect.hidden = true; return; }
+  sect.hidden = false;
+  list.slice(0, 6).forEach(c => {
+    const row = document.createElement('div'); row.className = 'camp';
+    const dot = document.createElement('div'); dot.className = 'cdot';
+    const mid = document.createElement('div');
+    const nm = document.createElement('div'); nm.className = 'cnm'; nm.textContent = c.title || c.scheme || '';
+    const meta = document.createElement('div'); meta.className = 'cmeta';
+    meta.textContent = (c.scheme || '') + (c.started_at ? ' · ' + fmtTime(c.started_at) : '');
+    mid.append(nm, meta);
+    const pk = document.createElement('div'); pk.className = 'cpeak';
+    const pn = document.createElement('div'); pn.className = 'pn'; pn.textContent = fmtNum(c.peak != null ? c.peak : 0);
+    const pl = document.createElement('div'); pl.className = 'pl'; pl.textContent = t('peak');
+    pk.append(pn, pl);
+    row.append(dot, mid, pk);
+    box.appendChild(row);
+  });
+}
+
+/* ================= format helpers ================= */
+function fmtNum(n){ return Number(n || 0).toLocaleString('ru-RU'); }
+function fmtTime(iso){
+  try {
+    const d = new Date(iso);
+    if (isNaN(d)) return '';
+    return d.toLocaleString(lang === 'kz' ? 'kk-KZ' : 'ru-RU', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' });
+  } catch (_) { return ''; }
+}
+let lastUpdate = 0;
+function stampUpdate(){ lastUpdate = Date.now(); tickUpd(); }
+function tickUpd(){
+  if (!lastUpdate) return;
+  const sec = Math.round((Date.now() - lastUpdate) / 1000);
+  $('upd').textContent = '· ' + (sec < 3 ? t('updNow') : t('updAgo').replace('{n}', sec));
+}
+setInterval(tickUpd, 5000);
+
+/* ================= loaders ================= */
+async function loadRegions(){
+  try {
+    const r = await fetch(API + '/stats/regions');
+    if (!r.ok) throw 0;
+    const list = await r.json();
+    regionsData = Array.isArray(list) ? list : [];
+    paintTiles(); renderTop(); stampUpdate();
+  } catch (_) { /* API молчит — карта остаётся нейтральной */ }
+}
+async function loadSummary(){
+  try {
+    const r = await fetch(API + '/stats/summary');
+    if (!r.ok) throw 0;
+    lastSummary = await r.json();
+    renderSummary(lastSummary);
+  } catch (_) {}
+}
+async function loadCampaigns(){
+  try {
+    const r = await fetch(API + '/campaigns/active');
+    if (!r.ok) throw 0;
+    const list = await r.json();
+    lastCampaigns = Array.isArray(list) ? list : [];
+    renderCampaigns(lastCampaigns);
+    if (lastSummary) renderSummary(lastSummary);
+  } catch (_) {}
+}
+
+/* ================= lang ================= */
+function applyLang(){
+  document.documentElement.lang = lang;
+  document.title = t('title');
+  document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
+  $('langRu').classList.toggle('on', lang === 'ru');
+  $('langKz').classList.toggle('on', lang === 'kz');
+  paintTiles(); renderTop();
+  if (lastSummary) renderSummary(lastSummary);
+  renderCampaigns(lastCampaigns);
+  tickUpd();
+}
+function setLang(l){ lang = l; localStorage.setItem('qorgau_lang', l); applyLang(); }
+$('langRu').addEventListener('click', () => setLang('ru'));
+$('langKz').addEventListener('click', () => setLang('kz'));
+
+/* ================= boot ================= */
+buildMap();
+applyLang();
+loadRegions(); loadSummary(); loadCampaigns();
+setInterval(loadRegions, 30000);
+setInterval(loadSummary, 30000);
+setInterval(loadCampaigns, 30000);
+</script>
+</body>
+</html>

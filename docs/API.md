@@ -130,6 +130,53 @@ SHA-1 пароля (считается В БРАУЗЕРЕ, сам пароль 
 Ответ — текст HIBP как есть: строки `SUFFIX:COUNT`. Кэшируется в памяти 1ч.
 404 от HIBP → пустое тело 200.
 
+## Киллер-анализаторы (ссылка / скриншот / голос)
+
+Все три возвращают ту же форму, что `/analyze` (risk_score, risk_level,
+scheme_code, scheme_title, flags, explanation, recommended_actions, iocs,
+lang, degraded), плюс свои доп. поля. Пишут обезличенный сигнал в analytics
+так же, как /analyze (channel: "link" | "image" | "voice").
+
+### POST /analyze/link
+Разбор ссылки БЕЗ перехода на неё (пассивно, без headless-браузера).
+Запрос: `{ "url": "http://kaspi-bonus.xyz/win", "region": "" }`
+Доп. поля ответа:
+```json
+{
+  "domain": "kaspi-bonus.xyz",
+  "domain_age_days": 4,            // из whois creation date; -1 если неизвестно
+  "registrar": "строка или ''",
+  "ssl": { "present": true, "self_signed": false, "issuer": "...",
+           "age_days": 2, "valid": true },   // из TLS-хендшейка на :443
+  "brand_similarity": [ { "brand": "kaspi.kz", "distance": 2 } ], // Левенштейн
+  "in_blocklist": false           // домен уже в блок-листе Shield
+}
+```
+Сигналы риска: возраст домена < 30 дней (+сильно), самоподписанный/битый серт,
+похожесть на бренд КЗ (distance ≤ 3), уже в блок-листе, рискованная TLD-зона.
+Таймауты: whois 5с, TLS 4с. Всё опционально — при неудаче поле пустое/-1,
+вердикт всё равно выдаётся (эвристика по тому, что удалось узнать).
+
+### POST /analyze/image
+Скриншот чата/сайта → распознавание (Groq vision). Запрос:
+`{ "image_base64": "data:image/png;base64,...", "region": "" }` (≤5 МБ).
+Доп. поля: `extracted_text` (что увидела модель), `ui_spoofing` (bool —
+похоже на подделку интерфейса банка/госоргана). При недоступности vision —
+`degraded: true` и попытка эвристики по извлечённому тексту, если он есть.
+
+### POST /analyze/audio
+Голосовое/запись звонка → Whisper-транскрипция → анализ текста. Запрос:
+multipart/form-data, поле `audio` (ogg/mp3/wav/m4a, ≤10 МБ), опц. `region`.
+Доп. поля: `transcript` (расшифровка), `lang`. «Интонация давления» —
+по словам-маркерам в тексте (срочно/немедленно/только сейчас), не по звуку
+(Whisper даёт текст). Бот принимает голосовые Telegram напрямую.
+
+## Гео-радар
+
+### GET /stats/regions
+`[ { "region": "Almaty", "total": 0, "high": 0, "share_high": 0 } ]`
+Для тепловой карты Казахстана. share_high — % высокого риска 0..100.
+
 ## Статика
 - `/` — чекер (web/index.html)
 - `/demo.html` — пульт управления демо

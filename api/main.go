@@ -42,7 +42,12 @@ func main() {
 	// публичные
 	mux.HandleFunc("/healthz", withCORS(handleHealthz))
 	mux.HandleFunc("/analyze", withCORS(handleAnalyze))
+	// киллер-анализаторы: ссылка (пассивно) / скриншот (vision) / голос (whisper)
+	mux.HandleFunc("/analyze/link", withCORS(handleAnalyzeLink))
+	mux.HandleFunc("/analyze/image", withCORS(handleAnalyzeImage))
+	mux.HandleFunc("/analyze/audio", withCORS(handleAnalyzeAudio))
 	mux.HandleFunc("/stats/summary", withCORS(handleSummary))
+	mux.HandleFunc("/stats/regions", withCORS(handleStatsRegions))
 	mux.HandleFunc("/stats/timeseries", withCORS(handleTimeseries))
 	mux.HandleFunc("/campaigns/active", withCORS(handleCampaigns))
 	mux.HandleFunc("/threat-feed", withCORS(handleThreatFeed))

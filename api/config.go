@@ -12,10 +12,12 @@ import (
 )
 
 var (
-	groqKey    string
-	groqBase   string
-	groqModel  string
-	apiAddr    string
+	groqKey        string
+	groqBase       string
+	groqModel      string
+	groqVisionModel string
+	groqSTTModel   string
+	apiAddr        string
 	dbURL      string
 	piiTTL     time.Duration
 	piiEncKey  string
@@ -30,6 +32,10 @@ func loadConfig() {
 	groqKey = env("GROQ_API_KEY", "")
 	groqBase = env("GROQ_BASE_URL", "https://api.groq.com/openai/v1")
 	groqModel = env("GROQ_MODEL", "llama-3.3-70b-versatile")
+	// Дефолт — vision-модель, доступная на текущем tier Groq (проверено вызовом).
+	// Классические llama-4-scout/llama-3.2-vision на этом ключе отдают 404.
+	groqVisionModel = env("GROQ_VISION_MODEL", "qwen/qwen3.6-27b")
+	groqSTTModel = env("GROQ_STT_MODEL", "whisper-large-v3-turbo")
 	apiAddr = env("API_ADDR", ":8080")
 	dbURL = env("DATABASE_URL", "")
 	botAPIKey = env("BOT_API_KEY", "")

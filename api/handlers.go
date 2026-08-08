@@ -104,21 +104,60 @@ func handleAnalyze(w http.ResponseWriter, r *http.Request) {
 	}
 
 	res := classify(req.Text)
-	res.SchemeTitle = schemeTitle(res.SchemeCode)
+	maskAndStore(req, &res)
+	writeJSON(w, res)
+}
 
-	// Маскируем индикаторы перед отдачей и записью (BR-2).
+// maskAndStore проставляет заголовок схемы, маскирует индикаторы (BR-2) и пишет
+// обезличенный сигнал. Единый путь записи для /analyze и киллер-анализаторов
+// (link/image/audio) — чтобы все каналы попадали в analytics одинаково.
+func maskAndStore(req AnalyzeRequest, res *AnalyzeResponse) {
+	res.SchemeTitle = schemeTitle(res.SchemeCode)
 	for i := range res.IOCs {
 		res.IOCs[i].ValueMasked = mask(res.IOCs[i].Type, res.IOCs[i].Value)
 		res.IOCs[i].Value = ""
 	}
 	res.IOCs = dedupeIOCs(res.IOCs)
-
 	if db != nil {
-		if err := store(req, res); err != nil {
+		if err := store(req, *res); err != nil {
 			log.Printf("store error: %v", err)
 		}
 	}
-	writeJSON(w, res)
+}
+
+// ---------- GET /stats/regions (тепловая карта Казахстана) ----------
+
+func handleStatsRegions(w http.ResponseWriter, r *http.Request) {
+	out := []map[string]any{}
+	if db == nil {
+		writeJSON(w, out)
+		return
+	}
+	// Регион по ВСЕМ обращениям (не только скам): доля high — индикатор напряжённости.
+	rows, err := db.Query(`SELECT region, count(*) AS total,
+			count(*) FILTER (WHERE risk_level='high') AS high
+		FROM analytics.signal
+		WHERE NULLIF(region,'') IS NOT NULL
+		GROUP BY region HAVING count(*) > 0
+		ORDER BY total DESC`)
+	if err != nil {
+		writeJSON(w, out)
+		return
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var region string
+		var total, high int
+		rows.Scan(&region, &total, &high)
+		share := 0
+		if total > 0 {
+			share = int(math.Round(100 * float64(high) / float64(total)))
+		}
+		out = append(out, map[string]any{
+			"region": region, "total": total, "high": high, "share_high": share,
+		})
+	}
+	writeJSON(w, out)
 }
 
 // ---------- GET /stats/summary ----------

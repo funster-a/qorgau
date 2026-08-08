@@ -1,0 +1,579 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+<meta name="theme-color" content="#080c16"/>
+<title>Qorǵau — проверка ссылки</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%235b8cff'/%3E%3Cstop offset='1' stop-color='%232ee6a8'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M16 2 27 6.5v8.2c0 7-4.7 12.3-11 15.3-6.3-3-11-8.3-11-15.3V6.5L16 2z' fill='url(%23g)'/%3E%3Cpath d='M10.5 15.5l4 4 7-7.5' fill='none' stroke='%23080c16' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"/>
+<style>
+  :root{
+    --bg:#080c16; --bg-glow1:rgba(91,140,255,.13); --bg-glow2:rgba(46,230,168,.05);
+    --card:#101a2e; --card-2:#0c1424; --input:#0b1220;
+    --line:rgba(148,166,204,.14); --line-strong:rgba(148,166,204,.26);
+    --txt:#e9eef8; --mut:#8b98b6; --mut-2:#5f6c8a;
+    --acc:#5b8cff; --acc-soft:rgba(91,140,255,.14);
+    --red:#ff5d6c; --red-soft:rgba(255,93,108,.13);
+    --yellow:#ffb224; --yellow-soft:rgba(255,178,36,.13);
+    --green:#2ee6a8; --green-soft:rgba(46,230,168,.12);
+    --r-lg:20px; --r-md:14px; --r-sm:10px;
+    --shadow:0 12px 40px rgba(2,6,16,.55), 0 2px 8px rgba(2,6,16,.4);
+    --ease:cubic-bezier(.22,.9,.3,1);
+    --mono:ui-monospace,SFMono-Regular,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0; color:var(--txt);
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;
+    background:
+      radial-gradient(900px 480px at 85% -8%, var(--bg-glow1), transparent 70%),
+      radial-gradient(700px 420px at -10% 30%, var(--bg-glow2), transparent 70%),
+      var(--bg);
+    min-height:100vh; line-height:1.5;
+  }
+  .wrap{max-width:680px;margin:0 auto;padding:20px 16px calc(28px + env(safe-area-inset-bottom))}
+  @media(min-width:760px){.wrap{padding-top:36px}}
+
+  /* ---------- header + nav ---------- */
+  header{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+  .logo{width:44px;height:44px;flex:none;filter:drop-shadow(0 4px 14px rgba(91,140,255,.35))}
+  .brand h1{font-size:22px;margin:0;line-height:1.15;letter-spacing:.2px;font-weight:800}
+  .brand p{margin:1px 0 0;font-size:12.5px;color:var(--mut)}
+  .lang{margin-left:auto;display:flex;background:var(--card-2);border:1px solid var(--line);
+        border-radius:999px;padding:3px;flex:none}
+  .lang button{border:0;background:transparent;color:var(--mut);font:inherit;font-size:12.5px;
+        font-weight:700;padding:5px 12px;border-radius:999px;cursor:pointer;transition:all .2s var(--ease)}
+  .lang button.on{background:var(--acc-soft);color:var(--acc)}
+  .nav-pages{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 18px}
+  .nav-pages a{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:700;
+        color:var(--mut);background:var(--card-2);border:1px solid var(--line);border-radius:999px;
+        padding:6px 12px;text-decoration:none;transition:all .2s var(--ease)}
+  .nav-pages a:hover{color:var(--txt);border-color:var(--acc);transform:translateY(-1px)}
+  .nav-pages a.on{color:var(--acc);background:var(--acc-soft);border-color:rgba(91,140,255,.4)}
+
+  /* ---------- input card ---------- */
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);
+        padding:18px;box-shadow:var(--shadow)}
+  .h2{font-size:clamp(20px,5vw,24px);line-height:1.25;margin:0 0 4px;letter-spacing:-.3px}
+  .sub{color:var(--mut);font-size:13.5px;margin:0 0 15px;line-height:1.55}
+  .url-row{display:flex;gap:8px;flex-wrap:wrap}
+  .url-box{position:relative;flex:1;min-width:0}
+  .url-box .ic{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--mut-2);
+        font-size:15px;pointer-events:none}
+  input[type=url],input[type=text].url{width:100%;background:var(--input);color:var(--txt);
+        border:1px solid var(--line);border-radius:var(--r-md);padding:14px 14px 14px 38px;
+        font:inherit;font-size:15px;font-family:var(--mono);transition:border-color .2s,box-shadow .2s}
+  input[type=url]:focus,input[type=text].url:focus{outline:none;border-color:var(--acc);box-shadow:0 0 0 3px var(--acc-soft)}
+  input::placeholder{color:var(--mut-2);font-family:var(--mono)}
+  .go{margin-top:12px;width:100%;padding:15px;border:0;border-radius:var(--r-md);cursor:pointer;
+        background:linear-gradient(135deg,#4f82ff,#6a95ff);color:#fff;font:inherit;font-size:16px;
+        font-weight:800;letter-spacing:.2px;display:flex;justify-content:center;align-items:center;gap:10px;
+        box-shadow:0 8px 24px rgba(79,130,255,.35);transition:transform .15s var(--ease),box-shadow .2s,opacity .2s}
+  .go:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 10px 28px rgba(79,130,255,.45)}
+  .go:active:not(:disabled){transform:scale(.985)}
+  .go:disabled{opacity:.65;cursor:default}
+  .spin{width:16px;height:16px;border-radius:50%;border:2.5px solid rgba(255,255,255,.35);
+        border-top-color:#fff;animation:rot .7s linear infinite;display:none}
+  .go.busy .spin{display:block}
+  @keyframes rot{to{transform:rotate(360deg)}}
+  .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+  .chip{border:1px solid var(--line);background:var(--card-2);color:var(--mut);
+        font:inherit;font-size:12px;padding:7px 12px;border-radius:999px;cursor:pointer;
+        transition:all .2s var(--ease);display:inline-flex;align-items:center;gap:6px}
+  .chip:hover{border-color:var(--acc);color:var(--txt);transform:translateY(-1px)}
+  .chip .dom{font-family:var(--mono);font-size:11.5px}
+  .chip.scam{border-color:rgba(255,93,108,.3)}
+  .chip.scam:hover{border-color:var(--red)}
+  .chip.real{border-color:rgba(46,230,168,.3)}
+  .chip.real:hover{border-color:var(--green)}
+  .hint{font-size:11.5px;color:var(--mut-2);text-align:center;margin-top:10px}
+  .err{display:none;margin-top:12px;padding:11px 13px;border-radius:var(--r-sm);font-size:13.5px;
+      background:var(--red-soft);border:1px solid rgba(255,93,108,.3);color:#ffc2ca}
+  .err.show{display:block;animation:fadeup .3s var(--ease)}
+
+  /* ---------- result ---------- */
+  .result{display:none;margin-top:18px}
+  .result.show{display:block;animation:fadeup .45s var(--ease)}
+  @keyframes fadeup{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  .gauge-wrap{position:relative;width:min(250px,72vw);margin:4px auto 0}
+  .gauge-wrap svg{display:block;width:100%;height:auto;overflow:visible}
+  .g-track{stroke:#182338;stroke-width:13;fill:none;stroke-linecap:round}
+  .g-val{stroke:var(--mut);stroke-width:13;fill:none;stroke-linecap:round;
+         transition:stroke-dashoffset 1s var(--ease),stroke .5s}
+  .g-needle{transition:transform 1s var(--ease);transform-box:view-box;transform-origin:110px 104px}
+  .g-needle path{transition:fill .5s}
+  .g-num{position:absolute;left:0;right:0;bottom:2px;text-align:center;pointer-events:none}
+  .g-num .n{font-size:42px;font-weight:800;line-height:1;letter-spacing:-1px;
+            font-variant-numeric:tabular-nums;transition:color .5s}
+  .g-num .of{font-size:12px;color:var(--mut-2);font-weight:600}
+  .lvl-badge{display:flex;justify-content:center;margin-top:12px}
+  .lvl-badge span{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:800;
+            letter-spacing:.6px;text-transform:uppercase;padding:6px 14px;border-radius:999px;
+            border:1px solid transparent}
+  .domline{font-size:14px;text-align:center;margin:12px 0 0;font-family:var(--mono);color:#cdd6e8;
+            word-break:break-all}
+  .scheme{font-size:18px;font-weight:800;text-align:center;margin:6px 0 2px;line-height:1.3}
+  .brand-note{font-size:12.5px;color:var(--mut);text-align:center;margin:0 0 4px}
+
+  /* big blocklist banner */
+  .block-banner{display:none;margin:14px 0 0;padding:13px 15px;border-radius:var(--r-md);
+        background:linear-gradient(135deg,rgba(255,93,108,.18),rgba(255,93,108,.06));
+        border:1px solid rgba(255,93,108,.45);align-items:center;gap:11px}
+  .block-banner.show{display:flex;animation:fadeup .35s var(--ease)}
+  .block-banner .bx{font-size:26px;line-height:1;flex:none}
+  .block-banner .bt{font-size:14.5px;font-weight:800;color:#ffc2ca;line-height:1.35}
+  .block-banner .bs{font-size:12px;color:#e8b6bd;margin-top:2px}
+
+  /* fact cards */
+  .facts{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px}
+  @media(max-width:460px){.facts{grid-template-columns:1fr}}
+  .fact{background:var(--card-2);border:1px solid var(--line);border-radius:var(--r-md);padding:12px 13px;
+        position:relative;overflow:hidden}
+  .fact::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--mut-2)}
+  .fact.good::before{background:var(--green)} .fact.bad::before{background:var(--red)}
+  .fact.warn::before{background:var(--yellow)} .fact.neutral::before{background:var(--mut-2)}
+  .fact .fl{font-size:10.5px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;
+        color:var(--mut-2);margin:0 0 5px;display:flex;align-items:center;gap:6px}
+  .fact .fv{font-size:15px;font-weight:800;line-height:1.3;color:var(--txt)}
+  .fact.good .fv{color:#9df0d2} .fact.bad .fv{color:#ffb3bc} .fact.warn .fv{color:#ffd88a}
+  .fact .fd{font-size:12px;color:var(--mut);margin-top:3px;line-height:1.45;font-weight:400}
+  .fact .fd.mono{font-family:var(--mono);word-break:break-all;font-size:11.5px}
+
+  .flags{display:flex;gap:7px;flex-wrap:wrap;justify-content:center;margin:16px 0 2px}
+  .flag{background:var(--red-soft);color:#ffb3bc;border:1px solid rgba(255,93,108,.25);
+        border-radius:999px;padding:5px 11px;font-size:12px}
+  .flag.calm{background:var(--green-soft);color:#9df0d2;border-color:rgba(46,230,168,.25)}
+  .expl{color:#cdd6e8;font-size:14.5px;line-height:1.6;margin:14px 0 0;text-align:left}
+  .todo{margin:16px 0 0;padding:14px 15px;background:var(--card-2);border:1px solid var(--line);
+        border-radius:var(--r-md)}
+  .todo .h{font-size:11.5px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;
+        color:var(--mut);margin-bottom:9px}
+  .todo ul{margin:0;padding:0;list-style:none}
+  .todo li{display:flex;gap:9px;font-size:13.5px;line-height:1.45;margin:7px 0;color:#dbe3f2}
+  .todo li::before{content:"✓";flex:none;color:var(--green);font-weight:800;font-size:13px}
+  .iocs{margin-top:14px}
+  .iocs .h{font-size:11.5px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;
+        color:var(--mut);margin-bottom:8px}
+  .ioc{display:inline-flex;gap:6px;background:var(--input);border:1px solid var(--line);
+       border-radius:8px;padding:4px 9px;font-size:12px;margin:0 6px 6px 0;font-family:var(--mono)}
+  .ioc .t{color:var(--mut-2)}
+  .degraded{display:none;margin-top:14px;padding:9px 13px;border-radius:var(--r-sm);font-size:12.5px;
+       background:var(--yellow-soft);border:1px solid rgba(255,178,36,.3);color:#ffd88a}
+  .degraded.show{display:flex;gap:8px;align-items:center}
+
+  /* skeleton */
+  .skel-box{display:none;margin-top:18px}
+  .skel-box.show{display:block}
+  .skel{background:linear-gradient(100deg,var(--card-2) 40%,#1a2540 50%,var(--card-2) 60%);
+        background-size:200% 100%;animation:shim 1.3s linear infinite;border-radius:10px}
+  @keyframes shim{to{background-position:-200% 0}}
+  .skel.arc{width:200px;height:100px;border-radius:110px 110px 0 0;margin:10px auto 18px}
+  .skel.l1{height:20px;width:55%;margin:0 auto 14px}
+  .skel.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px}
+  .skel.cell{height:70px}
+
+  footer{margin-top:26px;text-align:center;font-size:12px;color:var(--mut);line-height:1.7}
+  footer a{color:var(--acc);text-decoration:underline;text-underline-offset:3px}
+
+  @media(prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation-duration:.01ms !important;transition-duration:.01ms !important}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <svg class="logo" viewBox="0 0 32 32" aria-hidden="true">
+      <defs>
+        <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#5b8cff"/><stop offset="1" stop-color="#2ee6a8"/>
+        </linearGradient>
+      </defs>
+      <path d="M16 2 27 6.5v8.2c0 7-4.7 12.3-11 15.3-6.3-3-11-8.3-11-15.3V6.5L16 2z" fill="url(#lg)"/>
+      <path d="M10.5 15.5l4 4 7-7.5" fill="none" stroke="#080c16" stroke-width="3"
+            stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <div class="brand">
+      <h1>Qorǵau</h1>
+      <p data-i18n="slogan">Проверка ссылки на фишинг</p>
+    </div>
+    <div class="lang" role="group" aria-label="Language">
+      <button id="langRu" type="button">RU</button>
+      <button id="langKz" type="button">QZ</button>
+    </div>
+  </header>
+
+  <nav class="nav-pages" aria-label="Qorǵau">
+    <a href="index.html">🔍 <span data-i18n="navChecker">Проверка сообщений</span></a>
+    <a href="link.html" class="on" aria-current="page">🔗 <span data-i18n="navLink">Ссылка</span></a>
+    <a href="scan.html">🖼 <span data-i18n="navScan">Скриншот</span></a>
+    <a href="shield.html">🛡 Shield</a>
+    <a href="password.html">🔑 <span data-i18n="navPassword">Проверка пароля</span></a>
+    <a href="radar.html">📡 <span data-i18n="navRadar">Радар</span></a>
+  </nav>
+
+  <div class="card">
+    <h2 class="h2" data-i18n="heroTitle">Проверить ссылку до перехода</h2>
+    <p class="sub" data-i18n="heroSub">Разберём домен, сертификат и возраст сайта — не открывая ссылку. Так фишинг видно ещё до клика.</p>
+    <div class="url-row">
+      <div class="url-box">
+        <span class="ic">🔗</span>
+        <input id="url" class="url" type="url" inputmode="url" autocapitalize="off" autocomplete="off"
+               spellcheck="false" maxlength="2048"/>
+      </div>
+    </div>
+    <button class="go" id="go" type="button">
+      <span class="spin"></span><span id="goLbl" data-i18n="check">Проверить ссылку</span>
+    </button>
+    <div class="chips" id="chips"></div>
+    <div class="hint" data-i18n="hintVoice">Голосовые звонки и записи можно прислать боту Qorǵau в Telegram.</div>
+    <div class="err" id="err"></div>
+  </div>
+
+  <!-- skeleton -->
+  <div class="card skel-box" id="skel">
+    <div class="skel arc"></div>
+    <div class="skel l1"></div>
+    <div class="skel grid">
+      <div class="skel cell"></div><div class="skel cell"></div>
+      <div class="skel cell"></div><div class="skel cell"></div>
+    </div>
+  </div>
+
+  <!-- result -->
+  <div class="card result" id="result">
+    <div class="gauge-wrap">
+      <svg viewBox="0 0 220 120" aria-hidden="true">
+        <path class="g-track" d="M 24 104 A 86 86 0 0 1 196 104"/>
+        <path class="g-val" id="gArc" d="M 24 104 A 86 86 0 0 1 196 104"
+              stroke-dasharray="270.2" stroke-dashoffset="270.2"/>
+        <g class="g-needle" id="gNeedle" style="transform:rotate(-90deg)">
+          <path id="gNeedlePath" d="M 110 36 L 114 100 A 6 6 0 1 1 106 100 Z" fill="#8b98b6"/>
+          <circle cx="110" cy="104" r="3.2" fill="#080c16"/>
+        </g>
+      </svg>
+      <div class="g-num"><span class="n" id="gNum">0</span><span class="of"> / 100</span></div>
+    </div>
+    <div class="lvl-badge"><span id="lvlBadge"></span></div>
+    <div class="domline" id="domline"></div>
+    <div class="scheme" id="scheme"></div>
+    <p class="brand-note" id="brandNote" style="display:none"></p>
+
+    <div class="block-banner" id="blockBanner">
+      <span class="bx">⛔</span>
+      <div>
+        <div class="bt" data-i18n="blockT">Домен уже в блок-листе Qorǵau Shield</div>
+        <div class="bs" data-i18n="blockS">На него уже жаловались — у пользователей Shield он не открывается.</div>
+      </div>
+    </div>
+
+    <div class="facts" id="facts"></div>
+
+    <div class="flags" id="flags"></div>
+    <p class="expl" id="expl"></p>
+    <div class="todo" id="todo" style="display:none">
+      <div class="h" data-i18n="whatToDo">Что делать</div>
+      <ul id="actions"></ul>
+    </div>
+    <div class="iocs" id="iocs" style="display:none">
+      <div class="h" data-i18n="iocs">Индикаторы (обезличены)</div>
+      <div id="iocList"></div>
+    </div>
+    <div class="degraded" id="degraded"><span>⚙️</span><span id="degradedTxt"></span></div>
+  </div>
+
+  <footer>
+    <div>🔒 <span data-i18n="privacy">Ссылку не открываем и не сохраняем: разбираем домен пассивно.</span></div>
+    <div><a href="shield.html" data-i18n="footShield">🛡 Включить Qorǵau Shield — блокирует фишинг на уровне DNS</a></div>
+  </footer>
+</div>
+
+<script>
+'use strict';
+const API = location.protocol === 'file:' ? 'http://localhost:8080' : '';
+
+/* ================= i18n ================= */
+const I18N = {
+  ru: {
+    slogan:'Проверка ссылки на фишинг',
+    navChecker:'Проверка сообщений', navLink:'Ссылка', navScan:'Скриншот',
+    navPassword:'Проверка пароля', navRadar:'Радар',
+    heroTitle:'Проверить ссылку до перехода',
+    heroSub:'Разберём домен, сертификат и возраст сайта — не открывая ссылку. Так фишинг видно ещё до клика.',
+    ph:'https://пример.kz/страница',
+    check:'Проверить ссылку', checking:'Проверяю…',
+    hintVoice:'Голосовые звонки и записи можно прислать боту Qorǵau в Telegram.',
+    exScam:'скам-пример', exReal:'настоящий Kaspi',
+    lvlHigh:'Высокий риск', lvlMedium:'Средний риск', lvlLow:'Низкий риск',
+    whatToDo:'Что делать', iocs:'Индикаторы (обезличены)',
+    degraded:'Базовый режим: часть данных недоступна, вердикт по тому, что удалось узнать.',
+    brandNote:'Маскируется под:',
+    blockT:'Домен уже в блок-листе Qorǵau Shield',
+    blockS:'На него уже жаловались — у пользователей Shield он не открывается.',
+    fAge:'Возраст домена', fAgeUnknown:'неизвестен', fAgeVal:'{n} дн.',
+    fAgeFresh:'Свежий домен — типичный признак фишинга.',
+    fAgeOld:'Домен существует давно.', fAgeNoWhois:'WHOIS не ответил в срок.',
+    fSsl:'SSL-сертификат', fSslNone:'отсутствует', fSslNoneD:'Нет HTTPS — данные передаются открыто.',
+    fSslSelf:'самоподписанный', fSslSelfD:'Никем не подтверждён — так делают поддельные сайты.',
+    fSslBad:'недействителен', fSslBadD:'Сертификат просрочен или битый.',
+    fSslOk:'действителен', fSslOkD:'Выдан:', fSslAge:'возраст {n} дн.',
+    fBrand:'Похож на бренд', fBrandNone:'не найдено', fBrandNoneD:'На известные бренды КЗ не похож.',
+    fBrandDiff:'отличие {n} симв.', fBrandD:'Почти как настоящий — классический приём подмены.',
+    fBlock:'Блок-лист Shield', fBlockYes:'в блок-листе', fBlockYesD:'На домен уже жаловались граждане.',
+    fBlockNo:'не в блок-листе', fBlockNoD:'Пока жалоб на этот домен нет.',
+    fReg:'Регистратор', fRegNone:'неизвестен',
+    errNet:'Не удалось связаться с сервисом. Проверьте соединение и попробуйте ещё раз.',
+    errRate:'Слишком много запросов. Подождите немного и повторите.',
+    errBad:'Похоже, это не ссылка. Введите адрес вида https://site.kz',
+    privacy:'Ссылку не открываем и не сохраняем: разбираем домен пассивно.',
+    footShield:'🛡 Включить Qorǵau Shield — блокирует фишинг на уровне DNS',
+    title:'Qorǵau — проверка ссылки'
+  },
+  kz: {
+    slogan:'Сілтемені фишингке тексеру',
+    navChecker:'Хабарлама тексеру', navLink:'Сілтеме', navScan:'Скриншот',
+    navPassword:'Құпиясөзді тексеру', navRadar:'Радар',
+    heroTitle:'Сілтемені ашпай тұрып тексеру',
+    heroSub:'Доменді, сертификатты және сайттың жасын сілтемені ашпай талдаймыз. Фишинг клик жасамай-ақ көрінеді.',
+    ph:'https://мысал.kz/бет',
+    check:'Сілтемені тексеру', checking:'Тексеріп жатырмын…',
+    hintVoice:'Дауыстық қоңырау мен жазбаны Telegram-дағы Qorǵau ботына жіберуге болады.',
+    exScam:'скам мысалы', exReal:'нағыз Kaspi',
+    lvlHigh:'Жоғары қауіп', lvlMedium:'Орташа қауіп', lvlLow:'Төмен қауіп',
+    whatToDo:'Не істеу керек', iocs:'Индикаторлар (иесіздендірілген)',
+    degraded:'Базалық режим: деректің бір бөлігі қолжетімсіз, шешім белгілі болғаны бойынша.',
+    brandNote:'Маска ретінде:',
+    blockT:'Домен Qorǵau Shield блок-тізімінде',
+    blockS:'Оған шағымданған — Shield қолданушыларында ашылмайды.',
+    fAge:'Домен жасы', fAgeUnknown:'белгісіз', fAgeVal:'{n} күн',
+    fAgeFresh:'Жаңа домен — фишингтің тән белгісі.',
+    fAgeOld:'Домен ұзақ уақыт бар.', fAgeNoWhois:'WHOIS уақытында жауап бермеді.',
+    fSsl:'SSL-сертификат', fSslNone:'жоқ', fSslNoneD:'HTTPS жоқ — деректер ашық беріледі.',
+    fSslSelf:'өзі қол қойған', fSslSelfD:'Ешкім растамаған — жалған сайттар осылай жасайды.',
+    fSslBad:'жарамсыз', fSslBadD:'Сертификат мерзімі өткен немесе бұзылған.',
+    fSslOk:'жарамды', fSslOkD:'Берген:', fSslAge:'жасы {n} күн',
+    fBrand:'Брендке ұқсас', fBrandNone:'табылмады', fBrandNoneD:'Белгілі ҚР брендтеріне ұқсамайды.',
+    fBrandDiff:'айырма {n} таңба', fBrandD:'Нағызына жақын — классикалық алмастыру тәсілі.',
+    fBlock:'Shield блок-тізімі', fBlockYes:'блок-тізімде', fBlockYesD:'Доменге азаматтар шағымданған.',
+    fBlockNo:'блок-тізімде жоқ', fBlockNoD:'Бұл доменге әзірге шағым жоқ.',
+    fReg:'Тіркеуші', fRegNone:'белгісіз',
+    errNet:'Сервиспен байланыс орнатылмады. Қосылымды тексеріп, қайталап көріңіз.',
+    errRate:'Сұраныс тым көп. Сәл күтіп, қайталаңыз.',
+    errBad:'Бұл сілтеме емес сияқты. https://site.kz түріндегі адрес енгізіңіз.',
+    privacy:'Сілтемені ашпаймыз және сақтамаймыз: доменді пассив талдаймыз.',
+    footShield:'🛡 Qorǵau Shield қосу — фишингті DNS деңгейінде бұғаттайды',
+    title:'Qorǵau — сілтемені тексеру'
+  }
+};
+let lang = localStorage.getItem('qorgau_lang') || 'ru';
+if (!I18N[lang]) lang = 'ru';
+const t = k => (I18N[lang] && I18N[lang][k]) || I18N.ru[k] || k;
+const tn = (k, n) => t(k).replace('{n}', n);
+const $ = id => document.getElementById(id);
+
+function applyLang(){
+  document.documentElement.lang = lang;
+  document.title = t('title');
+  document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
+  $('url').placeholder = t('ph');
+  $('langRu').classList.toggle('on', lang === 'ru');
+  $('langKz').classList.toggle('on', lang === 'kz');
+  buildChips();
+  if (lastResult) render(lastResult);
+}
+function setLang(l){ lang = l; localStorage.setItem('qorgau_lang', l); applyLang(); }
+$('langRu').addEventListener('click', () => setLang('ru'));
+$('langKz').addEventListener('click', () => setLang('kz'));
+
+/* ================= example chips ================= */
+const EXAMPLES = [
+  ['scam', 'exScam', 'http://kaspi-bonus.xyz/win'],
+  ['real', 'exReal', 'https://kaspi.kz']
+];
+function buildChips(){
+  const box = $('chips'); box.textContent = '';
+  EXAMPLES.forEach(([cls, key, url]) => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'chip ' + cls;
+    b.append((cls === 'scam' ? '⚠️ ' : '✅ '));
+    const dom = document.createElement('span'); dom.className = 'dom'; dom.textContent = url;
+    b.appendChild(dom);
+    const lbl = document.createElement('span'); lbl.textContent = '· ' + t(key); lbl.style.color = 'var(--mut-2)';
+    b.appendChild(lbl);
+    b.addEventListener('click', () => { $('url').value = url; run(); });
+    box.appendChild(b);
+  });
+}
+
+/* ================= analyze ================= */
+const LVL = {
+  high:   { color:'var(--red)',    soft:'var(--red-soft)',    border:'rgba(255,93,108,.4)',  icon:'⛔', key:'lvlHigh' },
+  medium: { color:'var(--yellow)', soft:'var(--yellow-soft)', border:'rgba(255,178,36,.4)',  icon:'⚠️', key:'lvlMedium' },
+  low:    { color:'var(--green)',  soft:'var(--green-soft)',  border:'rgba(46,230,168,.4)',  icon:'✅', key:'lvlLow' }
+};
+let lastResult = null, busy = false;
+
+async function run(){
+  if (busy) return;
+  let url = $('url').value.trim();
+  if (!url) { $('url').focus(); return; }
+  if (!/^https?:\/\//i.test(url)) url = 'http://' + url;
+  busy = true;
+  const go = $('go');
+  go.disabled = true; go.classList.add('busy');
+  $('goLbl').textContent = t('checking');
+  $('err').classList.remove('show');
+  $('result').classList.remove('show');
+  $('skel').classList.add('show');
+  try {
+    const r = await fetch(API + '/analyze/link', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url, region: '' })
+    });
+    if (r.status === 429) { let w = 0; try { w = (await r.json()).retry_after_sec || 0; } catch (_) {} throw { kind:'rate', wait:w }; }
+    if (r.status === 400) throw { kind:'bad' };
+    if (!r.ok) throw { kind:'net' };
+    const data = await r.json();
+    lastResult = data;
+    $('skel').classList.remove('show');
+    render(data);
+  } catch (e) {
+    $('skel').classList.remove('show');
+    const err = $('err');
+    err.textContent =
+      e && e.kind === 'rate' ? t('errRate') + (e.wait ? ' (' + e.wait + ' c)' : '') :
+      e && e.kind === 'bad'  ? t('errBad') : t('errNet');
+    err.classList.add('show');
+  }
+  busy = false;
+  go.disabled = false; go.classList.remove('busy');
+  $('goLbl').textContent = t('check');
+}
+$('go').addEventListener('click', run);
+$('url').addEventListener('keydown', e => { if (e.key === 'Enter') run(); });
+
+/* ================= render ================= */
+const ARC_LEN = 270.2;
+function render(d){
+  const lvl = LVL[d.risk_level] || LVL.low;
+  const score = Math.max(0, Math.min(100, Number(d.risk_score) || 0));
+  $('result').classList.add('show');
+
+  const arc = $('gArc'), needle = $('gNeedle');
+  arc.style.stroke = lvl.color;
+  $('gNeedlePath').setAttribute('fill', lvl.color);
+  arc.style.transition = 'none'; needle.style.transition = 'none';
+  arc.setAttribute('stroke-dashoffset', ARC_LEN);
+  needle.style.transform = 'rotate(-90deg)';
+  void arc.getBoundingClientRect();
+  arc.style.transition = ''; needle.style.transition = '';
+  arc.setAttribute('stroke-dashoffset', String(ARC_LEN * (1 - score / 100)));
+  needle.style.transform = 'rotate(' + (score * 1.8 - 90) + 'deg)';
+
+  const num = $('gNum'); num.style.color = lvl.color;
+  const t0 = performance.now();
+  (function tick(now){
+    const p = Math.min(1, (now - t0) / 950);
+    num.textContent = Math.round(score * (1 - Math.pow(1 - p, 3)));
+    if (p < 1 && lastResult === d) requestAnimationFrame(tick);
+  })(t0);
+
+  const badge = $('lvlBadge');
+  badge.textContent = lvl.icon + ' ' + t(lvl.key);
+  badge.style.background = lvl.soft; badge.style.color = lvl.color; badge.style.borderColor = lvl.border;
+
+  $('domline').textContent = d.domain || '';
+  $('scheme').textContent = d.scheme_title || '';
+  const bn = $('brandNote');
+  if (d.impersonated_brand) { bn.style.display = ''; bn.textContent = t('brandNote') + ' ' + d.impersonated_brand; }
+  else bn.style.display = 'none';
+
+  $('blockBanner').classList.toggle('show', !!d.in_blocklist);
+
+  buildFacts(d);
+
+  const calm = d.risk_level === 'low';
+  fillList('flags', d.flags, f => {
+    const s = document.createElement('span');
+    s.className = 'flag' + (calm ? ' calm' : '');
+    s.textContent = (calm ? '' : '🚩 ') + f;
+    return s;
+  });
+  $('expl').textContent = d.explanation || '';
+
+  const acts = d.recommended_actions || [];
+  $('todo').style.display = acts.length ? '' : 'none';
+  fillList('actions', acts, a => { const li = document.createElement('li'); li.textContent = a; return li; });
+
+  const iocs = d.iocs || [];
+  $('iocs').style.display = iocs.length ? '' : 'none';
+  fillList('iocList', iocs, i => {
+    const s = document.createElement('span'); s.className = 'ioc';
+    const type = document.createElement('span'); type.className = 't'; type.textContent = (i.type || '') + ':';
+    s.appendChild(type); s.appendChild(document.createTextNode(' ' + (i.value_masked || '')));
+    return s;
+  });
+
+  $('degraded').classList.toggle('show', !!d.degraded);
+  $('degradedTxt').textContent = t('degraded');
+}
+
+/* ---- fact cards ---- */
+function fact(state, icon, label, value, desc, descMono){
+  const c = document.createElement('div'); c.className = 'fact ' + state;
+  const fl = document.createElement('div'); fl.className = 'fl';
+  fl.append(icon + ' '); const ls = document.createElement('span'); ls.textContent = label; fl.appendChild(ls);
+  const fv = document.createElement('div'); fv.className = 'fv'; fv.textContent = value;
+  c.appendChild(fl); c.appendChild(fv);
+  if (desc) { const fd = document.createElement('div'); fd.className = 'fd' + (descMono ? ' mono' : ''); fd.textContent = desc; c.appendChild(fd); }
+  return c;
+}
+function buildFacts(d){
+  const box = $('facts'); box.textContent = '';
+
+  // domain age
+  const age = d.domain_age_days;
+  if (age == null || age < 0) box.appendChild(fact('neutral', '📅', t('fAge'), t('fAgeUnknown'), t('fAgeNoWhois')));
+  else if (age < 30) box.appendChild(fact('bad', '📅', t('fAge'), tn('fAgeVal', age), t('fAgeFresh')));
+  else box.appendChild(fact('good', '📅', t('fAge'), tn('fAgeVal', age), t('fAgeOld')));
+
+  // ssl
+  const s = d.ssl || {};
+  if (!s.present) box.appendChild(fact('bad', '🔓', t('fSsl'), t('fSslNone'), t('fSslNoneD')));
+  else if (s.self_signed) box.appendChild(fact('bad', '🔓', t('fSsl'), t('fSslSelf'), t('fSslSelfD')));
+  else if (s.valid === false) box.appendChild(fact('bad', '🔓', t('fSsl'), t('fSslBad'), t('fSslBadD')));
+  else {
+    let desc = s.issuer ? (t('fSslOkD') + ' ' + s.issuer) : t('fSslOkD');
+    if (s.age_days != null && s.age_days >= 0) desc += ' · ' + tn('fSslAge', s.age_days);
+    box.appendChild(fact('good', '🔒', t('fSsl'), t('fSslOk'), desc));
+  }
+
+  // brand similarity (closest)
+  const bs = (d.brand_similarity || []).slice().sort((a, b) => (a.distance ?? 99) - (b.distance ?? 99))[0];
+  if (bs && bs.distance != null && bs.distance <= 3)
+    box.appendChild(fact('bad', '🎭', t('fBrand'), bs.brand + ' · ' + tn('fBrandDiff', bs.distance), t('fBrandD')));
+  else
+    box.appendChild(fact('good', '🎭', t('fBrand'), t('fBrandNone'), t('fBrandNoneD')));
+
+  // blocklist
+  if (d.in_blocklist) box.appendChild(fact('bad', '⛔', t('fBlock'), t('fBlockYes'), t('fBlockYesD')));
+  else box.appendChild(fact('good', '🛡', t('fBlock'), t('fBlockNo'), t('fBlockNoD')));
+
+  // registrar
+  box.appendChild(fact('neutral', '🏢', t('fReg'), d.registrar || t('fRegNone'), '', false));
+}
+
+function fillList(id, items, make){
+  const el = $(id); el.textContent = '';
+  (items || []).forEach(v => el.appendChild(make(v)));
+}
+
+/* ================= boot ================= */
+applyLang();
+$('url').focus();
+</script>
+</body>
+</html>
