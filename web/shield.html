@@ -3,47 +3,93 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
-<meta name="theme-color" content="#0B0E14"/>
+<meta name="theme-color" content="#0A0E1A"/>
 <title data-i18n-title="shTitle">Qorǵau Shield — DNS-защита от фишинга</title>
 <meta name="description" content="Qorǵau Shield — DNS-защита от фишинга: блок-лист из жалоб граждан, фишинговые сайты не открываются на уровне DNS."/>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2338E0C8' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 22s8-4 8-10V5.2l-8-3-8 3V12c0 6 8 10 8 10Z'/%3E%3Cpath d='M9 12l2.2 2.2L15.5 10'/%3E%3C/svg%3E"/>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2338BDF8' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 22s8-4 8-10V5.2l-8-3-8 3V12c0 6 8 10 8 10Z'/%3E%3Cpath d='M9 12l2.2 2.2L15.5 10'/%3E%3C/svg%3E"/>
+<!-- прогрессивное улучшение: помечаем JS до первой отрисовки (без flash у reveal) -->
+<script>document.documentElement.classList.add('has-js');</script>
+<link rel="preload" href="assets/fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="assets/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="stylesheet" href="assets/app.css"/>
 <script src="assets/app.js" defer></script>
 <style>
-  /* --- Shield-специфичные блоки поверх дизайн-системы (только токены) --- */
-  .shield-hero{text-align:center}
-  .shield-hero .hero-mark{width:64px;height:64px;color:var(--accent);margin:0 auto 12px}
+  /* --- Shield-специфичные блоки поверх дизайн-системы v2 (только токены) --- */
+  .shield-hero{position:relative;overflow:hidden;text-align:center;isolation:isolate}
+  .shield-hero>*{position:relative;z-index:1}
+  /* сигнатурный «щит + радар-скан» — приглушённо в фоне hero */
+  .sh-canvas{position:absolute;inset:0;z-index:0;pointer-events:none;opacity:.75;
+    mask-image:radial-gradient(76% 82% at 50% 42%,#000 34%,transparent 80%);
+    -webkit-mask-image:radial-gradient(76% 82% at 50% 42%,#000 34%,transparent 80%)}
+  .sh-canvas canvas{width:100%;height:100%;display:block}
+  /* канвас вне потока — не должен создавать отступ у первого видимого блока */
+  .shield-hero.stack>.sh-canvas+*{margin-top:0}
+  .shield-hero .hero-mark{width:60px;height:60px;color:var(--accent);margin:0 auto 12px;
+    filter:drop-shadow(0 0 14px var(--accent-glow))}
+  .shield-hero h1{font-size:clamp(28px,6.2vw,42px);letter-spacing:-.03em;line-height:1.06}
+
   .live-badge{display:inline-flex;align-items:center;gap:8px;font-size:var(--fs-6);font-weight:800;
     letter-spacing:.16em;text-transform:uppercase;color:var(--risk-low)}
   .live-dot{width:8px;height:8px;border-radius:50%;background:var(--risk-low);position:relative;flex:none}
   .live-dot::after{content:"";position:absolute;inset:-4px;border-radius:50%;
     border:2px solid var(--risk-low);opacity:0;animation:sh-ping 1.9s ease-out infinite}
   @keyframes sh-ping{0%{transform:scale(.4);opacity:.9}80%,100%{transform:scale(1.5);opacity:0}}
+
   .stat-tiles{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-  .stat-tile{background:var(--bg);border:1px solid var(--line);border-radius:var(--r-md);padding:14px 12px}
-  .stat-tile .n{font-size:clamp(26px,7vw,34px);font-weight:800;letter-spacing:-.02em;line-height:1.05;
-    font-variant-numeric:tabular-nums;color:var(--txt)}
-  .stat-tile .l{font-size:var(--fs-6);color:var(--muted);margin-top:4px;line-height:1.35}
+  .stat-tile{position:relative;overflow:hidden;background:var(--bg-2);border:1px solid var(--hairline);
+    border-radius:var(--r-md);padding:16px 14px;transition:border-color .2s var(--ease)}
+  .stat-tile::before{content:"";position:absolute;left:0;right:0;top:0;height:2px;background:var(--grad-accent);opacity:.55}
+  .stat-tile:hover{border-color:var(--accent-line)}
+  .stat-tile .n{font-family:var(--font-display);font-size:clamp(28px,7.4vw,38px);font-weight:800;
+    letter-spacing:-.03em;line-height:1.05;font-variant-numeric:tabular-nums;color:var(--txt)}
+  .stat-tile .l{font-size:var(--fs-6);color:var(--muted);margin-top:5px;line-height:1.35}
+
   .dchips{display:flex;gap:7px;flex-wrap:wrap;justify-content:center;margin-top:4px}
-  .dchip{display:inline-flex;align-items:center;gap:7px;background:var(--bg);border:1px solid var(--line);
+  .dchip{display:inline-flex;align-items:center;gap:7px;background:var(--bg-2);border:1px solid var(--hairline);
     border-radius:8px;padding:5px 10px;font-family:var(--mono);font-size:var(--fs-6);color:var(--txt)}
   .dchip b{color:var(--risk-high);font-weight:700;font-variant-numeric:tabular-nums}
+
+  /* --- виджет «проверить домен» --- */
+  .dom-row{display:flex;gap:8px;align-items:stretch;flex-wrap:wrap}
+  .dom-row .control{flex:1 1 220px;min-width:0}
+  .dom-row .input{font-family:var(--mono)}
+  .dom-row .btn{flex:none;white-space:nowrap}
+  .dom-res{display:none;margin-top:14px;border:1px solid var(--hairline);border-radius:var(--r-md);
+    padding:15px 16px;background:var(--bg-2)}
+  .dom-res.show{display:block;animation:qg-reveal .4s var(--ease)}
+  .dom-res .dr-top{display:flex;gap:11px;align-items:center;flex-wrap:wrap}
+  .dom-res .dr-name{font-family:var(--mono);font-size:var(--fs-4);font-weight:700;
+    word-break:break-all;min-width:0}
+  .dom-res .dr-note{margin-top:9px;font-size:var(--fs-6);color:var(--muted);line-height:1.6}
+  .dom-res.hit{border-color:rgba(255,77,94,.35);background:var(--risk-high-soft)}
+  .dom-res.hit .dr-name{color:#FFC2CA}
+  .dom-res.miss{border-color:var(--accent-line)}
+  .dom-scan{margin-top:12px}
+  .dom-ex{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}
 
   .steps{margin:14px 0 0;padding:0;list-style:none;counter-reset:st}
   .steps li{display:flex;gap:12px;margin:11px 0;font-size:var(--fs-5);line-height:1.5;color:var(--txt)}
   .steps li::before{counter-increment:st;content:counter(st);flex:none;width:23px;height:23px;
     border-radius:50%;background:var(--accent-soft);color:var(--accent);font-size:var(--fs-6);font-weight:800;
+    border:1px solid var(--accent-line);
     display:flex;align-items:center;justify-content:center;margin-top:1px}
   .steps b{font-weight:700;color:var(--txt)}
+  /* staggered-появление шагов при переключении панели (панель была display:none) */
+  .panel:not(.hidden) .steps li{animation:sh-step .5s var(--ease-out) backwards}
+  .panel:not(.hidden) .steps li:nth-child(1){animation-delay:.02s}
+  .panel:not(.hidden) .steps li:nth-child(2){animation-delay:.09s}
+  .panel:not(.hidden) .steps li:nth-child(3){animation-delay:.16s}
+  .panel:not(.hidden) .steps li:nth-child(4){animation-delay:.23s}
+  @keyframes sh-step{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:none}}
 
   .copyrow{display:flex;gap:8px;align-items:stretch}
   .copyrow .input{flex:1;min-width:0;font-family:var(--mono);font-size:var(--fs-6)}
   .copyrow .btn{flex:none;white-space:nowrap}
 
-  .mock{width:100%;height:auto;display:block;margin:14px 0 2px;border:1px solid var(--line);
+  .mock{width:100%;height:auto;display:block;margin:14px 0 2px;border:1px solid var(--hairline);
     border-radius:var(--r-sm);background:var(--bg)}
 
-  .and-opt{background:var(--bg);border:1px solid var(--line);border-radius:var(--r-md);padding:14px;margin-top:12px}
+  .and-opt{background:var(--bg-2);border:1px solid var(--hairline);border-radius:var(--r-md);padding:14px;margin-top:12px}
   .and-opt .h{font-size:var(--fs-4);font-weight:700;margin-bottom:6px;display:flex;gap:8px;align-items:center}
   .and-opt .h .ic{width:18px;height:18px;color:var(--accent);flex:none}
   .and-opt p{margin:0;font-size:var(--fs-5);color:var(--muted);line-height:1.55}
@@ -51,10 +97,11 @@
   .test-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
   @media(max-width:520px){.test-grid,.stat-tiles{grid-template-columns:1fr}}
   .test-btn{display:flex;justify-content:center;align-items:center;gap:9px;padding:15px;
-    border:1px dashed rgba(255,84,104,.5);background:var(--risk-high-soft);color:#FFB3BC;
+    border:1px dashed rgba(255,77,94,.5);background:var(--risk-high-soft);color:#FFB3BC;
     border-radius:var(--r-md);font-size:var(--fs-4);font-weight:700;cursor:pointer;text-decoration:none;
-    transition:border-color .18s var(--ease),transform .14s var(--ease)}
-  .test-btn:hover{transform:translateY(-1px);border-color:var(--risk-high);text-decoration:none;color:#FFB3BC}
+    transition:border-color .18s var(--ease),transform .14s var(--ease),box-shadow .22s var(--ease)}
+  .test-btn:hover{transform:translateY(-2px);border-color:var(--risk-high);text-decoration:none;color:#FFB3BC;
+    box-shadow:0 12px 26px -14px var(--risk-high-glow)}
   .test-btn .ic{width:19px;height:19px;flex:none;color:var(--risk-high)}
   .test-btn .dom{font-family:var(--mono);font-weight:700}
 
@@ -70,10 +117,12 @@
 
   <!-- ============ hero + live stats ============ -->
   <section class="section tight">
-    <div class="card pad-lg shield-hero stack lg">
+    <div class="card glass pad-lg shield-hero stack lg">
+      <div class="sh-canvas" aria-hidden="true"><canvas id="shRadar"></canvas></div>
+
       <div>
         <span class="hero-mark" data-icon="shield-check"></span>
-        <div class="eyebrow" data-i18n="shSlogan">DNS-защита от фишинга</div>
+        <div class="eyebrow accent" data-i18n="shSlogan">DNS-защита от фишинга</div>
         <h1 class="mt-1" data-i18n="shHeroTitle">Фишинговые сайты не откроются. Вообще.</h1>
         <p class="lead mt-2" data-i18n-html="shHeroSub">Блок-лист пополняется из жалоб граждан в реальном времени: пожаловался один — защищены все.</p>
       </div>
@@ -98,16 +147,45 @@
     </div>
   </section>
 
+  <!-- ============ проверить домен (по блок-листу) ============ -->
+  <section class="section tight">
+    <div class="stack lg" data-reveal>
+      <div>
+        <h2 class="sect-h"><span data-icon="scan"></span><span data-i18n="shDomTitle">Домен уже в блок-листе?</span></h2>
+        <p class="muted" data-i18n="shDomSub">Введите адрес сайта — сверим его с текущим блок-листом Shield прямо в браузере.</p>
+      </div>
+      <div class="card pad">
+        <div class="field">
+          <div class="dom-row">
+            <div class="control">
+              <input id="domInput" class="input" type="text" inputmode="url" autocapitalize="off"
+                     autocomplete="off" spellcheck="false" maxlength="253" data-i18n-ph="shDomPh"/>
+            </div>
+            <button class="btn" id="domBtn" type="button">
+              <span class="spin"></span>
+              <span data-icon="shield-check"></span>
+              <span id="domBtnLbl" data-i18n="shDomBtn">Проверить домен</span>
+            </button>
+          </div>
+          <div class="hint" data-i18n="shDomHint">Проверяются и родительские домены: для pay.kaspi-bonus.xyz сработает запись kaspi-bonus.xyz.</div>
+        </div>
+        <div class="dom-ex" id="domEx"></div>
+        <div class="dom-scan" id="domScan"></div>
+        <div class="dom-res" id="domRes"></div>
+      </div>
+    </div>
+  </section>
+
   <!-- ============ setup ============ -->
   <section class="section tight">
     <div class="stack lg">
-      <div>
+      <div data-reveal>
         <h2 class="sect-h"><span data-icon="shield"></span><span data-i18n="shSetupTitle">Включить за 2 тапа</span></h2>
         <p class="muted" data-i18n="shSetupSub">Выберите своё устройство — мы уже подсветили его.</p>
       </div>
 
-      <div class="stack">
-        <div class="tabs" role="tablist">
+      <div class="stack" data-reveal>
+        <div class="tabs" data-ink role="tablist">
           <button id="tab-ios" type="button" role="tab"><span data-icon="phone"></span><span data-i18n="shTabIos">iPhone / iPad</span></button>
           <button id="tab-pc" type="button" role="tab"><span data-icon="scan"></span><span data-i18n="shTabPc">Компьютер</span></button>
           <button id="tab-android" type="button" role="tab"><span data-icon="message"></span><span>Android</span></button>
@@ -119,7 +197,7 @@
       <div class="card pad panel" id="panel-ios" role="tabpanel">
         <div class="stack">
           <span class="badge low"><span data-icon="check"></span><span data-i18n="shIosBadge">защищает весь телефон</span></span>
-          <a class="btn block" id="iosBtn" href="/shield/apple.mobileconfig">
+          <a class="btn block magnetic" id="iosBtn" href="/shield/apple.mobileconfig">
             <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>
             <span data-i18n="shIosBtn">Скачать профиль защиты</span>
           </a>
@@ -142,66 +220,66 @@
         </div>
         <p class="hint mt-1" data-i18n="shPcNote">Это адрес нашего защищённого DNS. Вставьте его в настройки браузера:</p>
 
-        <div class="tabs mt-2" role="tablist">
+        <div class="tabs mt-2" data-ink role="tablist">
           <button id="sub-chrome" type="button" role="tab">Chrome / Edge</button>
           <button id="sub-firefox" type="button" role="tab">Firefox</button>
         </div>
 
-        <div class="subpanel" id="subpanel-chrome" role="tabpanel">
+        <div class="subpanel panel" id="subpanel-chrome" role="tabpanel">
           <ol class="steps">
             <li><span data-i18n-b="shChS1">Меню ⋮ →|Настройки → Конфиденциальность и безопасность → Безопасность|</span></li>
             <li><span data-i18n-b="shChS2">Включите|«Использовать безопасный DNS-сервер»|и выберите «Другой провайдер».</span></li>
             <li><span data-i18n="shChS3">Вставьте скопированный адрес в поле — и всё, защита работает.</span></li>
           </ol>
           <svg class="mock" viewBox="0 0 440 190" aria-hidden="true">
-            <rect x="0" y="0" width="440" height="190" rx="8" fill="#0B0E14"/>
-            <rect x="0" y="0" width="440" height="26" rx="8" fill="#131924"/>
-            <circle cx="16" cy="13" r="4" fill="#FF5468" opacity=".7"/>
+            <rect x="0" y="0" width="440" height="190" rx="8" fill="#0A0E1A"/>
+            <rect x="0" y="0" width="440" height="26" rx="8" fill="#121826"/>
+            <circle cx="16" cy="13" r="4" fill="#FF4D5E" opacity=".7"/>
             <circle cx="30" cy="13" r="4" fill="#FFB020" opacity=".7"/>
-            <circle cx="44" cy="13" r="4" fill="#2FD08A" opacity=".7"/>
-            <text x="64" y="17" fill="#5E6B80" font-size="10" data-i18n="shMockSettings">Настройки</text>
-            <rect x="12" y="38" width="120" height="140" rx="6" fill="#131924"/>
-            <rect x="22" y="50" width="80" height="7" rx="3.5" fill="#263041"/>
-            <rect x="16" y="68" width="112" height="22" rx="6" fill="rgba(56,224,200,.14)"/>
-            <text x="24" y="83" fill="#38E0C8" font-size="9.5" font-weight="700" data-i18n="shMockSecurity">Безопасность</text>
-            <rect x="22" y="102" width="72" height="7" rx="3.5" fill="#263041"/>
-            <rect x="22" y="120" width="86" height="7" rx="3.5" fill="#263041"/>
-            <text x="148" y="56" fill="#EAF0F8" font-size="10.5" font-weight="700" data-i18n="shMockDns">Использовать безопасный DNS-сервер</text>
-            <rect x="394" y="44" width="32" height="16" rx="8" fill="#38E0C8"/>
-            <circle cx="418" cy="52" r="6" fill="#0B0E14"/>
-            <circle cx="152" cy="86" r="5" fill="none" stroke="#5E6B80" stroke-width="1.5"/>
-            <text x="164" y="90" fill="#93A0B4" font-size="9.5" data-i18n="shMockWith">С текущим провайдером</text>
-            <circle cx="152" cy="112" r="5" fill="none" stroke="#38E0C8" stroke-width="1.5"/>
-            <circle cx="152" cy="112" r="2.5" fill="#38E0C8"/>
-            <text x="164" y="116" fill="#EAF0F8" font-size="9.5" data-i18n="shMockCustom">Другой провайдер</text>
-            <rect x="148" y="128" width="278" height="26" rx="6" fill="#0B0E14" stroke="#38E0C8" stroke-opacity=".8"/>
-            <text x="158" y="145" fill="#38E0C8" font-size="10" font-family="ui-monospace,Consolas,monospace" class="svgDoh">https://…/dns-query</text>
-            <text x="148" y="172" fill="#5E6B80" font-size="8.5" data-i18n="shMockHint">↑ сюда — скопированный адрес</text>
+            <circle cx="44" cy="13" r="4" fill="#22C98A" opacity=".7"/>
+            <text x="64" y="17" fill="#5C6B84" font-size="10" data-i18n="shMockSettings">Настройки</text>
+            <rect x="12" y="38" width="120" height="140" rx="6" fill="#121826"/>
+            <rect x="22" y="50" width="80" height="7" rx="3.5" fill="#1E2A3D"/>
+            <rect x="16" y="68" width="112" height="22" rx="6" fill="rgba(56,189,248,.14)"/>
+            <text x="24" y="83" fill="#38BDF8" font-size="9.5" font-weight="700" data-i18n="shMockSecurity">Безопасность</text>
+            <rect x="22" y="102" width="72" height="7" rx="3.5" fill="#1E2A3D"/>
+            <rect x="22" y="120" width="86" height="7" rx="3.5" fill="#1E2A3D"/>
+            <text x="148" y="56" fill="#E8EDF6" font-size="10.5" font-weight="700" data-i18n="shMockDns">Использовать безопасный DNS-сервер</text>
+            <rect x="394" y="44" width="32" height="16" rx="8" fill="#38BDF8"/>
+            <circle cx="418" cy="52" r="6" fill="#04121F"/>
+            <circle cx="152" cy="86" r="5" fill="none" stroke="#5C6B84" stroke-width="1.5"/>
+            <text x="164" y="90" fill="#8A97AD" font-size="9.5" data-i18n="shMockWith">С текущим провайдером</text>
+            <circle cx="152" cy="112" r="5" fill="none" stroke="#38BDF8" stroke-width="1.5"/>
+            <circle cx="152" cy="112" r="2.5" fill="#38BDF8"/>
+            <text x="164" y="116" fill="#E8EDF6" font-size="9.5" data-i18n="shMockCustom">Другой провайдер</text>
+            <rect x="148" y="128" width="278" height="26" rx="6" fill="#0A0E1A" stroke="#38BDF8" stroke-opacity=".8"/>
+            <text x="158" y="145" fill="#38BDF8" font-size="10" font-family="ui-monospace,Consolas,monospace" class="svgDoh">https://…/dns-query</text>
+            <text x="148" y="172" fill="#5C6B84" font-size="8.5" data-i18n="shMockHint">↑ сюда — скопированный адрес</text>
           </svg>
         </div>
 
-        <div class="subpanel" id="subpanel-firefox" role="tabpanel">
+        <div class="subpanel panel" id="subpanel-firefox" role="tabpanel">
           <ol class="steps">
             <li><span data-i18n-b="shFfS1">Меню ☰ →|Настройки → Приватность и защита|</span></li>
             <li><span data-i18n-b="shFfS2">Найдите блок|«DNS через HTTPS»|и включите «Максимальная защита».</span></li>
             <li><span data-i18n-b="shFfS3">Провайдер:|«Другой…»|— вставьте скопированный адрес.</span></li>
           </ol>
           <svg class="mock" viewBox="0 0 440 175" aria-hidden="true">
-            <rect x="0" y="0" width="440" height="175" rx="8" fill="#0B0E14"/>
-            <rect x="0" y="0" width="440" height="26" rx="8" fill="#131924"/>
-            <circle cx="16" cy="13" r="4" fill="#FF5468" opacity=".7"/>
+            <rect x="0" y="0" width="440" height="175" rx="8" fill="#0A0E1A"/>
+            <rect x="0" y="0" width="440" height="26" rx="8" fill="#121826"/>
+            <circle cx="16" cy="13" r="4" fill="#FF4D5E" opacity=".7"/>
             <circle cx="30" cy="13" r="4" fill="#FFB020" opacity=".7"/>
-            <circle cx="44" cy="13" r="4" fill="#2FD08A" opacity=".7"/>
-            <text x="64" y="17" fill="#5E6B80" font-size="10" data-i18n="shMockFfPriv">Настройки → Приватность и защита</text>
-            <text x="20" y="52" fill="#EAF0F8" font-size="11" font-weight="700" data-i18n="shMockFfDoh">DNS через HTTPS</text>
-            <circle cx="26" cy="72" r="5" fill="none" stroke="#5E6B80" stroke-width="1.5"/>
-            <text x="38" y="76" fill="#93A0B4" font-size="9.5" data-i18n="shMockFfDef">Стандартная защита</text>
-            <circle cx="26" cy="96" r="5" fill="none" stroke="#38E0C8" stroke-width="1.5"/>
-            <circle cx="26" cy="96" r="2.5" fill="#38E0C8"/>
-            <text x="38" y="100" fill="#EAF0F8" font-size="9.5" font-weight="700" data-i18n="shMockFfMax">Максимальная защита</text>
-            <text x="38" y="122" fill="#93A0B4" font-size="9.5" data-i18n="shMockFfProv">Выбрать провайдера: Другой…</text>
-            <rect x="34" y="132" width="330" height="26" rx="6" fill="#0B0E14" stroke="#38E0C8" stroke-opacity=".8"/>
-            <text x="44" y="149" fill="#38E0C8" font-size="10" font-family="ui-monospace,Consolas,monospace" class="svgDoh">https://…/dns-query</text>
+            <circle cx="44" cy="13" r="4" fill="#22C98A" opacity=".7"/>
+            <text x="64" y="17" fill="#5C6B84" font-size="10" data-i18n="shMockFfPriv">Настройки → Приватность и защита</text>
+            <text x="20" y="52" fill="#E8EDF6" font-size="11" font-weight="700" data-i18n="shMockFfDoh">DNS через HTTPS</text>
+            <circle cx="26" cy="72" r="5" fill="none" stroke="#5C6B84" stroke-width="1.5"/>
+            <text x="38" y="76" fill="#8A97AD" font-size="9.5" data-i18n="shMockFfDef">Стандартная защита</text>
+            <circle cx="26" cy="96" r="5" fill="none" stroke="#38BDF8" stroke-width="1.5"/>
+            <circle cx="26" cy="96" r="2.5" fill="#38BDF8"/>
+            <text x="38" y="100" fill="#E8EDF6" font-size="9.5" font-weight="700" data-i18n="shMockFfMax">Максимальная защита</text>
+            <text x="38" y="122" fill="#8A97AD" font-size="9.5" data-i18n="shMockFfProv">Выбрать провайдера: Другой…</text>
+            <rect x="34" y="132" width="330" height="26" rx="6" fill="#0A0E1A" stroke="#38BDF8" stroke-opacity=".8"/>
+            <text x="44" y="149" fill="#38BDF8" font-size="10" font-family="ui-monospace,Consolas,monospace" class="svgDoh">https://…/dns-query</text>
           </svg>
         </div>
       </div>
@@ -232,11 +310,11 @@
   <!-- ============ test ============ -->
   <section class="section tight">
     <div class="stack lg">
-      <div>
+      <div data-reveal>
         <h2 class="sect-h"><span data-icon="alert"></span><span data-i18n="shTestTitle">Проверь, что защита реально работает</span></h2>
         <p class="muted" data-i18n="shTestSub">Эти два сайта — настоящие и существуют в интернете. Для наглядной демонстрации мы добавили их в блок-лист Shield.</p>
       </div>
-      <div class="card pad">
+      <div class="card pad" data-reveal>
         <div class="test-grid">
           <a class="test-btn" href="http://neverssl.com" target="_blank" rel="noopener">
             <span data-icon="link"></span><span data-i18n="shTestBtn">Открыть</span> <span class="dom">neverssl.com</span>
@@ -253,32 +331,32 @@
   <!-- ============ how ============ -->
   <section class="section tight">
     <div class="stack lg">
-      <h2 class="sect-h"><span data-icon="eye"></span><span data-i18n="shHowTitle">Как это устроено</span></h2>
-      <div class="card pad">
+      <h2 class="sect-h" data-reveal><span data-icon="eye"></span><span data-i18n="shHowTitle">Как это устроено</span></h2>
+      <div class="card pad" data-reveal="scale">
         <svg style="width:100%;height:auto;display:block" viewBox="0 0 440 220" aria-hidden="true">
           <defs>
             <marker id="arr" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto">
-              <path d="M0 0 L8 4 L0 8 Z" fill="#5E6B80"/>
+              <path d="M0 0 L8 4 L0 8 Z" fill="#5C6B84"/>
             </marker>
           </defs>
-          <rect x="14" y="76" width="64" height="94" rx="12" fill="#0B0E14" stroke="#93A0B4" stroke-opacity=".4"/>
-          <rect x="24" y="90" width="44" height="56" rx="4" fill="#131924"/>
-          <circle cx="46" cy="158" r="5" fill="none" stroke="#93A0B4" stroke-opacity=".5" stroke-width="1.5"/>
-          <text x="46" y="196" text-anchor="middle" fill="#93A0B4" font-size="10.5" data-i18n="shDPhone">Телефон</text>
-          <path d="M82 118 L 152 118" fill="none" stroke="#5E6B80" stroke-width="1.6" marker-end="url(#arr)"/>
-          <text x="117" y="108" text-anchor="middle" fill="#5E6B80" font-size="9" data-i18n="shDReq">DNS-запрос</text>
-          <rect x="156" y="76" width="128" height="86" rx="12" fill="rgba(56,224,200,.1)" stroke="#38E0C8" stroke-opacity=".6"/>
-          <path d="M220 88 228 91.2v5.9c0 5-3.4 8.8-8 11-4.6-2.2-8-6-8-11v-5.9l8-3.2z" fill="#38E0C8"/>
-          <path d="M216 96.5l2.9 2.9 5.1-5.4" fill="none" stroke="#052B27" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          <text x="220" y="127" text-anchor="middle" fill="#EAF0F8" font-size="11.5" font-weight="700">Qorǵau Shield</text>
-          <text x="220" y="142" text-anchor="middle" fill="#93A0B4" font-size="9" data-i18n="shDQ2">блок-лист из жалоб граждан</text>
-          <text x="220" y="154" text-anchor="middle" fill="#93A0B4" font-size="9" data-i18n="shDQ3">обновляется в реальном времени</text>
-          <path d="M288 100 C 314 88, 318 62, 336 52" fill="none" stroke="#FF5468" stroke-opacity=".7" stroke-width="1.6" marker-end="url(#arr)"/>
-          <rect x="330" y="18" width="100" height="52" rx="10" fill="rgba(255,84,104,.08)" stroke="#FF5468" stroke-opacity=".5"/>
+          <rect x="14" y="76" width="64" height="94" rx="12" fill="#0A0E1A" stroke="#8A97AD" stroke-opacity=".4"/>
+          <rect x="24" y="90" width="44" height="56" rx="4" fill="#121826"/>
+          <circle cx="46" cy="158" r="5" fill="none" stroke="#8A97AD" stroke-opacity=".5" stroke-width="1.5"/>
+          <text x="46" y="196" text-anchor="middle" fill="#8A97AD" font-size="10.5" data-i18n="shDPhone">Телефон</text>
+          <path d="M82 118 L 152 118" fill="none" stroke="#5C6B84" stroke-width="1.6" marker-end="url(#arr)"/>
+          <text x="117" y="108" text-anchor="middle" fill="#5C6B84" font-size="9" data-i18n="shDReq">DNS-запрос</text>
+          <rect x="156" y="76" width="128" height="86" rx="12" fill="rgba(56,189,248,.1)" stroke="#38BDF8" stroke-opacity=".6"/>
+          <path d="M220 88 228 91.2v5.9c0 5-3.4 8.8-8 11-4.6-2.2-8-6-8-11v-5.9l8-3.2z" fill="#38BDF8"/>
+          <path d="M216 96.5l2.9 2.9 5.1-5.4" fill="none" stroke="#04121F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <text x="220" y="127" text-anchor="middle" fill="#E8EDF6" font-size="11.5" font-weight="700">Qorǵau Shield</text>
+          <text x="220" y="142" text-anchor="middle" fill="#8A97AD" font-size="9" data-i18n="shDQ2">блок-лист из жалоб граждан</text>
+          <text x="220" y="154" text-anchor="middle" fill="#8A97AD" font-size="9" data-i18n="shDQ3">обновляется в реальном времени</text>
+          <path d="M288 100 C 314 88, 318 62, 336 52" fill="none" stroke="#FF4D5E" stroke-opacity=".7" stroke-width="1.6" marker-end="url(#arr)"/>
+          <rect x="330" y="18" width="100" height="52" rx="10" fill="rgba(255,77,94,.08)" stroke="#FF4D5E" stroke-opacity=".5"/>
           <text x="380" y="42" text-anchor="middle" fill="#FFB3BC" font-size="11" font-weight="700" data-i18n="shDBad">фишинг</text>
           <text x="380" y="57" text-anchor="middle" fill="#d79aa3" font-size="9" data-i18n="shDBad2">NXDOMAIN — не откроется</text>
-          <path d="M288 138 C 314 150, 318 176, 336 186" fill="none" stroke="#2FD08A" stroke-opacity=".7" stroke-width="1.6" marker-end="url(#arr)"/>
-          <rect x="330" y="164" width="100" height="52" rx="10" fill="rgba(47,208,138,.07)" stroke="#2FD08A" stroke-opacity=".5"/>
+          <path d="M288 138 C 314 150, 318 176, 336 186" fill="none" stroke="#22C98A" stroke-opacity=".7" stroke-width="1.6" marker-end="url(#arr)"/>
+          <rect x="330" y="164" width="100" height="52" rx="10" fill="rgba(34,201,138,.07)" stroke="#22C98A" stroke-opacity=".5"/>
           <text x="380" y="188" text-anchor="middle" fill="#9df0d2" font-size="11" font-weight="700" data-i18n="shDOk">обычные сайты</text>
           <text x="380" y="203" text-anchor="middle" fill="#84c9ae" font-size="9" data-i18n="shDOk2">открываются как всегда</text>
         </svg>
@@ -344,7 +422,22 @@ addEventListener('DOMContentLoaded', function () {
       shDQ3:'обновляется в реальном времени', shDBad:'фишинг', shDBad2:'NXDOMAIN — не откроется',
       shDOk:'обычные сайты', shDOk2:'открываются как всегда',
       shHowNote:'Один человек пожаловался на фишинговый домен в чекере или боте — домен попадает в блок-лист, и он мгновенно перестаёт открываться у всех, кто включил Shield.',
-      shPrivacy:'IP-адреса не логируются. Считаем только обезличенные счётчики по доменам.'
+      shPrivacy:'IP-адреса не логируются. Считаем только обезличенные счётчики по доменам.',
+      /* — виджет проверки домена — */
+      shDomTitle:'Домен уже в блок-листе?',
+      shDomSub:'Введите адрес сайта — сверим его с текущим блок-листом Shield прямо в браузере.',
+      shDomPh:'например, kaspi-bonus.xyz',
+      shDomBtn:'Проверить домен', shDomBtnBusy:'Сверяю…',
+      shDomHint:'Проверяются и родительские домены: для pay.kaspi-bonus.xyz сработает запись kaspi-bonus.xyz.',
+      shDomExL:'Примеры:',
+      shDomBad:'Заблокирован Shield',
+      shDomBadNote:'Этот домен есть в блок-листе. С включённым Shield он не откроется — браузер ответит «сайт не найден».',
+      shDomParent:'Совпал родительский домен',
+      shDomOk:'Не в блок-листе',
+      shDomOkNote:'Это ещё не гарантия безопасности: блок-лист собирается из жалоб граждан и пополняется постоянно. Подозрительную ссылку лучше прогнать через чекер Qorǵau.',
+      shDomEmpty:'Введите адрес сайта — например, kaspi-bonus.xyz',
+      shDomInvalid:'Похоже, это не домен. Пример: kaspi-bonus.xyz',
+      shDomErr:'Не удалось получить блок-лист. Попробуйте ещё раз.'
     },
     kz: {
       shTitle:'Qorǵau Shield — фишингтен қорғайтын DNS',
@@ -388,7 +481,22 @@ addEventListener('DOMContentLoaded', function () {
       shDQ3:'нақты уақытта жаңарады', shDBad:'фишинг', shDBad2:'NXDOMAIN — ашылмайды',
       shDOk:'қарапайым сайттар', shDOk2:'әдеттегідей ашылады',
       shHowNote:'Бір адам чекерде немесе ботта фишинг-доменге шағымданды — домен блок-тізімге түседі де, Shield қосқан барлық адамда лезде ашылмай қалады.',
-      shPrivacy:'IP-мекенжайлар журналға жазылмайды. Тек домендер бойынша иесіздендірілген есептегіштер.'
+      shPrivacy:'IP-мекенжайлар журналға жазылмайды. Тек домендер бойынша иесіздендірілген есептегіштер.',
+      /* — домен тексеру виджеті — */
+      shDomTitle:'Домен блок-тізімде бар ма?',
+      shDomSub:'Сайт мекенжайын енгізіңіз — оны Shield-тің ағымдағы блок-тізімімен браузерде салыстырамыз.',
+      shDomPh:'мысалы, kaspi-bonus.xyz',
+      shDomBtn:'Доменді тексеру', shDomBtnBusy:'Салыстырып жатырмын…',
+      shDomHint:'Аталық домендер де тексеріледі: pay.kaspi-bonus.xyz үшін kaspi-bonus.xyz жазбасы іске қосылады.',
+      shDomExL:'Мысалдар:',
+      shDomBad:'Shield бұғаттаған',
+      shDomBadNote:'Бұл домен блок-тізімде бар. Shield қосулы болса, ол ашылмайды — браузер «сайт табылмады» дейді.',
+      shDomParent:'Аталық домен сәйкес келді',
+      shDomOk:'Блок-тізімде жоқ',
+      shDomOkNote:'Бұл әлі қауіпсіздік кепілі емес: блок-тізім азаматтар шағымынан жиналады және үнемі толығады. Күдікті сілтемені Qorǵau тексергішінен өткізген дұрыс.',
+      shDomEmpty:'Сайт мекенжайын енгізіңіз — мысалы, kaspi-bonus.xyz',
+      shDomInvalid:'Бұл домен емес сияқты. Мысал: kaspi-bonus.xyz',
+      shDomErr:'Блок-тізімді алу мүмкін болмады. Қайталап көріңіз.'
     }
   });
 
@@ -428,12 +536,20 @@ addEventListener('DOMContentLoaded', function () {
     }
   }
 
-  /* --- live stats --- */
+  /* --- live stats (count-up при изменении) --- */
   var lastStats = null;
+  var shown = { stDomains: null, stBlocked: null };
   function fmtNum(n){ return Number(n || 0).toLocaleString('ru-RU'); }
+  function setNum(id, value){
+    var node = document.getElementById(id);
+    var v = Number(value || 0);
+    if (shown[id] === v) return;
+    Q.countUp(node, v, { from: shown[id] == null ? 0 : shown[id], group: true, duration: 900 });
+    shown[id] = v;
+  }
   function renderStats(s){
-    document.getElementById('stDomains').textContent = fmtNum(s.blocklist_count || 0);
-    document.getElementById('stBlocked').textContent = fmtNum(s.blocked_today || 0);
+    setNum('stDomains', s.blocklist_count || 0);
+    setNum('stBlocked', s.blocked_today || 0);
     var top = (s.top_blocked || []).slice(0, 3);
     var box = document.getElementById('topBox'), list = document.getElementById('topList');
     list.textContent = '';
@@ -462,12 +578,19 @@ addEventListener('DOMContentLoaded', function () {
     if (/Android/.test(ua)) return 'android';
     return 'pc';
   }
+  /* панель могла быть display:none → пересчитать ink-индикатор табов */
+  function syncInk(){
+    requestAnimationFrame(function () {
+      try { window.dispatchEvent(new Event('resize')); } catch (_) {}
+    });
+  }
   function showTab(name){
     TABS.forEach(function (p) {
       document.getElementById('tab-' + p).classList.toggle('on', p === name);
       document.getElementById('tab-' + p).setAttribute('aria-selected', p === name ? 'true' : 'false');
       document.getElementById('panel-' + p).classList.toggle('hidden', p !== name);
     });
+    syncInk();
   }
   TABS.forEach(function (p) { document.getElementById('tab-' + p).addEventListener('click', function () { showTab(p); }); });
   var mine = detectPlatform();
@@ -489,6 +612,7 @@ addEventListener('DOMContentLoaded', function () {
       document.getElementById('sub-' + s).setAttribute('aria-selected', s === name ? 'true' : 'false');
       document.getElementById('subpanel-' + s).classList.toggle('hidden', s !== name);
     });
+    syncInk();
   }
   SUBS.forEach(function (s) { document.getElementById('sub-' + s).addEventListener('click', function () { showSub(s); }); });
   showSub(/Firefox/.test(navigator.userAgent) ? 'firefox' : 'chrome');
@@ -518,13 +642,137 @@ addEventListener('DOMContentLoaded', function () {
   bindCopy('copyBtn', 'copyBtnLbl', 'dohField', 'shCopyBtn');
   bindCopy('copyBtn2', 'copyBtn2Lbl', 'dohField2', 'shCopyShort');
 
+  /* ================== виджет «проверить домен» ==================
+     Использует существующий эндпоинт GET /shield/blocklist. Сверка —
+     локально в браузере, включая родительские домены. */
+  var domInput = document.getElementById('domInput');
+  var domBtn = document.getElementById('domBtn');
+  var domRes = document.getElementById('domRes');
+  var domScan = document.getElementById('domScan');
+  var domBusy = false;
+
+  function normDomain(raw){
+    var s = String(raw || '').trim().toLowerCase();
+    if (!s) return '';
+    s = s.replace(/^[a-z0-9+.-]+:\/\//, '');   // схема
+    s = s.replace(/^[^@\/]*@/, '');            // user:pass@
+    s = s.split(/[\/?#]/)[0];                  // путь/запрос
+    s = s.split(':')[0];                       // порт
+    s = s.replace(/\.+$/, '').replace(/^\.+/, '');
+    s = s.replace(/^www\./, '');
+    return s;
+  }
+  function looksLikeDomain(d){
+    return !!d && d.indexOf('.') > 0 && d.length < 254 && !/\s/.test(d) &&
+      /^[a-z0-9Ѐ-ӿ.-]+$/.test(d) && !/^[.-]|[.-]$/.test(d);
+  }
+  function domResShow(kind, badgeCls, badgeIc, badgeKey, name, noteKey, extraText){
+    domRes.textContent = '';
+    domRes.className = 'dom-res show ' + kind;
+    var top = document.createElement('div'); top.className = 'dr-top';
+    var badge = document.createElement('span'); badge.className = 'badge ' + badgeCls;
+    badge.appendChild(Q.icon(badgeIc));
+    badge.appendChild(document.createTextNode(Q.i18n.t(badgeKey)));
+    top.appendChild(badge);
+    if (name) {
+      var nm = document.createElement('span'); nm.className = 'dr-name'; nm.textContent = name;
+      top.appendChild(nm);
+    }
+    domRes.appendChild(top);
+    if (extraText) {
+      var ex = document.createElement('div'); ex.className = 'dr-note'; ex.textContent = extraText;
+      domRes.appendChild(ex);
+    }
+    if (noteKey) {
+      var note = document.createElement('div'); note.className = 'dr-note'; note.textContent = Q.i18n.t(noteKey);
+      domRes.appendChild(note);
+    }
+  }
+  function domResPlain(kind, textKey){
+    domRes.textContent = '';
+    domRes.className = 'dom-res show ' + kind;
+    var note = document.createElement('div'); note.className = 'dr-note'; note.textContent = Q.i18n.t(textKey);
+    domRes.appendChild(note);
+  }
+  /* поиск домена и его родителей в блок-листе */
+  function matchIn(list, host){
+    var set = Object.create(null);
+    (list || []).forEach(function (d) {
+      var n = String(d || '').trim().toLowerCase().replace(/\.+$/, '').replace(/^www\./, '');
+      if (n) set[n] = d;
+    });
+    var parts = host.split('.');
+    for (var i = 0; i < parts.length - 1; i++) {
+      var cand = parts.slice(i).join('.');
+      if (set[cand]) return cand;
+    }
+    return null;
+  }
+  async function checkDomain(){
+    if (domBusy) return;
+    var host = normDomain(domInput.value);
+    if (!host) { domResPlain('', 'shDomEmpty'); domInput.focus(); return; }
+    if (!looksLikeDomain(host)) { domResPlain('', 'shDomInvalid'); return; }
+
+    domBusy = true;
+    domBtn.classList.add('busy'); domBtn.disabled = true;
+    document.getElementById('domBtnLbl').textContent = Q.i18n.t('shDomBtnBusy');
+    domRes.className = 'dom-res';
+    var scan = Q.scanLoader(domScan);
+    try {
+      var data = await Q.fetchJSON('/shield/blocklist');
+      var hit = matchIn(data && data.domains, host);
+      if (hit) {
+        domResShow('hit', 'high', 'alert', 'shDomBad', host, 'shDomBadNote',
+          hit !== host ? Q.i18n.t('shDomParent') + ': ' + hit : '');
+      } else {
+        domResShow('miss', 'accent', 'shield-check', 'shDomOk', host, 'shDomOkNote', '');
+      }
+    } catch (_) {
+      domResPlain('', 'shDomErr');
+    }
+    scan.stop();
+    domBusy = false;
+    domBtn.classList.remove('busy'); domBtn.disabled = false;
+    document.getElementById('domBtnLbl').textContent = Q.i18n.t('shDomBtn');
+  }
+  domBtn.addEventListener('click', checkDomain);
+  domInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') checkDomain(); });
+
+  /* примеры-чипы (заполняем из живого блок-листа, тихо — без ошибок) */
+  function renderDomExamples(){
+    var host = document.getElementById('domEx'); host.textContent = '';
+    Q.fetchJSON('/shield/blocklist').then(function (data) {
+      var list = ((data && data.domains) || []).filter(function (d) {
+        return d && d.indexOf('*') < 0 && d !== 'example.com' && d !== 'neverssl.com';
+      }).slice(0, 3);
+      if (!list.length) return;
+      var lbl = document.createElement('span'); lbl.className = 'chip static';
+      lbl.textContent = Q.i18n.t('shDomExL'); host.appendChild(lbl);
+      list.forEach(function (d) {
+        var c = document.createElement('button');
+        c.type = 'button'; c.className = 'chip mono'; c.textContent = d;
+        c.addEventListener('click', function () { domInput.value = d; checkDomain(); });
+        host.appendChild(c);
+      });
+    }).catch(function () {});
+  }
+
   /* --- перерисовка динамики при смене языка --- */
   Q.i18n.onChange(function () {
     applyRich();
     renderYouHint();
-    if (lastStats) renderStats(lastStats);
+    if (lastStats) { shown.stDomains = null; shown.stBlocked = null; renderStats(lastStats); }
     paintIcons();
+    domRes.className = 'dom-res';
+    renderDomExamples();
   });
+
+  /* --- сигнатурный фон hero (стопается сам при reduced-motion) --- */
+  var shCanvas = document.getElementById('shRadar');
+  if (shCanvas) Q.shieldRadar(shCanvas, { speed: .8 });
+
+  Q.reveal('[data-reveal]');
 
   loadStats();
   setInterval(loadStats, 30000);

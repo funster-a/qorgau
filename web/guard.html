@@ -3,79 +3,140 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
-<meta name="theme-color" content="#0B0E14"/>
+<meta name="theme-color" content="#0A0E1A"/>
 <title data-i18n-title="gTitle">Qorǵau — Под защитой</title>
 <meta name="description" content="Qorǵau — защита близкого человека: опекун получает алерт, если родственник под атакой мошенников. Только факт и тип угрозы, без текста сообщения."/>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2338E0C8' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 22s8-4 8-10V5.2l-8-3-8 3V12c0 6 8 10 8 10Z'/%3E%3Cpath d='M9 12l2.2 2.2L15.5 10'/%3E%3C/svg%3E"/>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2338BDF8' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 22s8-4 8-10V5.2l-8-3-8 3V12c0 6 8 10 8 10Z'/%3E%3Cpath d='M9 12l2.2 2.2L15.5 10'/%3E%3C/svg%3E"/>
+<script>document.documentElement.classList.add('has-js');</script>
+<link rel="preload" href="assets/fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="assets/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="stylesheet" href="assets/app.css"/>
 <script src="assets/app.js" defer></script>
 <style>
-  /* ── guard.html — специфика страницы (токены из app.css) ── */
-  .g-hero{padding:40px 0 8px}
-  @media(min-width:760px){.g-hero{padding:56px 0 8px}}
-  .g-hero h1{font-size:clamp(28px,6.4vw,42px);line-height:1.1;max-width:18ch}
-  .g-hero .lead{margin-top:14px;max-width:54ch}
+  /* ══ guard.html — «Под защитой». Приватность как главный визуальный тезис.
+        Все цвета/радиусы/шрифты — токены ядра (app.css). ══════════════════ */
 
-  /* Схема связи опекун ↔ подопечный */
-  .link-scheme{background:var(--surface);border:1px solid var(--line);
-    border-radius:var(--r-lg);padding:22px 18px}
-  .link-scheme svg{width:100%;height:auto;max-width:560px;margin:0 auto;display:block}
-  .link-cap{text-align:center;color:var(--muted);font-size:var(--fs-5);margin-top:12px;line-height:1.6}
+  .g-hero{position:relative;padding:44px 0 8px}
+  @media(min-width:760px){.g-hero{padding:64px 0 10px}}
+  .g-hero h1{font-size:clamp(29px,6.6vw,46px);line-height:1.05;max-width:18ch;letter-spacing:-.03em}
+  .g-hero .lead{margin-top:16px;max-width:56ch}
 
-  /* Роли — шаги */
-  .roles-tabs{display:flex;justify-content:center;margin:6px 0 20px}
-  .steps{list-style:none;margin:0;padding:0;counter-reset:st}
-  .step{display:flex;gap:14px;align-items:flex-start;padding:14px 0;
-    border-top:1px solid var(--line-soft)}
-  .step:first-child{border-top:0}
-  .step-n{counter-increment:st;flex:none;width:34px;height:34px;border-radius:50%;
-    display:grid;place-items:center;background:var(--accent-soft);color:var(--accent);
-    border:1px solid var(--accent-line);font-weight:800;font-variant-numeric:tabular-nums}
-  .step-n::before{content:counter(st)}
+  /* ── Диаграмма связи опекун ↔ подопечный ─────────────────────────────── */
+  .scheme{padding:20px 16px 22px;overflow:hidden}
+  @media(min-width:760px){.scheme{padding:26px 24px 28px}}
+  .scheme svg{width:100%;height:auto;max-width:680px;margin:0 auto;display:block}
+  .gd-node{fill:var(--surface);stroke:var(--hairline);stroke-width:2}
+  .gd-node.core{fill:var(--bg-2);stroke:var(--accent);stroke-width:2.4}
+  .gd-node.on{stroke:var(--accent-line)}
+  .gd-ic{fill:none;stroke:var(--muted);stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+  .gd-ic.accent{stroke:var(--accent)}
+  .gd-name{fill:var(--txt);font-family:var(--font-display);font-size:15px;font-weight:800;
+    letter-spacing:-.01em}
+  .gd-name.accent{fill:var(--accent)}
+  .gd-lbl{fill:var(--muted);font-family:var(--font);font-size:12.5px;font-weight:700}
+  .gd-sub{fill:var(--muted-2);font-family:var(--font);font-size:11.5px;font-weight:600}
+  .gd-sub.warn{fill:var(--risk-med)}
+  .gd-wire{fill:none;stroke:var(--hairline);stroke-width:2;stroke-dasharray:5 5}
+  .gd-wire.live{stroke:var(--accent-line);stroke-dasharray:none;stroke-width:2.2}
+  .gd-pulse{fill:none;stroke:var(--accent-b);stroke-width:3.2;stroke-linecap:round;
+    filter:drop-shadow(0 0 5px var(--accent-glow));stroke-dasharray:16 130;stroke-dashoffset:146;
+    animation:gd-run 2.4s linear infinite}
+  .gd-pulse.slow{stroke:var(--muted);filter:none;stroke-width:2.6;animation-duration:3.4s;
+    animation-delay:.5s;opacity:.7}
+  @keyframes gd-run{from{stroke-dashoffset:146}to{stroke-dashoffset:0}}
+  .gd-gate{fill:none;stroke:var(--risk-med);stroke-width:1.6;stroke-dasharray:4 4;opacity:.75}
+  .gd-lock{fill:none;stroke:var(--risk-med);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+  .scheme-cap{text-align:center;color:var(--muted);font-size:var(--fs-5);line-height:1.6;
+    margin:16px auto 0;max-width:62ch}
+
+  /* ── Приватность: что уходит и что остаётся ──────────────────────────── */
+  .mm{margin-top:12px;position:relative;border:1px solid var(--hairline);border-radius:var(--r-md);
+    background:var(--bg);padding:13px 14px;overflow:hidden}
+  .mm-txt{font-size:var(--fs-5);line-height:1.55;color:var(--muted);
+    filter:blur(4.5px);user-select:none;-webkit-user-select:none}
+  .mm-lock{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:8px;
+    background:linear-gradient(180deg,rgba(10,14,26,.35),rgba(10,14,26,.72));
+    font-size:var(--fs-6);font-weight:800;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--risk-med)}
+  .mm-lock .ic{width:16px;height:16px}
+  .zone .kv{display:flex;justify-content:space-between;gap:12px;padding:8px 0;font-size:var(--fs-5)}
+  .zone .kv+.kv{border-top:1px solid var(--hairline)}
+  .zone .kv .k{color:var(--muted)}
+  .zone .kv .v{font-weight:700;text-align:right}
+  .zone .kv .v.risk{color:var(--risk-high);font-variant-numeric:tabular-nums}
+
+  /* ── Шаги привязки — премиум-карточки ────────────────────────────────── */
+  .roles-tabs{display:flex;justify-content:center}
+  .steps{list-style:none;margin:0;padding:0;display:grid;gap:12px}
+  @media(min-width:720px){.steps{grid-template-columns:1fr 1fr}}
+  .step{position:relative;display:flex;gap:14px;align-items:flex-start;padding:18px;
+    background:var(--surface);border:1px solid var(--hairline);border-radius:var(--r);
+    transition:transform .18s var(--ease),border-color .18s var(--ease),box-shadow .25s var(--ease)}
+  .step:hover{transform:translateY(-2px);border-color:var(--accent-line);box-shadow:var(--shadow)}
+  .step-n{flex:none;width:36px;height:36px;border-radius:var(--r-sm);display:grid;place-items:center;
+    background:var(--accent-soft);color:var(--accent);border:1px solid var(--accent-line);
+    font-family:var(--font-display);font-weight:800;font-variant-numeric:tabular-nums}
   .step-b{min-width:0}
-  .step-t{font-weight:700;font-size:var(--fs-4)}
-  .step-d{color:var(--muted);font-size:var(--fs-5);line-height:1.55;margin-top:3px}
-  .step-code{display:inline-flex;align-items:center;gap:8px;margin-top:8px;
-    font-family:var(--mono);font-size:var(--fs-4);font-weight:700;color:var(--accent);
+  .step-t{font-family:var(--font-display);font-weight:800;font-size:var(--fs-4);letter-spacing:-.01em}
+  .step-d{color:var(--muted);font-size:var(--fs-5);line-height:1.55;margin-top:5px}
+  .step-code{display:inline-flex;align-items:center;gap:8px;margin-top:10px;
+    font-family:var(--mono);font-size:var(--fs-5);font-weight:700;color:var(--accent);
     background:var(--bg);border:1px dashed var(--accent-line);border-radius:var(--r-sm);
-    padding:6px 12px;letter-spacing:1px}
+    padding:7px 12px;letter-spacing:.5px}
+  .step-code .ic{width:16px;height:16px;flex:none}
   .bot-cmd{font-family:var(--mono);color:var(--accent);background:var(--bg);
-    border:1px solid var(--line);border-radius:6px;padding:1px 7px;font-size:.94em}
-
-  /* Превью алерта опекуну */
-  .alert-demo{border:1px solid rgba(255,84,104,.4);background:var(--risk-high-soft);
-    border-radius:var(--r-lg);padding:18px 20px}
-  .alert-demo .ad-top{display:flex;align-items:center;gap:11px}
-  .alert-demo .ad-ic{width:42px;height:42px;flex:none;border-radius:var(--r-md);
-    display:grid;place-items:center;background:rgba(255,84,104,.16);color:var(--risk-high)}
-  .alert-demo .ad-ic .ic{width:24px;height:24px}
-  .alert-demo .ad-h{font-weight:800;font-size:var(--fs-4);color:#FFB3BC}
-  .alert-demo .ad-sub{color:var(--muted);font-size:var(--fs-6);margin-top:1px}
-  .alert-demo .ad-body{margin-top:14px;background:var(--bg);border:1px solid var(--line);
-    border-radius:var(--r-md);padding:14px}
-  .alert-demo .ad-row{display:flex;justify-content:space-between;gap:14px;
-    padding:7px 0;font-size:var(--fs-5)}
-  .alert-demo .ad-row+.ad-row{border-top:1px solid var(--line-soft)}
-  .alert-demo .ad-k{color:var(--muted)}
-  .alert-demo .ad-v{font-weight:700;text-align:right}
-  .alert-demo .ad-v.risk{color:var(--risk-high);font-variant-numeric:tabular-nums}
-  .alert-demo .ad-redact{color:var(--muted-2);font-style:italic}
-
-  .priv-note{display:flex;gap:11px;align-items:flex-start;margin-top:16px;
-    padding:13px 15px;background:var(--accent-soft);border:1px solid var(--accent-line);
-    border-radius:var(--r-md)}
-  .priv-note .ic{width:20px;height:20px;flex:none;color:var(--accent);margin-top:1px}
-  .priv-note p{font-size:var(--fs-5);line-height:1.6;color:var(--txt)}
+    border:1px solid var(--hairline);border-radius:6px;padding:1px 7px;font-size:.94em;
+    white-space:nowrap}
 
   .role-cards{display:grid;gap:12px}
   @media(min-width:640px){.role-cards{grid-template-columns:1fr 1fr}}
-  .who{display:flex;gap:12px;align-items:center;padding:14px 16px;background:var(--bg);
-    border:1px solid var(--line);border-radius:var(--r-md)}
-  .who .who-ic{width:40px;height:40px;flex:none;border-radius:var(--r-md);display:grid;
-    place-items:center;background:var(--accent-soft);color:var(--accent)}
+  .who{display:flex;gap:13px;align-items:center;padding:15px 16px;background:var(--bg-2);
+    border:1px solid var(--hairline);border-radius:var(--r-md)}
+  .who .who-ic{width:42px;height:42px;flex:none;border-radius:var(--r-md);display:grid;
+    place-items:center;background:var(--accent-soft);color:var(--accent);border:1px solid var(--accent-line)}
   .who .who-ic .ic{width:22px;height:22px}
-  .who b{display:block;font-size:var(--fs-4)}
-  .who span{color:var(--muted);font-size:var(--fs-6)}
+  .who b{display:block;font-size:var(--fs-4);font-family:var(--font-display);letter-spacing:-.01em}
+  .who span{color:var(--muted);font-size:var(--fs-6);font-family:var(--mono)}
+
+  /* ── Макет алерта: как настоящее уведомление ─────────────────────────── */
+  .tg{max-width:460px;border-radius:var(--r);border:1px solid var(--hairline);
+    background:var(--surface);padding:14px;box-shadow:var(--shadow)}
+  .tg-head{display:flex;align-items:center;gap:11px}
+  .tg-av{width:40px;height:40px;flex:none;border-radius:50%;display:grid;place-items:center;
+    background:var(--accent-soft);color:var(--accent);border:1px solid var(--accent-line)}
+  .tg-av .ic{width:22px;height:22px}
+  .tg-name{display:flex;align-items:center;gap:7px;font-weight:800;font-size:var(--fs-5)}
+  .tg-tag{font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--muted-2);border:1px solid var(--hairline);border-radius:var(--r-pill);padding:1px 6px}
+  .tg-time{font-size:var(--fs-6);color:var(--muted-2);margin-top:1px}
+  .tg-bubble{margin-top:12px;border-radius:var(--r-md);border:1px solid rgba(255,77,94,.35);
+    background:var(--risk-high-soft);padding:14px 15px;border-top-left-radius:6px}
+  .tg-t{display:flex;align-items:center;gap:9px;font-family:var(--font-display);font-weight:800;
+    font-size:var(--fs-4);color:#FFC2CA;letter-spacing:-.01em}
+  .tg-t .ic{width:19px;height:19px;flex:none;color:var(--risk-high)}
+  .tg-rows{margin-top:12px;border-radius:var(--r-sm);background:var(--bg);
+    border:1px solid var(--hairline);padding:4px 12px}
+  .tg-row{display:flex;justify-content:space-between;gap:14px;padding:9px 0;font-size:var(--fs-5)}
+  .tg-row+.tg-row{border-top:1px solid var(--hairline)}
+  .tg-k{color:var(--muted)}
+  .tg-v{font-weight:700;text-align:right}
+  .tg-v.risk{color:var(--risk-high);font-variant-numeric:tabular-nums}
+  .tg-v.redact{color:var(--muted-2);font-style:italic;font-weight:600}
+  .tg-cta{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+  .tg-btn{flex:1 1 auto;text-align:center;border-radius:var(--r-sm);padding:9px 12px;
+    font-size:var(--fs-6);font-weight:700;border:1px solid var(--hairline);
+    background:var(--surface);color:var(--muted)}
+  .tg-btn.pri{background:var(--accent-soft);border-color:var(--accent-line);color:var(--accent)}
+  .tg-note{font-size:var(--fs-6);color:var(--muted-2);margin-top:10px}
+
+  .priv-note{display:flex;gap:12px;align-items:flex-start;padding:14px 16px;
+    background:var(--accent-soft);border:1px solid var(--accent-line);border-radius:var(--r-md)}
+  .priv-note .ic{width:20px;height:20px;flex:none;color:var(--accent);margin-top:2px}
+  .priv-note p{font-size:var(--fs-5);line-height:1.6;color:var(--txt)}
+
+  @media(prefers-reduced-motion:reduce){
+    .gd-pulse{animation:none;stroke-dasharray:none;stroke-dashoffset:0;opacity:.5;stroke-width:2.2}
+  }
 </style>
 </head>
 <body>
@@ -83,88 +144,149 @@
 <div id="nav"></div>
 
 <main>
-  <!-- ── HERO ── -->
+  <!-- ══════════════════════════ HERO ══════════════════════════ -->
   <section class="container">
     <div class="g-hero stack">
-      <div class="eyebrow" data-i18n="gEyebrow">Под защитой</div>
+      <div class="eyebrow accent" data-i18n="gEyebrow">Под защитой</div>
       <h1 data-i18n="gHeroTitle">Защитите того, кто может поверить мошеннику</h1>
       <p class="lead" data-i18n="gHeroLead">Привяжите близкого человека через Telegram-бота. Если его проверка покажет высокий риск — вы мгновенно получите алерт. Приватность подопечного сохраняется: вы видите только факт и тип угрозы, но не текст сообщения.</p>
-      <div class="row" style="margin-top:8px">
-        <a class="btn" href="https://t.me/QorgauHack_bot" target="_blank" rel="noopener">
+      <div class="row" style="margin-top:10px">
+        <a class="btn magnetic" href="https://t.me/QorgauHack_bot" target="_blank" rel="noopener">
           <span data-icon="shield-check"></span><span data-i18n="gOpenBot">Открыть бота</span>
         </a>
+        <a class="btn ghost" href="live.html">
+          <span data-icon="phone"></span><span data-i18n="gToLive">Мне звонят прямо сейчас</span>
+        </a>
+      </div>
+      <div class="row">
+        <span class="badge accent"><span data-icon="eye"></span><span data-i18n="gHeroTrust">Текст сообщения не передаётся опекуну — никогда</span></span>
       </div>
     </div>
   </section>
 
-  <!-- ── СХЕМА СВЯЗИ ── -->
+  <!-- ══════════════════════ СХЕМА СВЯЗИ ══════════════════════ -->
   <section class="container">
-    <div class="section tight stack">
-      <div class="stack">
+    <div class="section tight stack lg">
+      <div class="stack" data-reveal>
         <div class="eyebrow" data-i18n="gSchemeEyebrow">Как устроена связь</div>
         <h2 data-i18n="gSchemeH">Опекун и подопечный — одна защита</h2>
       </div>
-      <div class="link-scheme">
-        <!-- инлайн-SVG: опекун ↔ Qorǵau ↔ подопечный -->
-        <svg viewBox="0 0 560 190" role="img" aria-labelledby="lsTitle">
+
+      <div class="card glass scheme" data-reveal="scale">
+        <svg viewBox="0 0 680 250" role="img" aria-labelledby="lsTitle">
           <title id="lsTitle" data-i18n="gSchemeAlt">Опекун связан с подопечным через Qorǵau</title>
-          <defs>
-            <marker id="gArrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-              <path d="M0 0 L10 5 L0 10 z" fill="#38E0C8"/>
-            </marker>
-          </defs>
-          <!-- соединительные линии -->
-          <line x1="150" y1="95" x2="238" y2="95" stroke="#263041" stroke-width="2" stroke-dasharray="5 5"/>
-          <line x1="322" y1="95" x2="410" y2="95" stroke="#263041" stroke-width="2" stroke-dasharray="5 5"/>
-          <!-- поток алерта: от центра к опекуну -->
-          <path d="M238 78 L152 78" fill="none" stroke="#38E0C8" stroke-width="2.2" marker-end="url(#gArrow)"/>
 
-          <!-- Опекун -->
+          <!-- ── провод: подопечный → Qorǵau (проверка, текст приватен) ── -->
+          <path class="gd-wire" d="M150 120 H278"/>
+          <path class="gd-pulse slow" d="M150 120 H278"/>
+          <text class="gd-lbl" x="214" y="103" text-anchor="middle" data-i18n="gWire1">проверка</text>
+          <text class="gd-sub" x="214" y="141" text-anchor="middle" data-i18n="gWire1s">текст сообщения</text>
+
+          <!-- ── фильтр приватности ── -->
+          <path class="gd-gate" d="M416 58 V182"/>
+          <g class="gd-lock" transform="translate(408 36)">
+            <rect x="0" y="7" width="16" height="12" rx="2.6"/>
+            <path d="M3.5 7V4.6a4.5 4.5 0 0 1 9 0V7"/>
+          </g>
+          <text class="gd-sub warn" x="416" y="200" text-anchor="middle" data-i18n="gGate">фильтр приватности</text>
+
+          <!-- ── провод: Qorǵau → опекун (только тип + риск) ── -->
+          <path class="gd-wire live" d="M382 120 H510"/>
+          <path class="gd-pulse" d="M382 120 H510"/>
+          <path class="gd-ic accent" d="M498 113 l8 7 l-8 7"/>
+          <text class="gd-lbl" x="446" y="103" text-anchor="middle" data-i18n="gWire2">алерт</text>
+          <text class="gd-sub" x="446" y="141" text-anchor="middle" data-i18n="gWire2s">тип угрозы + риск</text>
+
+          <!-- ── Подопечный ── -->
           <g>
-            <circle cx="86" cy="95" r="42" fill="#131924" stroke="#38E0C8" stroke-width="2"/>
-            <g transform="translate(86 88)" stroke="#38E0C8" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="-4" cy="-4" r="7"/>
-              <path d="M-16 16 a12 12 0 0 1 24 0"/>
-              <path d="M14 -8 v12 M8 -2 h12"/>
+            <circle class="gd-node" cx="100" cy="120" r="48"/>
+            <g class="gd-ic" transform="translate(100 113)">
+              <circle cx="0" cy="-5" r="8"/>
+              <path d="M-14 18 a14 14 0 0 1 28 0"/>
             </g>
-            <text x="86" y="162" text-anchor="middle" fill="#EAF0F8" font-size="15" font-weight="700" font-family="system-ui,Segoe UI,Roboto,sans-serif" data-i18n="gNodeGuardian">Опекун</text>
+            <text class="gd-name" x="100" y="196" text-anchor="middle" data-i18n="gNodeWard">Подопечный</text>
+            <text class="gd-sub" x="100" y="216" text-anchor="middle" data-i18n="gNodeWardS">проверяет как обычно</text>
           </g>
 
-          <!-- Qorǵau центр -->
+          <!-- ── Qorǵau ── -->
           <g>
-            <circle cx="280" cy="95" r="46" fill="#0B0E14" stroke="#38E0C8" stroke-width="2.4"/>
-            <g transform="translate(280 95) scale(1.5)" stroke="#38E0C8" stroke-width="1.75" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <circle class="gd-node core" cx="330" cy="120" r="52"/>
+            <g class="gd-ic accent" transform="translate(330 120) scale(1.9)" stroke-width="1.4">
               <path d="M0 -10 L8 -6.8 V0 c0 6-8 10-8 10 s-8-4-8-10 V-6.8 Z"/>
-              <path d="M-3 0 l2.2 2.2 L3.5 -2"/>
+              <path d="M-3.4 0 l2.4 2.4 L3.8 -2.4"/>
             </g>
-            <text x="280" y="166" text-anchor="middle" fill="#38E0C8" font-size="15" font-weight="800" font-family="system-ui,Segoe UI,Roboto,sans-serif">Qorǵau</text>
+            <text class="gd-name accent" x="330" y="196" text-anchor="middle">Qorǵau</text>
+            <text class="gd-sub" x="330" y="216" text-anchor="middle" data-i18n="gNodeCoreS">анализ · приватная зона</text>
           </g>
 
-          <!-- Подопечный -->
+          <!-- ── Опекун ── -->
           <g>
-            <circle cx="474" cy="95" r="42" fill="#131924" stroke="#263041" stroke-width="2"/>
-            <g transform="translate(474 88)" stroke="#93A0B4" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="0" cy="-4" r="7"/>
-              <path d="M-12 16 a12 12 0 0 1 24 0"/>
+            <circle class="gd-node on" cx="558" cy="120" r="48"/>
+            <g class="gd-ic accent" transform="translate(554 113)">
+              <circle cx="-3" cy="-5" r="8"/>
+              <path d="M-17 18 a14 14 0 0 1 28 0"/>
+              <path d="M16 -9 v12 M10 -3 h12"/>
             </g>
-            <text x="474" y="162" text-anchor="middle" fill="#EAF0F8" font-size="15" font-weight="700" font-family="system-ui,Segoe UI,Roboto,sans-serif" data-i18n="gNodeWard">Подопечный</text>
+            <text class="gd-name" x="558" y="196" text-anchor="middle" data-i18n="gNodeGuardian">Опекун</text>
+            <text class="gd-sub" x="558" y="216" text-anchor="middle" data-i18n="gNodeGuardianS">получает алерт</text>
           </g>
         </svg>
-        <p class="link-cap" data-i18n="gSchemeCap">Подопечный проверяет сообщения как обычно. При высоком риске Qorǵau шлёт опекуну алерт — стрелка идёт только в одну сторону, текст сообщения не передаётся.</p>
+        <p class="scheme-cap" data-i18n="gSchemeCap">Подопечный проверяет сообщения как обычно. При высоком риске Qorǵau шлёт опекуну алерт — стрелка идёт только в одну сторону, а текст сообщения не проходит через фильтр приватности.</p>
       </div>
     </div>
   </section>
 
-  <!-- ── ИНСТРУКЦИЯ (две роли) ── -->
+  <!-- ══════════════════ ПРИВАТНОСТЬ: ДВЕ ЗОНЫ ══════════════════ -->
   <section class="container">
     <div class="section tight stack lg">
-      <div class="stack">
+      <div class="stack" data-reveal>
+        <div class="eyebrow accent" data-i18n="gPrivEyebrow">Приватность подопечного</div>
+        <h2 data-i18n="gPrivH">Опекун видит тревогу, а не переписку</h2>
+        <p class="lead" data-i18n="gPrivP">Это не настройка, которую можно случайно выключить. Разделение зашито в сервис: текст остаётся в приватной зоне, наружу уходят только признаки.</p>
+      </div>
+
+      <div class="card glass pad" data-reveal="scale">
+        <div class="zone-split">
+          <div class="zone pii">
+            <div class="zone-h"><span data-icon="message"></span><span class="zone-tag" data-i18n="gPrivPiiTag">Остаётся у подопечного</span></div>
+            <p class="zone-p" data-i18n="gPrivPiiS">Сам текст сообщения. Зашифрован, удаляется через 24 часа, опекуну не отправляется.</p>
+            <div class="mm">
+              <div class="mm-txt" aria-hidden="true">Здравствуйте, это служба безопасности банка. На ваш счёт оформлена заявка на кредит. Назовите код из СМС, иначе деньги спишут.</div>
+              <div class="mm-lock"><span data-icon="eye"></span><span data-i18n="gPrivHidden">скрыто</span></div>
+            </div>
+          </div>
+
+          <div class="zone-flow" aria-hidden="true"><span data-icon="chevron"></span></div>
+
+          <div class="zone analytics">
+            <div class="zone-h"><span data-icon="alert"></span><span class="zone-tag" data-i18n="gPrivAnTag">Уходит опекуну</span></div>
+            <p class="zone-p" data-i18n="gPrivAnS">Только сухие признаки — их достаточно, чтобы позвонить и остановить.</p>
+            <div style="margin-top:12px">
+              <div class="kv"><span class="k" data-i18n="gAlertScheme">Тип угрозы</span><span class="v" data-i18n="gAlertSchemeV">Фейковая служба безопасности</span></div>
+              <div class="kv"><span class="k" data-i18n="gAlertRisk">Уровень риска</span><span class="v risk">98 / 100</span></div>
+              <div class="kv"><span class="k" data-i18n="gPrivWhen">Когда</span><span class="v" data-i18n="gAlertNow">только что</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="priv-note mt-3">
+          <span data-icon="eye"></span>
+          <p data-i18n="gPrivNote">Опекун получает только тип схемы и уровень риска. Сам текст сообщения подопечного никогда не покидает приватную зону и не передаётся опекуну — это заложено в контракте сервиса.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════ ПОШАГОВАЯ ПРИВЯЗКА ══════════════════ -->
+  <section class="container">
+    <div class="section tight stack lg">
+      <div class="stack" data-reveal>
         <div class="eyebrow" data-i18n="gStepsEyebrow">Пошаговая привязка</div>
         <h2 data-i18n="gStepsH">Настройка занимает одну минуту</h2>
       </div>
 
       <div class="roles-tabs">
-        <div class="tabs" id="roleTabs" role="tablist">
+        <div class="tabs" id="roleTabs" data-ink role="tablist">
           <button type="button" class="on" data-role="guardian" role="tab">
             <span data-icon="user-plus"></span><span data-i18n="gRoleGuardian">Я защищаю близкого</span>
           </button>
@@ -175,132 +297,136 @@
       </div>
 
       <!-- Роль: опекун -->
-      <div class="card pad" id="paneGuardian">
+      <div id="paneGuardian">
         <ol class="steps">
-          <li class="step">
-            <div class="step-n"></div>
+          <li class="step" data-reveal>
+            <div class="step-n">1</div>
             <div class="step-b">
               <div class="step-t" data-i18n="gG1t">Напишите боту команду</div>
-              <div class="step-d"><span data-i18n="gG1d">В Telegram откройте бота Qorǵau и отправьте команду</span> <span class="bot-cmd">/guardian</span></div>
+              <div class="step-d"><span data-i18n="gG1d">В Telegram откройте бота Qorǵau и отправьте команду</span></div>
+              <div class="step-code"><span data-icon="message"></span><span>/guardian</span></div>
             </div>
           </li>
-          <li class="step">
-            <div class="step-n"></div>
+          <li class="step" data-reveal data-reveal-delay="60">
+            <div class="step-n">2</div>
             <div class="step-b">
               <div class="step-t" data-i18n="gG2t">Получите код привязки</div>
               <div class="step-d" data-i18n="gG2d">Бот выдаст одноразовый код. Он действует 15 минут.</div>
               <div class="step-code"><span data-icon="link"></span><span>QG-4821</span></div>
             </div>
           </li>
-          <li class="step">
-            <div class="step-n"></div>
+          <li class="step" data-reveal data-reveal-delay="120">
+            <div class="step-n">3</div>
             <div class="step-b">
               <div class="step-t" data-i18n="gG3t">Передайте код близкому</div>
               <div class="step-d" data-i18n="gG3d">Продиктуйте или перешлите код тому, кого защищаете. Код — не пароль, по нему нельзя войти в аккаунт.</div>
             </div>
           </li>
-          <li class="step">
-            <div class="step-n"></div>
+          <li class="step" data-reveal data-reveal-delay="180">
+            <div class="step-n">4</div>
             <div class="step-b">
               <div class="step-t" data-i18n="gG4t">Готово — связь активна</div>
-              <div class="step-d"><span data-i18n="gG4d">Как только подопечный введёт код в своём боте, вы начнёте получать алерты при высоком риске. Проверить связи —</span> <span class="bot-cmd">/status</span></div>
+              <div class="step-d"><span data-i18n="gG4d">Как только подопечный введёт код в своём боте, вы начнёте получать алерты при высоком риске. Проверить связи —</span> <span class="bot-cmd">/myprotection</span></div>
             </div>
           </li>
         </ol>
       </div>
 
       <!-- Роль: подопечный -->
-      <div class="card pad hidden" id="paneWard">
+      <div id="paneWard" class="hidden">
         <ol class="steps">
-          <li class="step">
-            <div class="step-n"></div>
+          <li class="step" data-reveal>
+            <div class="step-n">1</div>
             <div class="step-b">
               <div class="step-t" data-i18n="gW1t">Возьмите код у опекуна</div>
               <div class="step-d" data-i18n="gW1d">Близкий человек, который вас защищает, пришлёт код вида QG-XXXX. Спросите его у того, кому доверяете.</div>
             </div>
           </li>
-          <li class="step">
-            <div class="step-n"></div>
+          <li class="step" data-reveal data-reveal-delay="60">
+            <div class="step-n">2</div>
             <div class="step-b">
               <div class="step-t" data-i18n="gW2t">Введите код в боте</div>
               <div class="step-d"><span data-i18n="gW2d">Откройте бота Qorǵau и отправьте команду с кодом</span></div>
               <div class="step-code"><span data-icon="shield-check"></span><span>/protect QG-4821</span></div>
             </div>
           </li>
-          <li class="step">
-            <div class="step-n"></div>
+          <li class="step" data-reveal data-reveal-delay="120">
+            <div class="step-n">3</div>
             <div class="step-b">
               <div class="step-t" data-i18n="gW3t">Проверяйте как обычно</div>
               <div class="step-d" data-i18n="gW3d">Ничего не меняется: присылайте боту подозрительные сообщения. Ваш текст остаётся приватным — опекун его не видит.</div>
             </div>
           </li>
-          <li class="step">
-            <div class="step-n"></div>
+          <li class="step" data-reveal data-reveal-delay="180">
+            <div class="step-n">4</div>
             <div class="step-b">
               <div class="step-t" data-i18n="gW4t">Опекун поможет вовремя</div>
-              <div class="step-d" data-i18n="gW4d">Если проверка покажет высокий риск, близкий человек сразу узнает и сможет позвонить и остановить вас от опасного шага.</div>
+              <div class="step-d"><span data-i18n="gW4d">Если проверка покажет высокий риск, близкий человек сразу узнает и сможет позвонить и остановить вас от опасного шага. Посмотреть, кто вас защищает —</span> <span class="bot-cmd">/myprotection</span></div>
             </div>
           </li>
         </ol>
       </div>
 
       <div class="role-cards">
-        <div class="who">
+        <div class="who" data-reveal="left">
           <span class="who-ic"><span data-icon="user-plus"></span></span>
-          <div><b data-i18n="gWhoGuardianT">Опекун</b><span data-i18n="gWhoGuardianS">команда /guardian → код</span></div>
+          <div><b data-i18n="gWhoGuardianT">Опекун</b><span data-i18n="gWhoGuardianS">/guardian → код</span></div>
         </div>
-        <div class="who">
+        <div class="who" data-reveal="right">
           <span class="who-ic"><span data-icon="shield-check"></span></span>
-          <div><b data-i18n="gWhoWardT">Подопечный</b><span data-i18n="gWhoWardS">команда /protect QG-XXXX</span></div>
+          <div><b data-i18n="gWhoWardT">Подопечный</b><span data-i18n="gWhoWardS">/protect QG-XXXX</span></div>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- ── ЧТО УВИДИТ ОПЕКУН ── -->
+  <!-- ══════════════════ ЧТО УВИДИТ ОПЕКУН ══════════════════ -->
   <section class="container">
     <div class="section tight stack lg">
-      <div class="stack">
+      <div class="stack" data-reveal>
         <div class="eyebrow" data-i18n="gAlertEyebrow">Что увидит опекун при атаке</div>
         <h2 data-i18n="gAlertH">Только факт и тип угрозы — ничего лишнего</h2>
         <p class="lead" data-i18n="gAlertP">Так выглядит сообщение, которое бот присылает опекуну в момент, когда подопечный столкнулся с высоким риском.</p>
       </div>
 
-      <div class="alert-demo">
-        <div class="ad-top">
-          <span class="ad-ic"><span data-icon="alert"></span></span>
+      <div class="tg" data-reveal="scale">
+        <div class="tg-head">
+          <span class="tg-av"><span data-icon="shield-check"></span></span>
           <div>
-            <div class="ad-h" data-i18n="gAlertTitle">⚠️ Ваш близкий под атакой</div>
-            <div class="ad-sub" data-i18n="gAlertNow">только что · сигнал от Qorǵau</div>
+            <div class="tg-name"><span>Qorǵau Bot</span><span class="tg-tag">bot</span></div>
+            <div class="tg-time" data-i18n="gAlertNow">только что</div>
           </div>
         </div>
-        <div class="ad-body">
-          <div class="ad-row">
-            <span class="ad-k" data-i18n="gAlertScheme">Тип угрозы</span>
-            <span class="ad-v" data-i18n="gAlertSchemeV">Фейковая служба безопасности</span>
+        <div class="tg-bubble">
+          <div class="tg-t"><span data-icon="alert"></span><span data-i18n="gAlertTitle">Ваш близкий под атакой</span></div>
+          <div class="tg-rows">
+            <div class="tg-row">
+              <span class="tg-k" data-i18n="gAlertScheme">Тип угрозы</span>
+              <span class="tg-v" data-i18n="gAlertSchemeV">Фейковая служба безопасности</span>
+            </div>
+            <div class="tg-row">
+              <span class="tg-k" data-i18n="gAlertRisk">Уровень риска</span>
+              <span class="tg-v risk">98 / 100</span>
+            </div>
+            <div class="tg-row">
+              <span class="tg-k" data-i18n="gAlertText">Текст сообщения</span>
+              <span class="tg-v redact" data-i18n="gAlertHidden">скрыт — приватность подопечного</span>
+            </div>
           </div>
-          <div class="ad-row">
-            <span class="ad-k" data-i18n="gAlertRisk">Уровень риска</span>
-            <span class="ad-v risk">98 / 100</span>
-          </div>
-          <div class="ad-row">
-            <span class="ad-k" data-i18n="gAlertText">Текст сообщения</span>
-            <span class="ad-v ad-redact" data-i18n="gAlertHidden">скрыт — приватность подопечного</span>
+          <div class="tg-cta" aria-hidden="true">
+            <span class="tg-btn pri" data-i18n="gAlertBtn1">Позвонить близкому</span>
+            <span class="tg-btn" data-i18n="gAlertBtn2">Что делать</span>
           </div>
         </div>
-      </div>
-
-      <div class="priv-note">
-        <span data-icon="eye"></span>
-        <p data-i18n="gPrivNote">Опекун получает только тип схемы и уровень риска. Сам текст сообщения подопечного никогда не покидает приватную зону и не передаётся опекуну — это заложено в контракте сервиса.</p>
+        <div class="tg-note" data-i18n="gAlertMock">Макет уведомления · реальный алерт приходит в Telegram</div>
       </div>
 
       <div class="row">
-        <a class="btn" href="https://t.me/QorgauHack_bot" target="_blank" rel="noopener">
+        <a class="btn magnetic" href="https://t.me/QorgauHack_bot" target="_blank" rel="noopener">
           <span data-icon="shield-check"></span><span data-i18n="gOpenBot">Открыть бота</span>
         </a>
-        <a class="btn ghost" href="live.html">
-          <span data-icon="phone"></span><span data-i18n="gToLive">Мне звонят прямо сейчас</span>
+        <a class="btn ghost" href="help.html">
+          <span data-icon="scales"></span><span data-i18n="gToHelp">Помощь после атаки</span>
         </a>
       </div>
     </div>
@@ -328,13 +454,29 @@ addEventListener('DOMContentLoaded', function () {
       gEyebrow: 'Под защитой',
       gHeroTitle: 'Защитите того, кто может поверить мошеннику',
       gHeroLead: 'Привяжите близкого человека через Telegram-бота. Если его проверка покажет высокий риск — вы мгновенно получите алерт. Приватность подопечного сохраняется: вы видите только факт и тип угрозы, но не текст сообщения.',
+      gHeroTrust: 'Текст сообщения не передаётся опекуну — никогда',
       gOpenBot: 'Открыть бота',
 
       gSchemeEyebrow: 'Как устроена связь',
       gSchemeH: 'Опекун и подопечный — одна защита',
       gSchemeAlt: 'Опекун связан с подопечным через Qorǵau',
-      gSchemeCap: 'Подопечный проверяет сообщения как обычно. При высоком риске Qorǵau шлёт опекуну алерт — стрелка идёт только в одну сторону, текст сообщения не передаётся.',
-      gNodeGuardian: 'Опекун', gNodeWard: 'Подопечный',
+      gSchemeCap: 'Подопечный проверяет сообщения как обычно. При высоком риске Qorǵau шлёт опекуну алерт — стрелка идёт только в одну сторону, а текст сообщения не проходит через фильтр приватности.',
+      gNodeGuardian: 'Опекун', gNodeGuardianS: 'получает алерт',
+      gNodeWard: 'Подопечный', gNodeWardS: 'проверяет как обычно',
+      gNodeCoreS: 'анализ · приватная зона',
+      gWire1: 'проверка', gWire1s: 'текст сообщения',
+      gWire2: 'алерт', gWire2s: 'тип угрозы + риск',
+      gGate: 'фильтр приватности',
+
+      gPrivEyebrow: 'Приватность подопечного',
+      gPrivH: 'Опекун видит тревогу, а не переписку',
+      gPrivP: 'Это не настройка, которую можно случайно выключить. Разделение зашито в сервис: текст остаётся в приватной зоне, наружу уходят только признаки.',
+      gPrivPiiTag: 'Остаётся у подопечного',
+      gPrivPiiS: 'Сам текст сообщения. Зашифрован, удаляется через 24 часа, опекуну не отправляется.',
+      gPrivHidden: 'скрыто',
+      gPrivAnTag: 'Уходит опекуну',
+      gPrivAnS: 'Только сухие признаки — их достаточно, чтобы позвонить и остановить.',
+      gPrivWhen: 'Когда',
 
       gStepsEyebrow: 'Пошаговая привязка',
       gStepsH: 'Настройка занимает одну минуту',
@@ -357,23 +499,27 @@ addEventListener('DOMContentLoaded', function () {
       gW3t: 'Проверяйте как обычно',
       gW3d: 'Ничего не меняется: присылайте боту подозрительные сообщения. Ваш текст остаётся приватным — опекун его не видит.',
       gW4t: 'Опекун поможет вовремя',
-      gW4d: 'Если проверка покажет высокий риск, близкий человек сразу узнает и сможет позвонить и остановить вас от опасного шага.',
+      gW4d: 'Если проверка покажет высокий риск, близкий человек сразу узнает и сможет позвонить и остановить вас от опасного шага. Посмотреть, кто вас защищает —',
 
-      gWhoGuardianT: 'Опекун', gWhoGuardianS: 'команда /guardian → код',
-      gWhoWardT: 'Подопечный', gWhoWardS: 'команда /protect QG-XXXX',
+      gWhoGuardianT: 'Опекун', gWhoGuardianS: '/guardian → код',
+      gWhoWardT: 'Подопечный', gWhoWardS: '/protect QG-XXXX',
 
       gAlertEyebrow: 'Что увидит опекун при атаке',
       gAlertH: 'Только факт и тип угрозы — ничего лишнего',
       gAlertP: 'Так выглядит сообщение, которое бот присылает опекуну в момент, когда подопечный столкнулся с высоким риском.',
-      gAlertTitle: '⚠️ Ваш близкий под атакой',
-      gAlertNow: 'только что · сигнал от Qorǵau',
+      gAlertTitle: 'Ваш близкий под атакой',
+      gAlertNow: 'только что',
       gAlertScheme: 'Тип угрозы',
       gAlertSchemeV: 'Фейковая служба безопасности',
       gAlertRisk: 'Уровень риска',
       gAlertText: 'Текст сообщения',
       gAlertHidden: 'скрыт — приватность подопечного',
+      gAlertBtn1: 'Позвонить близкому',
+      gAlertBtn2: 'Что делать',
+      gAlertMock: 'Макет уведомления · реальный алерт приходит в Telegram',
       gPrivNote: 'Опекун получает только тип схемы и уровень риска. Сам текст сообщения подопечного никогда не покидает приватную зону и не передаётся опекуну — это заложено в контракте сервиса.',
       gToLive: 'Мне звонят прямо сейчас',
+      gToHelp: 'Помощь после атаки',
       gFoot: 'Опекун видит только факт и тип угрозы. Текст сообщения подопечного не передаётся.',
       lFootPassword: 'Проверка пароля'
     },
@@ -382,13 +528,29 @@ addEventListener('DOMContentLoaded', function () {
       gEyebrow: 'Қорғауда',
       gHeroTitle: 'Алаяққа сеніп қалуы мүмкін жақыныңызды қорғаңыз',
       gHeroLead: 'Жақын адамды Telegram-бот арқылы байланыстырыңыз. Оның тексерісі жоғары қауіп көрсетсе — сіз дереу дабыл аласыз. Қорғауындағы адамның құпиялылығы сақталады: сіз тек қауіп фактісі мен түрін көресіз, хабарлама мәтінін емес.',
+      gHeroTrust: 'Хабарлама мәтіні қамқоршыға ешқашан берілмейді',
       gOpenBot: 'Ботты ашу',
 
       gSchemeEyebrow: 'Байланыс қалай құрылған',
       gSchemeH: 'Қамқоршы мен қорғауындағы адам — бір қорғаныс',
       gSchemeAlt: 'Қамқоршы Qorǵau арқылы қорғауындағы адаммен байланысқан',
-      gSchemeCap: 'Қорғауындағы адам хабарламаларды әдеттегідей тексереді. Жоғары қауіп кезінде Qorǵau қамқоршыға дабыл жібереді — көрсеткі тек бір бағытта, хабарлама мәтіні берілмейді.',
-      gNodeGuardian: 'Қамқоршы', gNodeWard: 'Қорғауындағы',
+      gSchemeCap: 'Қорғауындағы адам хабарламаларды әдеттегідей тексереді. Жоғары қауіп кезінде Qorǵau қамқоршыға дабыл жібереді — көрсеткі тек бір бағытта, ал хабарлама мәтіні құпиялылық сүзгісінен өтпейді.',
+      gNodeGuardian: 'Қамқоршы', gNodeGuardianS: 'дабыл алады',
+      gNodeWard: 'Қорғауындағы', gNodeWardS: 'әдеттегідей тексереді',
+      gNodeCoreS: 'талдау · құпия аймақ',
+      gWire1: 'тексеру', gWire1s: 'хабарлама мәтіні',
+      gWire2: 'дабыл', gWire2s: 'қауіп түрі + деңгей',
+      gGate: 'құпиялылық сүзгісі',
+
+      gPrivEyebrow: 'Қорғауындағының құпиялылығы',
+      gPrivH: 'Қамқоршы дабылды көреді, хат алмасуды емес',
+      gPrivP: 'Бұл кездейсоқ өшіруге болатын баптау емес. Бөліну сервиске сіңірілген: мәтін құпия аймақта қалады, сыртқа тек белгілер шығады.',
+      gPrivPiiTag: 'Қорғауындағыда қалады',
+      gPrivPiiS: 'Хабарламаның өз мәтіні. Шифрланған, 24 сағаттан кейін жойылады, қамқоршыға жіберілмейді.',
+      gPrivHidden: 'жасырын',
+      gPrivAnTag: 'Қамқоршыға барады',
+      gPrivAnS: 'Тек құрғақ белгілер — қоңырау шалып, тоқтату үшін жеткілікті.',
+      gPrivWhen: 'Қашан',
 
       gStepsEyebrow: 'Қадамдық байланыстыру',
       gStepsH: 'Баптау бір минут алады',
@@ -411,23 +573,27 @@ addEventListener('DOMContentLoaded', function () {
       gW3t: 'Әдеттегідей тексеріңіз',
       gW3d: 'Ештеңе өзгермейді: күдікті хабарламаларды ботқа жіберіңіз. Мәтініңіз құпия болып қалады — қамқоршы оны көрмейді.',
       gW4t: 'Қамқоршы уақытында көмектеседі',
-      gW4d: 'Тексеріс жоғары қауіп көрсетсе, жақын адам бірден біліп, қоңырау шалып, қауіпті қадамнан сақтандыра алады.',
+      gW4d: 'Тексеріс жоғары қауіп көрсетсе, жақын адам бірден біліп, қоңырау шалып, қауіпті қадамнан сақтандыра алады. Сізді кім қорғайтынын көру —',
 
-      gWhoGuardianT: 'Қамқоршы', gWhoGuardianS: 'команда /guardian → код',
-      gWhoWardT: 'Қорғауындағы', gWhoWardS: 'команда /protect QG-XXXX',
+      gWhoGuardianT: 'Қамқоршы', gWhoGuardianS: '/guardian → код',
+      gWhoWardT: 'Қорғауындағы', gWhoWardS: '/protect QG-XXXX',
 
       gAlertEyebrow: 'Шабуыл кезінде қамқоршы нені көреді',
       gAlertH: 'Тек факт пен қауіп түрі — артық ешнәрсе жоқ',
       gAlertP: 'Қорғауындағы адам жоғары қауіппен бетпе-бет келген сәтте бот қамқоршыға жіберетін хабарлама осылай көрінеді.',
-      gAlertTitle: '⚠️ Жақыныңыз шабуыл астында',
-      gAlertNow: 'дәл қазір · Qorǵau сигналы',
+      gAlertTitle: 'Жақыныңыз шабуыл астында',
+      gAlertNow: 'дәл қазір',
       gAlertScheme: 'Қауіп түрі',
       gAlertSchemeV: 'Жалған қауіпсіздік қызметі',
       gAlertRisk: 'Қауіп деңгейі',
       gAlertText: 'Хабарлама мәтіні',
       gAlertHidden: 'жасырын — қорғауындағының құпиялылығы',
+      gAlertBtn1: 'Жақыныңа қоңырау шалу',
+      gAlertBtn2: 'Не істеу керек',
+      gAlertMock: 'Хабарлама макеті · нақты дабыл Telegram-ға келеді',
       gPrivNote: 'Қамқоршы тек схема түрі мен қауіп деңгейін алады. Қорғауындағы адамның хабарлама мәтіні ешқашан құпия аймақтан шықпайды және қамқоршыға берілмейді — бұл сервис келісімінде бекітілген.',
       gToLive: 'Маған қазір қоңырау шалып жатыр',
+      gToHelp: 'Шабуылдан кейінгі көмек',
       gFoot: 'Қамқоршы тек факт пен қауіп түрін көреді. Қорғауындағының хабарлама мәтіні берілмейді.',
       lFootPassword: 'Құпиясөзді тексеру'
     }
@@ -439,19 +605,28 @@ addEventListener('DOMContentLoaded', function () {
     slot.appendChild(Q.icon(slot.getAttribute('data-icon')));
   });
 
-  /* Табы ролей */
+  /* Табы ролей (логика прежняя; ink-индикатор подхватывается ядром) */
   var tabs = document.getElementById('roleTabs');
   var panes = { guardian: document.getElementById('paneGuardian'), ward: document.getElementById('paneWard') };
   tabs.querySelectorAll('button').forEach(function (b) {
     b.addEventListener('click', function () {
-      tabs.querySelectorAll('button').forEach(function (x) { x.classList.remove('on'); });
-      b.classList.add('on');
+      tabs.querySelectorAll('button').forEach(function (x) { x.classList.remove('on'); x.setAttribute('aria-selected', 'false'); });
+      b.classList.add('on'); b.setAttribute('aria-selected', 'true');
       var role = b.getAttribute('data-role');
       panes.guardian.classList.toggle('hidden', role !== 'guardian');
       panes.ward.classList.toggle('hidden', role !== 'ward');
-      panes[role].classList.remove('reveal'); void panes[role].offsetWidth; panes[role].classList.add('reveal');
+      // карточки шагов появляются каскадом при каждом переключении
+      panes[role].querySelectorAll('[data-reveal]').forEach(function (n, i) {
+        n.classList.remove('is-in');
+        n.style.transitionDelay = (i * 70) + 'ms';
+      });
+      void panes[role].offsetWidth;
+      panes[role].querySelectorAll('[data-reveal]').forEach(function (n) { n.classList.add('is-in'); });
     });
   });
+
+  /* Staggered-reveal (идемпотентно; авто-инит ядра уже отработал) */
+  Q.reveal('[data-reveal]');
 });
 </script>
 </body>

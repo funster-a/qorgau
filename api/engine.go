@@ -363,10 +363,20 @@ func maskTail(v string) string {
 }
 
 // host вытаскивает домен из URL, отбрасывая путь и параметры (там бывают токены).
+// На вход приходит и полный URL («http://site.xyz/win»), и уже голый домен
+// («site.xyz») — у голого url.Parse кладёт всё в Path и оставляет Host пустым,
+// поэтому такому входу подставляем схему. Без этого домен уезжал в маскирование
+// и блок-лист Shield наполнялся мусором вида «****i.kz», который ничему не соответствует.
 func host(raw string) string {
-	raw = strings.TrimRight(raw, ".,);!?»\"'")
+	raw = strings.TrimSpace(strings.TrimRight(raw, ".,);!?»\"'"))
+	if raw == "" {
+		return ""
+	}
+	if !strings.Contains(raw, "://") {
+		raw = "http://" + raw
+	}
 	u, err := url.Parse(raw)
-	if err != nil || u.Host == "" {
+	if err != nil || u.Hostname() == "" {
 		return maskTail(raw)
 	}
 	return strings.ToLower(strings.TrimPrefix(u.Hostname(), "www."))

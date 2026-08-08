@@ -3,14 +3,29 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
-<meta name="theme-color" content="#0B0E14"/>
+<meta name="theme-color" content="#0A0E1A"/>
 <title data-i18n-title="rdTitle">Qorǵau — гео-радар Казахстана</title>
 <meta name="description" content="Qorǵau — национальный гео-радар мошенничества: живая тепловая карта обращений граждан по регионам Казахстана."/>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2338E0C8' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 22s8-4 8-10V5.2l-8-3-8 3V12c0 6 8 10 8 10Z'/%3E%3Cpath d='M9 12l2.2 2.2L15.5 10'/%3E%3C/svg%3E"/>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2338BDF8' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 22s8-4 8-10V5.2l-8-3-8 3V12c0 6 8 10 8 10Z'/%3E%3Cpath d='M9 12l2.2 2.2L15.5 10'/%3E%3C/svg%3E"/>
+<script>document.documentElement.classList.add('has-js');</script>
+<link rel="preload" href="assets/fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="assets/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="stylesheet" href="assets/app.css"/>
 <script src="assets/app.js" defer></script>
 <style>
+  /* на проекторе — шире и крупнее */
+  @media(min-width:1180px){ main.container.wide{max-width:1180px} }
+
+  .r-hero{position:relative;overflow:hidden;isolation:isolate;border-radius:var(--r);padding:22px 20px}
+  .r-hero>*{position:relative;z-index:1}
+  .rd-canvas{position:absolute;inset:-30% -10% -30% auto;width:min(46%,520px);z-index:0;
+    pointer-events:none;opacity:.55;
+    mask-image:radial-gradient(60% 60% at 50% 50%,#000 30%,transparent 78%);
+    -webkit-mask-image:radial-gradient(60% 60% at 50% 50%,#000 30%,transparent 78%)}
+  .rd-canvas canvas{width:100%;height:100%;display:block}
+  @media(max-width:760px){.rd-canvas{display:none}}
   .r-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  .r-head h1{font-size:clamp(30px,5.6vw,50px);letter-spacing:-.035em;line-height:1.03}
   .live{display:inline-flex;align-items:center;gap:8px;font-size:var(--fs-6);font-weight:800;
     letter-spacing:.16em;text-transform:uppercase;color:var(--risk-low);flex:none}
   .live-dot{width:8px;height:8px;border-radius:50%;background:var(--risk-low);position:relative;flex:none}
@@ -19,18 +34,46 @@
   @keyframes rd-ping{0%{transform:scale(.4);opacity:.9}80%,100%{transform:scale(1.5);opacity:0}}
   .live .upd{color:var(--muted-2);letter-spacing:.02em;font-weight:600;text-transform:none}
 
+  /* ---------- тикер активных волн ---------- */
+  .ticker{display:flex;align-items:stretch;gap:0;border:1px solid rgba(255,77,94,.35);
+    border-radius:var(--r-md);background:var(--risk-high-soft);overflow:hidden}
+  .ticker[hidden]{display:none}
+  .ticker .tk-lbl{display:flex;align-items:center;gap:8px;flex:none;padding:10px 14px;
+    background:rgba(255,77,94,.16);border-right:1px solid rgba(255,77,94,.3);
+    font-size:var(--fs-6);font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#FFB3BC;
+    white-space:nowrap}
+  .ticker .tk-lbl .live-dot{background:var(--risk-high)}
+  .ticker .tk-lbl .live-dot::after{border-color:var(--risk-high)}
+  .tk-view{position:relative;flex:1 1 auto;min-width:0;overflow:hidden;display:flex;align-items:center}
+  .tk-track{display:flex;align-items:center;gap:0;white-space:nowrap;will-change:transform;
+    animation:tk-run 30s linear infinite}
+  .tk-view:hover .tk-track{animation-play-state:paused}
+  @keyframes tk-run{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+  .tk-item{display:inline-flex;align-items:center;gap:9px;padding:10px 20px;font-size:var(--fs-5);color:var(--txt)}
+  .tk-item .tk-sep{color:rgba(255,77,94,.6);font-weight:800}
+  .tk-item b{font-weight:800}
+  .tk-item .tk-peak{font-variant-numeric:tabular-nums;color:#FFB3BC;font-weight:800}
+  .tk-item .tk-meta{color:var(--muted);font-size:var(--fs-6)}
+  @media(prefers-reduced-motion:reduce){
+    .tk-track{animation:none}
+    .tk-view{overflow-x:auto;scrollbar-width:none}
+    .tk-view::-webkit-scrollbar{display:none}
+  }
+
   .kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
   @media(max-width:600px){.kpis{grid-template-columns:1fr}}
-  .kpi{position:relative;overflow:hidden;padding:20px 20px 18px}
+  .kpi{position:relative;overflow:hidden;padding:22px 22px 20px}
   .kpi::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px}
-  .kpi.k-total::before{background:var(--accent)}
+  .kpi::after{content:"";position:absolute;inset:0;pointer-events:none;opacity:.5;
+    background:radial-gradient(120% 90% at 0% 0%,rgba(255,255,255,.04),transparent 60%)}
+  .kpi.k-total::before{background:var(--grad-accent)}
   .kpi.k-high::before{background:var(--risk-high)}
   .kpi.k-wave::before{background:var(--risk-med)}
-  .kpi .kl{font-size:var(--fs-6);font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
-  .kpi .kn{font-size:clamp(32px,7vw,46px);font-weight:800;letter-spacing:-.02em;line-height:1.05;
-    font-variant-numeric:tabular-nums;margin-top:6px}
+  .kpi .kl{font-size:var(--fs-6);font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+  .kpi .kn{font-family:var(--font-display);font-size:clamp(36px,7.6vw,60px);font-weight:800;
+    letter-spacing:-.04em;line-height:1.02;font-variant-numeric:tabular-nums;margin-top:8px}
   .kpi.k-total .kn{color:#CFE7FF} .kpi.k-high .kn{color:#FFB3BC} .kpi.k-wave .kn{color:#FFD88A}
-  .kpi .kh{font-size:var(--fs-6);color:var(--muted);margin-top:3px}
+  .kpi .kh{font-size:var(--fs-6);color:var(--muted);margin-top:4px}
 
   .sect-h{display:flex;align-items:center;gap:9px;margin:0 0 2px}
   .sect-h .ic{width:22px;height:22px;color:var(--accent);flex:none}
@@ -38,57 +81,65 @@
   .map-wrap{position:relative}
   .map{width:100%;height:auto;display:block;overflow:visible;
     background:radial-gradient(120% 120% at 50% 0%,var(--accent-soft),transparent 60%)}
-  .tile{cursor:default;transition:filter .2s}
-  .tile:hover,.tile:focus{outline:none;filter:brightness(1.15) drop-shadow(0 0 6px rgba(56,224,200,.45))}
-  .tile rect{transition:fill .8s var(--ease)}
+  /* НЕ .tile — чтобы не конфликтовать с компонентом-плиткой дизайн-системы */
+  .rgn{cursor:default;transition:filter .2s}
+  .rgn:hover,.rgn:focus{outline:none;filter:brightness(1.15) drop-shadow(0 0 8px var(--accent-glow))}
+  .rgn rect{transition:fill .8s var(--ease)}
   .tname{font-size:15px;font-weight:800;fill:#F2F6FF;paint-order:stroke;stroke:rgba(4,7,14,.55);stroke-width:2.4px;pointer-events:none}
-  .tval{font-size:19px;font-weight:800;fill:#fff;font-variant-numeric:tabular-nums;paint-order:stroke;stroke:rgba(4,7,14,.5);stroke-width:2.6px;pointer-events:none}
+  .tval{font-size:20px;font-weight:800;fill:#fff;font-variant-numeric:tabular-nums;paint-order:stroke;stroke:rgba(4,7,14,.5);stroke-width:2.6px;pointer-events:none}
   .tsub{font-size:11px;font-weight:700;fill:rgba(255,255,255,.72);pointer-events:none}
-  .sea{fill:rgba(56,224,200,.08);stroke:rgba(56,224,200,.28);stroke-dasharray:5 4}
+  .sea{fill:rgba(56,189,248,.07);stroke:rgba(56,189,248,.26);stroke-dasharray:5 4}
   .sealbl{font-size:12px;fill:var(--muted);font-style:italic}
 
-  .tip{position:absolute;pointer-events:none;z-index:20;background:var(--surface-2);
-    border:1px solid var(--line);border-radius:var(--r-sm);padding:9px 12px;box-shadow:var(--shadow);
+  .tip{position:absolute;pointer-events:none;z-index:20;background:rgba(24,33,52,.92);
+    border:1px solid var(--hairline);border-radius:var(--r-sm);padding:9px 12px;box-shadow:var(--shadow);
     min-width:150px;opacity:0;transform:translateY(4px);transition:opacity .15s,transform .15s;font-size:var(--fs-6)}
   .tip.show{opacity:1;transform:none}
-  .tip .tt{font-weight:800;font-size:var(--fs-5);margin-bottom:5px}
+  .tip .tt{font-family:var(--font-display);font-weight:800;font-size:var(--fs-5);margin-bottom:5px}
   .tip .tr{display:flex;justify-content:space-between;gap:16px;color:var(--muted);margin:2px 0}
   .tip .tr b{color:var(--txt);font-variant-numeric:tabular-nums}
   .tip .tr.hi b{color:#FFB3BC}
 
-  .legend{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:14px;font-size:var(--fs-6);color:var(--muted)}
-  .legend .scale{height:12px;width:200px;border-radius:var(--r-pill);border:1px solid var(--line);
-    background:linear-gradient(90deg,#1E3A4C,#7A4D5E,#FF5468)}
-  .legend .ends{display:flex;justify-content:space-between;width:200px;font-size:11px;color:var(--muted-2)}
-  .legend .nd{display:inline-flex;align-items:center;gap:6px}
-  .legend .sw{width:13px;height:13px;border-radius:4px;background:var(--surface-2);border:1px solid var(--line);flex:none}
+  .legend{display:flex;align-items:flex-end;gap:18px;flex-wrap:wrap;margin-top:16px;
+    font-size:var(--fs-6);color:var(--muted)}
+  .legend .scale{height:10px;width:min(260px,60vw);border-radius:var(--r-pill);
+    border:1px solid var(--hairline);background:linear-gradient(90deg,#1E3A4C,#7A4D5E,#FF4D5E);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.08)}
+  .legend .ticks{display:flex;justify-content:space-between;width:min(260px,60vw);margin-top:5px;
+    font-size:11px;color:var(--muted-2);font-variant-numeric:tabular-nums}
+  .legend .nd{display:inline-flex;align-items:center;gap:6px;padding-bottom:2px}
+  .legend .sw{width:13px;height:13px;border-radius:4px;background:#121826;border:1px solid var(--hairline);flex:none}
 
-  .tbl{width:100%;border-collapse:collapse;font-size:var(--fs-5)}
-  .tbl th{text-align:left;font-size:var(--fs-6);font-weight:800;letter-spacing:.06em;text-transform:uppercase;
-    color:var(--muted-2);padding:0 10px 9px;border-bottom:1px solid var(--line)}
+  .tbl-wrap{overflow-x:auto;margin:0 -4px;padding:0 4px}
+  .tbl{width:100%;border-collapse:collapse;font-size:var(--fs-5);min-width:520px}
+  .tbl th{text-align:left;font-size:var(--fs-6);font-weight:800;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--muted-2);padding:0 10px 9px;border-bottom:1px solid var(--hairline);white-space:nowrap}
   .tbl th.num,.tbl td.num{text-align:right;font-variant-numeric:tabular-nums}
-  .tbl td{padding:11px 10px;border-bottom:1px solid var(--line)}
+  .tbl td{padding:12px 10px;border-bottom:1px solid var(--hairline)}
   .tbl tr:last-child td{border-bottom:0}
-  .tbl .rank{color:var(--muted-2);font-weight:800;width:26px}
+  .tbl tbody tr{transition:background-color .18s var(--ease)}
+  .tbl tbody tr:hover{background:rgba(255,255,255,.02)}
+  .tbl .rank{color:var(--muted-2);font-weight:800;width:26px;font-variant-numeric:tabular-nums}
   .tbl .rn{font-weight:700}
-  .tbl .barcell{width:120px}
+  .tbl .barcell{width:130px}
   .sharebar{height:8px;border-radius:var(--r-pill);background:var(--surface-2);overflow:hidden;min-width:70px}
-  .sharebar span{display:block;height:100%;border-radius:var(--r-pill)}
+  .sharebar span{display:block;height:100%;border-radius:var(--r-pill);transition:width .7s var(--ease)}
   .share-num{font-size:var(--fs-6);color:var(--muted);margin-top:3px;font-variant-numeric:tabular-nums}
   .empty{color:var(--muted-2);font-size:var(--fs-5);text-align:center;padding:22px 0}
 
-  .camp{display:flex;gap:12px;align-items:flex-start;padding:13px 0;border-top:1px solid var(--line)}
+  .camp{display:flex;gap:12px;align-items:flex-start;padding:14px 0;border-top:1px solid var(--hairline)}
   .camp:first-child{border-top:0;padding-top:2px}
   .camp .cdot{width:9px;height:9px;border-radius:50%;background:var(--risk-high);margin-top:6px;flex:none;position:relative}
   .camp .cdot::after{content:"";position:absolute;inset:-4px;border-radius:50%;border:2px solid var(--risk-high);
     opacity:0;animation:rd-ping 1.8s ease-out infinite}
-  .camp .cnm{font-size:var(--fs-4);font-weight:800}
+  .camp .cnm{font-family:var(--font-display);font-size:var(--fs-4);font-weight:800}
   .camp .cmeta{font-size:var(--fs-6);color:var(--muted);margin-top:2px}
   .camp .cpeak{margin-left:auto;flex:none;text-align:right}
-  .camp .cpeak .pn{font-size:20px;font-weight:800;color:#FFB3BC;font-variant-numeric:tabular-nums;line-height:1}
+  .camp .cpeak .pn{font-family:var(--font-display);font-size:22px;font-weight:800;color:#FFB3BC;
+    font-variant-numeric:tabular-nums;line-height:1}
   .camp .cpeak .pl{font-size:var(--fs-6);color:var(--muted-2);text-transform:uppercase;letter-spacing:.06em}
 
-  @media(prefers-reduced-motion:reduce){ .tile rect{transition:none} }
+  @media(prefers-reduced-motion:reduce){ .rgn rect{transition:none} }
 </style>
 </head>
 <body>
@@ -97,13 +148,22 @@
 
 <main class="container wide">
   <section class="section tight">
-    <div class="r-head mt-1">
-      <div>
-        <div class="eyebrow" data-i18n="rdSlogan">Национальный радар мошенничества</div>
-        <h1 class="mt-1" data-i18n="rdHeroTitle">Гео-радар мошенничества</h1>
-        <p class="lead mt-1" data-i18n="rdHeroSub">Живая карта обращений граждан по регионам Казахстана.</p>
+    <div class="r-hero card glass">
+      <div class="rd-canvas" aria-hidden="true"><canvas id="rdRadar"></canvas></div>
+      <div class="r-head">
+        <div>
+          <div class="eyebrow accent" data-i18n="rdSlogan">Национальный радар мошенничества</div>
+          <h1 class="mt-1" data-i18n="rdHeroTitle">Гео-радар мошенничества</h1>
+          <p class="lead mt-1" data-i18n="rdHeroSub">Живая карта обращений граждан по регионам Казахстана.</p>
+        </div>
+        <div class="live"><span class="live-dot"></span><span>LIVE</span><span class="upd" id="upd"></span></div>
       </div>
-      <div class="live"><span class="live-dot"></span><span>LIVE</span><span class="upd" id="upd"></span></div>
+    </div>
+
+    <!-- бегущая строка активных волн -->
+    <div class="ticker mt-3" id="ticker" hidden>
+      <div class="tk-lbl"><span class="live-dot"></span><span data-i18n="rdTickerL">Волны</span></div>
+      <div class="tk-view"><div class="tk-track" id="tkTrack"></div></div>
     </div>
 
     <div class="kpis mt-3">
@@ -127,7 +187,7 @@
 
   <!-- ============ MAP ============ -->
   <section class="section tight">
-    <div class="card pad">
+    <div class="card pad" data-reveal>
       <h2 class="sect-h"><span data-icon="map-pin"></span><span data-i18n="rdMapTitle">Тепловая карта регионов</span></h2>
       <p class="muted" data-i18n="rdMapSub">Цвет региона — доля обращений высокого риска. Число — сколько всего сигналов.</p>
       <div class="map-wrap mt-2">
@@ -141,7 +201,8 @@
       <div class="legend">
         <div>
           <div class="scale" aria-hidden="true"></div>
-          <div class="ends"><span data-i18n="rdLegLow">спокойно</span><span data-i18n="rdLegHigh">высокий риск</span></div>
+          <div class="ticks" aria-hidden="true"><span>0%</span><span>50%</span><span>100%</span></div>
+          <div class="mt-1"><span data-i18n="rdLegCap">доля обращений высокого риска</span></div>
         </div>
         <span class="nd"><span class="sw"></span><span data-i18n="rdLegND">нет данных</span></span>
       </div>
@@ -150,21 +211,23 @@
 
   <!-- ============ TOP REGIONS ============ -->
   <section class="section tight">
-    <div class="card pad">
+    <div class="card pad" data-reveal>
       <h2 class="sect-h"><span data-icon="radar"></span><span data-i18n="rdTopTitle">Топ регионов по активности</span></h2>
       <p class="muted" data-i18n="rdTopSub">Где сейчас чаще всего сталкиваются с мошенничеством.</p>
-      <table class="tbl mt-2">
-        <thead>
-          <tr>
-            <th class="rank">#</th>
-            <th data-i18n="rdThRegion">Регион</th>
-            <th class="num" data-i18n="rdThTotal">Сигналов</th>
-            <th class="num" data-i18n="rdThHigh">Высокий</th>
-            <th class="barcell" data-i18n="rdThShare">Доля риска</th>
-          </tr>
-        </thead>
-        <tbody id="topBody"></tbody>
-      </table>
+      <div class="tbl-wrap mt-2">
+        <table class="tbl">
+          <thead>
+            <tr>
+              <th class="rank">#</th>
+              <th data-i18n="rdThRegion">Регион</th>
+              <th class="num" data-i18n="rdThTotal">Сигналов</th>
+              <th class="num" data-i18n="rdThHigh">Высокий</th>
+              <th class="barcell" data-i18n="rdThShare">Доля риска</th>
+            </tr>
+          </thead>
+          <tbody id="topBody"></tbody>
+        </table>
+      </div>
       <div class="empty" id="topEmpty" data-i18n="rdNoData" hidden>Пока нет данных. Как только появятся обращения — регионы загорятся на карте.</div>
     </div>
   </section>
@@ -208,6 +271,7 @@ addEventListener('DOMContentLoaded', function () {
       rdMapSub:'Цвет региона — доля обращений высокого риска. Число — сколько всего сигналов.',
       rdSea:'Каспий',
       rdLegLow:'спокойно', rdLegHigh:'высокий риск', rdLegND:'нет данных',
+      rdLegCap:'доля обращений высокого риска',
       rdTopTitle:'Топ регионов по активности', rdTopSub:'Где сейчас чаще всего сталкиваются с мошенничеством.',
       rdThRegion:'Регион', rdThTotal:'Сигналов', rdThHigh:'Высокий', rdThShare:'Доля риска',
       rdNoData:'Пока нет данных. Как только появятся обращения — регионы загорятся на карте.',
@@ -215,6 +279,7 @@ addEventListener('DOMContentLoaded', function () {
       rdCampSub:'Всплески одной схемы за короткое время — вероятно, скоординированная кампания.',
       rdTipTotal:'Сигналов', rdTipHigh:'Высокий риск', rdTipShare:'Доля риска', rdTipNo:'нет обращений',
       rdPeak:'пик/час', rdUpdNow:'обновлено только что', rdUpdAgo:'обновлено {n} с назад',
+      rdTickerL:'Волны', rdTickerPeak:'пик {n}/час', rdTickerSince:'с {t}',
       rdPrivacy:'Карта строится только по обезличенным признакам — без текста и отправителей.',
       rdFootLink:'Проверить подозрительное сообщение'
     },
@@ -230,6 +295,7 @@ addEventListener('DOMContentLoaded', function () {
       rdMapSub:'Аймақ түсі — жоғары қауіпті өтініш үлесі. Сан — барлық сигнал.',
       rdSea:'Каспий',
       rdLegLow:'тыныш', rdLegHigh:'жоғары қауіп', rdLegND:'дерек жоқ',
+      rdLegCap:'жоғары қауіпті өтініш үлесі',
       rdTopTitle:'Белсенділік бойынша топ аймақтар', rdTopSub:'Қазір алаяқтықпен жиі кездесетін жерлер.',
       rdThRegion:'Аймақ', rdThTotal:'Сигнал', rdThHigh:'Жоғары', rdThShare:'Қауіп үлесі',
       rdNoData:'Әзірге дерек жоқ. Өтініштер түскенде аймақтар картада жанады.',
@@ -237,6 +303,7 @@ addEventListener('DOMContentLoaded', function () {
       rdCampSub:'Қысқа уақытта бір схеманың күрт өсуі — үйлестірілген кампания болуы мүмкін.',
       rdTipTotal:'Сигнал', rdTipHigh:'Жоғары қауіп', rdTipShare:'Қауіп үлесі', rdTipNo:'өтініш жоқ',
       rdPeak:'шыңы/сағ', rdUpdNow:'жаңа ғана жаңартылды', rdUpdAgo:'{n} с бұрын жаңартылды',
+      rdTickerL:'Толқын', rdTickerPeak:'шыңы {n}/сағ', rdTickerSince:'{t} бастап',
       rdPrivacy:'Карта тек иесіздендірілген белгілер бойынша құрылады — мәтінсіз, жіберушісіз.',
       rdFootLink:'Күдікті хабарламаны тексеру'
     }
@@ -276,14 +343,14 @@ addEventListener('DOMContentLoaded', function () {
   /* цвет по доле высокого риска: спокойный сталь → красный (риск-цвет) */
   function heatColor(share){
     var s = Math.max(0, Math.min(100, Number(share) || 0)) / 100;
-    var c0 = [30, 58, 76], c1 = [255, 84, 104];   // #1E3A4C → #FF5468
+    var c0 = [30, 58, 76], c1 = [255, 77, 94];   // #1E3A4C → #FF4D5E
     var boost = Math.pow(s, 0.75);
     var r = Math.round(c0[0] + (c1[0] - c0[0]) * boost);
     var g = Math.round(c0[1] + (c1[1] - c0[1]) * boost);
     var b = Math.round(c0[2] + (c1[2] - c0[2]) * boost);
     return 'rgb(' + r + ',' + g + ',' + b + ')';
   }
-  var NODATA_FILL = '#131924';
+  var NODATA_FILL = '#121826';
 
   /* ===== build map skeleton ===== */
   var tileEls = {};
@@ -291,7 +358,7 @@ addEventListener('DOMContentLoaded', function () {
     var g = $('tiles'); g.textContent = '';
     TILES.forEach(function (tile) {
       var grp = document.createElementNS(NS, 'g');
-      grp.setAttribute('class', 'tile'); grp.setAttribute('tabindex', '0');
+      grp.setAttribute('class', 'rgn'); grp.setAttribute('tabindex', '0');
       var rect = document.createElementNS(NS, 'rect');
       rect.setAttribute('x', tile.x); rect.setAttribute('y', tile.y);
       rect.setAttribute('width', tile.w); rect.setAttribute('height', tile.h);
@@ -409,19 +476,57 @@ addEventListener('DOMContentLoaded', function () {
     });
   }
 
-  /* ===== summary KPIs ===== */
+  /* ===== summary KPIs (count-up только при изменении) ===== */
   var lastSummary = null, lastCampaigns = [];
+  var kShown = { kTotal: null, kHigh: null, kWave: null };
+  function setKpi(id, value, suffix){
+    var node = $(id), v = Number(value || 0);
+    if (kShown[id] === v) return;
+    Q.countUp(node, v, { from: kShown[id] == null ? 0 : kShown[id], group: true,
+      suffix: suffix || '', duration: 1000 });
+    kShown[id] = v;
+  }
   function renderSummary(s){
-    $('kTotal').textContent = fmtNum(s.total || 0);
-    $('kHigh').textContent = (s.high_share_24h != null ? (s.high_share_24h | 0) : 0) + '%';
+    setKpi('kTotal', s.total || 0);
+    setKpi('kHigh', s.high_share_24h != null ? (s.high_share_24h | 0) : 0, '%');
     var waves = s.campaigns_active != null ? s.campaigns_active : lastCampaigns.length;
-    $('kWave').textContent = fmtNum(waves || 0);
+    setKpi('kWave', waves || 0);
+  }
+
+  /* ===== ticker активных волн ===== */
+  function tickerItem(c){
+    var it = document.createElement('span'); it.className = 'tk-item';
+    var sep = document.createElement('span'); sep.className = 'tk-sep'; sep.textContent = '◆';
+    var nm = document.createElement('b'); nm.textContent = c.title || c.scheme || '';
+    var pk = document.createElement('span'); pk.className = 'tk-peak';
+    pk.textContent = t('rdTickerPeak').replace('{n}', fmtNum(c.peak != null ? c.peak : 0));
+    it.append(sep, nm, pk);
+    if (c.started_at) {
+      var since = document.createElement('span'); since.className = 'tk-meta';
+      since.textContent = t('rdTickerSince').replace('{t}', fmtTime(c.started_at));
+      it.appendChild(since);
+    }
+    return it;
+  }
+  function renderTicker(list){
+    var box = $('ticker'), track = $('tkTrack');
+    track.textContent = '';
+    if (!list.length) { box.hidden = true; return; }
+    box.hidden = false;
+    // два одинаковых прохода подряд → бесшовная петля (translateX(-50%))
+    for (var pass = 0; pass < 2; pass++) {
+      list.slice(0, 8).forEach(function (c) { track.appendChild(tickerItem(c)); });
+    }
+    // скорость подстраиваем под длину контента (≈70px/с), но не быстрее 18с
+    var w = track.scrollWidth / 2;
+    track.style.animationDuration = Math.max(18, Math.round(w / 70)) + 's';
   }
 
   /* ===== campaigns ===== */
   function renderCampaigns(list){
     var sect = $('campSect'), box = $('campList');
     box.textContent = '';
+    renderTicker(list);
     if (!list.length) { sect.hidden = true; return; }
     sect.hidden = false;
     list.slice(0, 6).forEach(function (c) {
@@ -485,13 +590,17 @@ addEventListener('DOMContentLoaded', function () {
       if (!slot.firstChild) slot.appendChild(Q.icon(slot.getAttribute('data-icon')));
     });
     paintTiles(); renderTop();
-    if (lastSummary) renderSummary(lastSummary);
+    if (lastSummary) { kShown.kTotal = null; kShown.kHigh = null; kShown.kWave = null; renderSummary(lastSummary); }
     renderCampaigns(lastCampaigns);
     tickUpd();
   });
 
   /* ===== boot ===== */
+  var rdCanvas = $('rdRadar');
+  if (rdCanvas) Q.shieldRadar(rdCanvas, { speed: .65 });
+
   buildMap();
+  Q.reveal('[data-reveal]');
   loadRegions(); loadSummary(); loadCampaigns();
   setInterval(loadRegions, 30000);
   setInterval(loadSummary, 30000);

@@ -3,82 +3,121 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
-<meta name="theme-color" content="#0B0E14"/>
+<meta name="theme-color" content="#0A0E1A"/>
 <title data-i18n-title="hTitle">Qorǵau — Помощь после мошенничества</title>
 <meta name="description" content="ИИ-юрист первой помощи после мошенничества: пошаговый план, реальные контакты банков и полиции Казахстана, карта ближайших отделений."/>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2338E0C8' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 22s8-4 8-10V5.2l-8-3-8 3V12c0 6 8 10 8 10Z'/%3E%3Cpath d='M9 12l2.2 2.2L15.5 10'/%3E%3C/svg%3E"/>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2338BDF8' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 22s8-4 8-10V5.2l-8-3-8 3V12c0 6 8 10 8 10Z'/%3E%3Cpath d='M9 12l2.2 2.2L15.5 10'/%3E%3C/svg%3E"/>
+<script>document.documentElement.classList.add('has-js');</script>
+<link rel="preload" href="assets/fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="assets/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="stylesheet" href="assets/app.css"/>
 <script src="assets/app.js" defer></script>
 <style>
-  /* ── help.html — «Помощь после» ── */
-  .help-head{padding:30px 0 6px}
-  .help-head h1{font-size:clamp(26px,6vw,40px);line-height:1.1;max-width:18ch}
-  .help-head .lead{margin-top:12px;max-width:54ch}
+  /* ══ help.html — «Помощь после». СПОКОЙНЫЙ тон: мягкие цвета, крупный текст,
+        никакого агрессивного неона. Токены — из app.css. ══════════════════ */
 
-  /* Опросник ситуации */
-  .sit-grid{display:grid;gap:10px;margin-top:4px}
+  .help-head{padding:34px 0 6px}
+  @media(min-width:760px){.help-head{padding:52px 0 6px}}
+  .help-head h1{font-size:clamp(27px,6.2vw,42px);line-height:1.08;max-width:19ch;letter-spacing:-.025em}
+  .help-head .lead{margin-top:14px;max-width:56ch;font-size:var(--fs-3)}
+
+  /* Спокойная плашка-опора */
+  .calm{display:flex;gap:13px;align-items:flex-start;padding:16px 18px;border-radius:var(--r);
+    border:1px solid var(--accent-line);background:var(--accent-soft)}
+  .calm .ic{width:22px;height:22px;flex:none;color:var(--accent);margin-top:2px}
+  .calm p{font-size:var(--fs-4);line-height:1.6}
+  .calm b{font-weight:700}
+
+  /* ── Опросник ситуации — карточки-чекбоксы ───────────────────────────── */
+  .sit-grid{display:grid;gap:11px}
   @media(min-width:560px){.sit-grid{grid-template-columns:1fr 1fr}}
-  .sit{display:flex;gap:12px;align-items:center;padding:13px 15px;background:var(--bg);
-    border:1px solid var(--line);border-radius:var(--r-md);cursor:pointer;
-    transition:border-color .18s var(--ease),background-color .18s var(--ease)}
-  .sit:hover{border-color:var(--accent-line)}
+  .sit{position:relative;display:flex;gap:13px;align-items:center;padding:15px 16px;
+    background:var(--bg-2);border:1px solid var(--hairline);border-radius:var(--r-md);
+    cursor:pointer;min-height:62px;
+    transition:border-color .18s var(--ease),background-color .18s var(--ease),transform .16s var(--ease)}
+  .sit:hover{border-color:var(--accent-line);transform:translateY(-1px)}
   .sit.on{border-color:var(--accent-line);background:var(--accent-soft)}
-  .sit .box{width:24px;height:24px;flex:none;border-radius:7px;border:1.5px solid var(--line);
-    display:grid;place-items:center;color:var(--accent-ink);background:transparent;transition:all .18s}
+  .sit input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+  .sit .sit-ic{width:40px;height:40px;flex:none;border-radius:var(--r-sm);display:grid;
+    place-items:center;background:var(--surface);color:var(--muted);border:1px solid var(--hairline);
+    transition:color .18s,background-color .18s,border-color .18s}
+  .sit .sit-ic .ic{width:21px;height:21px}
+  .sit.on .sit-ic{color:var(--accent);background:var(--accent-soft);border-color:var(--accent-line)}
+  .sit .lbl{font-size:var(--fs-4);font-weight:600;line-height:1.35;flex:1}
+  .sit .box{width:24px;height:24px;flex:none;border-radius:7px;border:1.5px solid var(--hairline);
+    display:grid;place-items:center;color:var(--accent-ink);background:transparent;
+    transition:background-color .18s,border-color .18s}
   .sit.on .box{background:var(--accent);border-color:var(--accent)}
-  .sit .box .ic{width:16px;height:16px;opacity:0;transition:opacity .15s}
+  .sit .box .ic{width:15px;height:15px;opacity:0;transition:opacity .15s}
   .sit.on .box .ic{opacity:1}
-  .sit .lbl{font-size:var(--fs-5);font-weight:600}
-  .sit input{position:absolute;opacity:0;pointer-events:none}
+  .sit input:focus-visible ~ .box{box-shadow:var(--focus)}
 
-  /* Чат */
-  .chat{display:flex;flex-direction:column;gap:14px}
-  .msg{max-width:92%}
+  /* ── Чат с ИИ-юристом ────────────────────────────────────────────────── */
+  .chat{display:flex;flex-direction:column;gap:16px}
+  .msg{max-width:94%}
   .msg.user{align-self:flex-end}
   .msg.bot{align-self:flex-start;width:100%}
-  .bubble{padding:12px 15px;border-radius:var(--r-md);font-size:var(--fs-4);line-height:1.55}
-  .msg.user .bubble{background:var(--accent-soft);border:1px solid var(--accent-line);color:var(--txt);
-    border-bottom-right-radius:5px}
-  .msg.bot .bubble{background:var(--surface);border:1px solid var(--line);border-bottom-left-radius:5px}
-  .bot-role{display:inline-flex;align-items:center;gap:7px;font-size:var(--fs-6);font-weight:800;
-    letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:8px}
-  .bot-role .ic{width:15px;height:15px}
+  .bubble{padding:15px 17px;border-radius:var(--r-md);font-size:var(--fs-4);line-height:1.65}
+  .msg.user .bubble{background:var(--accent-soft);border:1px solid var(--accent-line);
+    color:var(--txt);border-bottom-right-radius:6px}
+  .msg.bot .bubble{background:var(--surface);border:1px solid var(--hairline);border-bottom-left-radius:6px}
+  .bot-role{display:inline-flex;align-items:center;gap:8px;font-size:var(--fs-6);font-weight:800;
+    letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:10px}
+  .bot-role .ic{width:16px;height:16px}
 
-  /* Шаги */
-  .steps2{list-style:none;margin:14px 0 0;padding:0;display:flex;flex-direction:column;gap:10px}
-  .st2{display:flex;gap:12px;align-items:flex-start;padding:13px 14px;background:var(--bg);
-    border:1px solid var(--line);border-radius:var(--r-md)}
-  .st2-n{flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;
-    background:var(--surface-2);color:var(--txt);font-weight:800;font-size:var(--fs-6);
-    font-variant-numeric:tabular-nums}
-  .st2-b{min-width:0;flex:1}
-  .st2-head{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-  .st2-t{font-weight:700;font-size:var(--fs-4)}
-  .st2-d{color:var(--muted);font-size:var(--fs-5);line-height:1.55;margin-top:4px}
-  .st2-done{color:var(--muted-2);font-size:var(--fs-6);margin-top:6px;display:flex;gap:6px;align-items:center}
-  .st2-done .ic{width:14px;height:14px;flex:none;color:var(--risk-low)}
+  /* ── Степпер шагов ───────────────────────────────────────────────────── */
+  .sec-h{font-size:var(--fs-6);font-weight:800;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--muted);margin-top:20px}
+  .steps2{list-style:none;margin:12px 0 0;padding:0}
+  .st2{position:relative;display:flex;gap:14px;padding-bottom:16px}
+  .st2::before{content:"";position:absolute;left:17px;top:40px;bottom:2px;width:2px;
+    border-radius:2px;background:var(--hairline)}
+  .st2:last-child{padding-bottom:0}
+  .st2:last-child::before{display:none}
+  .st2-n{position:relative;z-index:1;flex:none;width:36px;height:36px;border-radius:50%;
+    display:grid;place-items:center;background:var(--surface-2);color:var(--txt);
+    border:1px solid var(--hairline);font-family:var(--font-display);font-weight:800;
+    font-size:var(--fs-5);font-variant-numeric:tabular-nums}
+  .st2[data-u="now"] .st2-n{color:var(--risk-high);background:var(--risk-high-soft);
+    border-color:rgba(255,77,94,.35)}
+  .st2[data-u="today"] .st2-n{color:var(--risk-med);background:var(--risk-med-soft);
+    border-color:rgba(255,176,32,.35)}
+  .st2-b{min-width:0;flex:1;padding-top:2px}
+  .st2-head{display:flex;flex-wrap:wrap;gap:9px;align-items:center}
+  .st2-t{font-family:var(--font-display);font-weight:800;font-size:var(--fs-4);letter-spacing:-.01em}
+  .st2-d{color:var(--muted);font-size:var(--fs-5);line-height:1.6;margin-top:5px}
+  .st2-done{color:var(--muted-2);font-size:var(--fs-6);margin-top:8px;display:flex;gap:7px;
+    align-items:center;line-height:1.4}
+  .st2-done .ic{width:15px;height:15px;flex:none;color:var(--risk-low)}
+  /* бейджи срочности — мягкие, без свечения */
   .u-badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:800;
-    letter-spacing:.06em;text-transform:uppercase;padding:3px 9px;border-radius:var(--r-pill);
-    border:1px solid var(--line)}
-  .u-badge.now{color:var(--risk-high);background:var(--risk-high-soft);border-color:rgba(255,84,104,.4)}
-  .u-badge.today{color:var(--risk-med);background:var(--risk-med-soft);border-color:rgba(255,176,32,.4)}
-  .u-badge.week{color:var(--muted);background:var(--surface);border-color:var(--line)}
+    letter-spacing:.07em;text-transform:uppercase;padding:3px 10px;border-radius:var(--r-pill);
+    border:1px solid var(--hairline);color:var(--muted);background:var(--surface)}
+  .u-badge.now{color:var(--risk-high);background:var(--risk-high-soft);border-color:rgba(255,77,94,.35)}
+  .u-badge.today{color:var(--risk-med);background:var(--risk-med-soft);border-color:rgba(255,176,32,.35)}
 
-  /* Контакты */
-  .contacts{margin-top:14px}
-  .contacts .ch{font-size:var(--fs-6);font-weight:800;letter-spacing:.1em;text-transform:uppercase;
-    color:var(--muted);margin-bottom:9px}
-  .con-row{display:flex;flex-wrap:wrap;gap:8px}
-  .con{display:inline-flex;align-items:center;gap:9px;padding:9px 13px;border-radius:var(--r-md);
-    border:1px solid var(--line);background:var(--surface);text-decoration:none;color:var(--txt);
-    transition:border-color .18s,transform .14s var(--ease)}
-  a.con:hover{border-color:var(--accent-line);transform:translateY(-1px);text-decoration:none}
-  .con .ic{width:18px;height:18px;flex:none;color:var(--accent)}
-  .con-b{display:flex;flex-direction:column;line-height:1.25}
-  .con-name{font-size:var(--fs-5);font-weight:600}
-  .con-phone{font-size:var(--fs-6);color:var(--accent);font-family:var(--mono)}
-  .con-note{font-size:var(--fs-6);color:var(--muted-2)}
-  .con.static{cursor:default}
+  /* ── Горячие линии — крупные доступные кнопки ────────────────────────── */
+  .contacts{margin-top:20px}
+  .contacts .ch{font-size:var(--fs-6);font-weight:800;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--muted);margin-bottom:11px}
+  .con-row{display:grid;gap:10px}
+  @media(min-width:560px){.con-row{grid-template-columns:1fr 1fr}}
+  .con{display:flex;align-items:center;gap:13px;min-height:64px;padding:12px 16px;
+    border-radius:var(--r-md);border:1px solid var(--hairline);background:var(--bg-2);
+    text-decoration:none;color:var(--txt);
+    transition:border-color .18s,background-color .18s,transform .16s var(--ease)}
+  a.con:hover{border-color:var(--accent-line);background:var(--surface-2);
+    transform:translateY(-1px);text-decoration:none}
+  .con .con-ic{width:40px;height:40px;flex:none;border-radius:var(--r-sm);display:grid;
+    place-items:center;background:var(--accent-soft);color:var(--accent);
+    border:1px solid var(--accent-line)}
+  .con .con-ic .ic{width:20px;height:20px}
+  .con.static .con-ic{background:var(--surface);color:var(--muted);border-color:var(--hairline)}
+  .con-b{display:flex;flex-direction:column;gap:2px;min-width:0}
+  .con-name{font-size:var(--fs-5);font-weight:600;line-height:1.3}
+  .con-phone{font-family:var(--mono);font-size:var(--fs-3);font-weight:700;color:var(--accent);
+    line-height:1.15;letter-spacing:.5px}
+  .con-note{font-size:var(--fs-6);color:var(--muted-2);line-height:1.4}
 
   .typing{display:inline-flex;gap:5px;padding:4px 0}
   .typing i{width:8px;height:8px;border-radius:50%;background:var(--muted-2);display:block;
@@ -86,40 +125,67 @@
   .typing i:nth-child(2){animation-delay:.15s}.typing i:nth-child(3){animation-delay:.3s}
   @keyframes qg-typ{0%,60%,100%{opacity:.3;transform:translateY(0)}30%{opacity:1;transform:translateY(-4px)}}
 
-  /* Ввод чата */
-  .chat-input{display:flex;gap:10px;align-items:flex-end;margin-top:16px}
+  .chat-input{display:flex;gap:10px;align-items:flex-end;margin-top:18px}
   .chat-input .field{flex:1}
-  #chatMsg{min-height:52px;max-height:140px}
-  .chat-send{flex:none;padding:12px 16px}
+  #chatMsg{min-height:54px;max-height:150px}
+  .chat-send{flex:none;padding:14px 18px}
 
-  /* ── Карта помощи ── */
-  .map-kinds{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
-  .minimap-wrap{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);
-    padding:16px;display:none}
+  /* ── Мини-карта отделений ────────────────────────────────────────────── */
+  .map-kinds{display:flex;gap:8px;flex-wrap:wrap}
+  .map-grid{display:grid;gap:16px}
+  @media(min-width:880px){.map-grid{grid-template-columns:340px 1fr;align-items:start}}
+  .minimap-wrap{display:none;padding:16px}
   .minimap-wrap.show{display:block;animation:qg-reveal .45s var(--ease)}
   .minimap{width:100%;height:auto;border-radius:var(--r-md);background:var(--bg);
-    border:1px solid var(--line-soft)}
-  .map-legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:12px;font-size:var(--fs-6);color:var(--muted)}
+    border:1px solid var(--hairline)}
+  .mm-ring{fill:none;stroke:var(--hairline);stroke-width:1}
+  .mm-cross{stroke:var(--hairline);stroke-width:1;opacity:.55}
+  .mm-ray{stroke:var(--hairline);stroke-width:1;stroke-dasharray:3 3}
+  .mm-pin{fill:var(--risk-med-soft);stroke:var(--risk-med);stroke-width:1.5;cursor:pointer;
+    transition:fill .18s,r .18s}
+  .mm-pin.on{fill:rgba(255,176,32,.42);stroke-width:2.2}
+  .mm-num{fill:var(--risk-med);font-family:var(--mono);font-size:11px;font-weight:700;
+    pointer-events:none}
+  .mm-me{fill:var(--accent-soft);stroke:var(--accent);stroke-width:2}
+  .mm-me-dot{fill:var(--accent)}
+  .mm-scale{fill:var(--muted-2);font-family:var(--font);font-size:10.5px;font-weight:700}
+  .mm-n{fill:var(--muted-2);font-family:var(--font-display);font-size:11px;font-weight:800}
+  .map-legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:12px;font-size:var(--fs-6);
+    color:var(--muted)}
   .map-legend span{display:inline-flex;align-items:center;gap:6px}
   .map-legend .d{width:10px;height:10px;border-radius:50%}
 
-  .places{display:flex;flex-direction:column;gap:10px;margin-top:14px}
-  .place{display:flex;gap:13px;align-items:flex-start;padding:14px;background:var(--surface);
-    border:1px solid var(--line);border-radius:var(--r-md)}
-  .place-pin{flex:none;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;
-    background:var(--accent-soft);color:var(--accent);font-weight:800;font-size:var(--fs-6);
-    font-variant-numeric:tabular-nums;border:1px solid var(--accent-line)}
+  .places{display:flex;flex-direction:column;gap:10px}
+  .place{display:flex;gap:13px;align-items:flex-start;padding:15px;background:var(--surface);
+    border:1px solid var(--hairline);border-radius:var(--r-md);
+    transition:border-color .18s,background-color .18s}
+  .place.on{border-color:var(--accent-line);background:var(--surface-2)}
+  .place-pin{flex:none;width:32px;height:32px;border-radius:50%;display:grid;place-items:center;
+    background:var(--risk-med-soft);color:var(--risk-med);font-family:var(--font-display);
+    font-weight:800;font-size:var(--fs-5);font-variant-numeric:tabular-nums;
+    border:1px solid rgba(255,176,32,.35)}
   .place-b{min-width:0;flex:1}
-  .place-name{font-weight:700;font-size:var(--fs-4)}
-  .place-addr{color:var(--muted);font-size:var(--fs-5);margin-top:2px}
-  .place-meta{display:flex;gap:14px;flex-wrap:wrap;margin-top:8px;align-items:center}
-  .place-dist{font-size:var(--fs-6);color:var(--muted);display:inline-flex;gap:5px;align-items:center;
+  .place-name{font-weight:700;font-size:var(--fs-4);line-height:1.35}
+  .place-addr{color:var(--muted);font-size:var(--fs-5);margin-top:3px;line-height:1.5}
+  .place-meta{display:flex;gap:12px;flex-wrap:wrap;margin-top:10px;align-items:center}
+  .place-dist{font-size:var(--fs-6);color:var(--muted);display:inline-flex;gap:6px;align-items:center;
     font-variant-numeric:tabular-nums}
   .place-dist .ic{width:14px;height:14px;color:var(--muted-2)}
-  .place-tel{font-size:var(--fs-6);font-family:var(--mono)}
+  .place-tel{min-height:0;padding:7px 12px;gap:8px}
+  .place-tel .ic{width:15px;height:15px;color:var(--accent)}
+  .place-tel span{font-family:var(--mono);font-size:var(--fs-6);color:var(--accent)}
 
-  .city-fallback{display:none;margin-top:14px}
+  .city-fallback{display:none}
   .city-fallback.show{display:block}
+  .demo-badge{text-transform:none;letter-spacing:0;font-weight:600;color:var(--muted)}
+  .demo-badge .ic{color:var(--muted-2)}
+
+  /* спокойный тон = минимум движения; глобальный guard в app.css дополняем точечно */
+  @media(prefers-reduced-motion:reduce){
+    .typing i{animation:none;opacity:.55}
+    .minimap-wrap.show{animation:none}
+    .sit:hover,a.con:hover{transform:none}
+  }
 </style>
 </head>
 <body>
@@ -127,6 +193,7 @@
 <div id="nav"></div>
 
 <main>
+  <!-- ══════════════════════════ HERO ══════════════════════════ -->
   <section class="container">
     <div class="help-head stack">
       <div class="eyebrow" data-i18n="hEyebrow">Помощь после · ИИ-юрист</div>
@@ -135,45 +202,56 @@
     </div>
   </section>
 
-  <!-- ── Опросник ситуации ── -->
   <section class="container">
-    <div class="stack lg">
-      <div class="card pad stack">
+    <div class="stack lg" style="padding-top:18px">
+
+      <div class="calm" data-reveal>
+        <span data-icon="shield-check"></span>
+        <p><b data-i18n="hCalmB">Вы не виноваты.</b> <span data-i18n="hCalm">Так обманывают тысячи людей, и на этом этапе главное — не паниковать, а сделать несколько понятных шагов. Мы пройдём их вместе, по одному.</span></p>
+      </div>
+
+      <!-- ── Опросник ситуации ── -->
+      <div class="card pad-lg stack lg" data-reveal>
         <div class="stack">
           <div class="eyebrow" data-i18n="hSitEyebrow">Что случилось</div>
-          <h2 style="font-size:var(--fs-3)" data-i18n="hSitH">Отметьте всё, что подходит</h2>
+          <h2 style="font-size:var(--fs-2)" data-i18n="hSitH">Отметьте всё, что подходит</h2>
+          <p class="muted text-5" data-i18n="hSitHint">Можно ничего не отмечать — тогда дадим общий план.</p>
         </div>
         <div class="sit-grid">
           <label class="sit" data-sit="lost_money">
             <input type="checkbox"/>
-            <span class="box"><span data-icon="check"></span></span>
+            <span class="sit-ic"><span data-icon="card"></span></span>
             <span class="lbl" data-i18n="hSitMoney">Перевёл деньги</span>
+            <span class="box"><span data-icon="check"></span></span>
           </label>
           <label class="sit" data-sit="gave_otp">
             <input type="checkbox"/>
-            <span class="box"><span data-icon="check"></span></span>
+            <span class="sit-ic"><span data-icon="message"></span></span>
             <span class="lbl" data-i18n="hSitOtp">Назвал код из СМС</span>
+            <span class="box"><span data-icon="check"></span></span>
           </label>
           <label class="sit" data-sit="gave_card">
             <input type="checkbox"/>
-            <span class="box"><span data-icon="check"></span></span>
+            <span class="sit-ic"><span data-icon="eye"></span></span>
             <span class="lbl" data-i18n="hSitCard">Дал данные карты</span>
+            <span class="box"><span data-icon="check"></span></span>
           </label>
           <label class="sit" data-sit="installed_app">
             <input type="checkbox"/>
-            <span class="box"><span data-icon="check"></span></span>
+            <span class="sit-ic"><span data-icon="link"></span></span>
             <span class="lbl" data-i18n="hSitApp">Установил приложение</span>
+            <span class="box"><span data-icon="check"></span></span>
           </label>
         </div>
         <div class="row">
-          <button class="btn" id="startBtn" type="button">
+          <button class="btn lg magnetic" id="startBtn" type="button">
             <span class="spin"></span><span data-icon="scales"></span><span id="startLbl" data-i18n="hStart">Получить первую помощь</span>
           </button>
         </div>
       </div>
 
       <!-- ── Чат ── -->
-      <div id="chatCard" class="card pad hidden">
+      <div id="chatCard" class="card pad-lg hidden">
         <div class="chat" id="chat"></div>
         <div class="chat-input">
           <div class="field">
@@ -189,10 +267,10 @@
     </div>
   </section>
 
-  <!-- ── Карта помощи ── -->
+  <!-- ══════════════════ КАРТА ПОМОЩИ ══════════════════ -->
   <section class="container">
     <div class="section tight stack lg">
-      <div class="stack">
+      <div class="stack" data-reveal>
         <div class="eyebrow" data-i18n="hMapEyebrow">Куда обратиться</div>
         <h2 data-i18n="hMapH">Ближайшие отделения помощи</h2>
         <p class="lead" data-i18n="hMapP">Найдём полицию, банки и юридическую помощь рядом с вами. Геолокация используется только для расчёта расстояния и никуда не сохраняется.</p>
@@ -208,9 +286,10 @@
         <button class="btn" id="findBtn" type="button">
           <span class="spin"></span><span data-icon="map-pin"></span><span id="findLbl" data-i18n="hFind">Найти ближайшие отделения</span>
         </button>
+        <span class="badge demo-badge"><span data-icon="eye"></span><span data-i18n="hDemo">демо-данные · базовый справочник КЗ</span></span>
       </div>
 
-      <!-- Город-фолбэк если геолокация отклонена -->
+      <!-- Город-фолбэк, если геолокация отклонена -->
       <div class="city-fallback field" id="cityFallback">
         <span class="label" data-i18n="hCityLabel">Геолокация недоступна — выберите город</span>
         <select id="citySel" class="select">
@@ -223,19 +302,21 @@
         <div class="hint" data-i18n="hCityHint">Расстояния будут считаться от центра выбранного города.</div>
       </div>
 
-      <!-- Мини-карта -->
-      <div class="minimap-wrap" id="minimapWrap">
-        <svg class="minimap" id="minimap" viewBox="0 0 320 240" role="img" aria-labelledby="mmTitle">
-          <title id="mmTitle" data-i18n="hMapAlt">Схема ближайших отделений вокруг вашей позиции</title>
-        </svg>
-        <div class="map-legend">
-          <span><span class="d" style="background:var(--accent)"></span><span data-i18n="hMapYou">Вы здесь</span></span>
-          <span><span class="d" style="background:var(--risk-med)"></span><span data-i18n="hMapPlaces">Отделения</span></span>
+      <div class="map-grid">
+        <!-- Мини-карта -->
+        <div class="card minimap-wrap" id="minimapWrap">
+          <svg class="minimap" id="minimap" viewBox="0 0 320 250" role="img" aria-labelledby="mmTitle">
+            <title id="mmTitle" data-i18n="hMapAlt">Схема ближайших отделений вокруг вашей позиции</title>
+          </svg>
+          <div class="map-legend">
+            <span><span class="d" style="background:var(--accent)"></span><span data-i18n="hMapYou">Вы здесь</span></span>
+            <span><span class="d" style="background:var(--risk-med)"></span><span data-i18n="hMapPlaces">Отделения</span></span>
+          </div>
         </div>
-      </div>
 
-      <!-- Список отделений -->
-      <div class="places" id="places"></div>
+        <!-- Список отделений -->
+        <div class="places" id="places"></div>
+      </div>
     </div>
   </section>
 </main>
@@ -261,8 +342,11 @@ addEventListener('DOMContentLoaded', function () {
       hEyebrow: 'Помощь после · ИИ-юрист',
       hHeroTitle: 'Уже перевели деньги? Первый час решает многое',
       hHeroLead: 'Отметьте, что произошло, — ИИ-юрист даст пошаговый план и реальные контакты банков и полиции Казахстана. Действуйте спокойно и по порядку.',
+      hCalmB: 'Вы не виноваты.',
+      hCalm: 'Так обманывают тысячи людей, и на этом этапе главное — не паниковать, а сделать несколько понятных шагов. Мы пройдём их вместе, по одному.',
       hSitEyebrow: 'Что случилось',
       hSitH: 'Отметьте всё, что подходит',
+      hSitHint: 'Можно ничего не отмечать — тогда дадим общий план.',
       hSitMoney: 'Перевёл деньги',
       hSitOtp: 'Назвал код из СМС',
       hSitCard: 'Дал данные карты',
@@ -276,6 +360,7 @@ addEventListener('DOMContentLoaded', function () {
       hKindPolice: 'Полиция', hKindBank: 'Банк', hKindLawyer: 'Юрпомощь',
       hFind: 'Найти ближайшие отделения',
       hFinding: 'Ищу…',
+      hDemo: 'демо-данные · базовый справочник КЗ',
       hCityLabel: 'Геолокация недоступна — выберите город',
       hCityHint: 'Расстояния будут считаться от центра выбранного города.',
       hCityAlmaty: 'Алматы', hCityAstana: 'Астана', hCityShymkent: 'Шымкент',
@@ -305,8 +390,11 @@ addEventListener('DOMContentLoaded', function () {
       hEyebrow: 'Кейінгі көмек · ЖИ-заңгер',
       hHeroTitle: 'Ақша аударып қойдыңыз ба? Алғашқы сағат маңызды',
       hHeroLead: 'Не болғанын белгілеңіз — ЖИ-заңгер қадамдық жоспар мен Қазақстан банктері мен полициясының нақты байланыстарын береді. Сабырмен, ретімен әрекет етіңіз.',
+      hCalmB: 'Сіз кінәлі емессіз.',
+      hCalm: 'Мұндай алдау мыңдаған адамның басынан өтеді. Қазір ең бастысы — дүрбелеңге салынбай, бірнеше нақты қадам жасау. Оларды бірге, ретімен өтеміз.',
       hSitEyebrow: 'Не болды',
       hSitH: 'Сәйкес келетіннің бәрін белгілеңіз',
+      hSitHint: 'Ештеңе белгілемесеңіз де болады — сонда жалпы жоспар береміз.',
       hSitMoney: 'Ақша аудардым',
       hSitOtp: 'СМС кодын айттым',
       hSitCard: 'Карта деректерін бердім',
@@ -320,6 +408,7 @@ addEventListener('DOMContentLoaded', function () {
       hKindPolice: 'Полиция', hKindBank: 'Банк', hKindLawyer: 'Құқық көмегі',
       hFind: 'Жақын бөлімшелерді табу',
       hFinding: 'Іздеп жатырмын…',
+      hDemo: 'демо-деректер · базалық ҚР анықтамалығы',
       hCityLabel: 'Геолокация қолжетімсіз — қаланы таңдаңыз',
       hCityHint: 'Қашықтық таңдалған қала орталығынан есептеледі.',
       hCityAlmaty: 'Алматы', hCityAstana: 'Астана', hCityShymkent: 'Шымкент',
@@ -352,16 +441,17 @@ addEventListener('DOMContentLoaded', function () {
     slot.appendChild(Q.icon(slot.getAttribute('data-icon')));
   });
 
-  /* ── Опросник ── */
+  /* ── Опросник (контракт situation для /help/chat не изменён) ── */
   var situation = { lost_money: false, gave_otp: false, gave_card: false, installed_app: false };
   document.querySelectorAll('.sit').forEach(function (lab) {
     var key = lab.getAttribute('data-sit');
     var input = lab.querySelector('input');
-    lab.addEventListener('click', function (e) {
-      if (e.target !== input) input.checked = !input.checked;
+    function sync() {
       situation[key] = input.checked;
       lab.classList.toggle('on', input.checked);
-    });
+    }
+    input.addEventListener('change', sync);
+    sync();
   });
 
   /* ── Чат ── */
@@ -377,7 +467,7 @@ addEventListener('DOMContentLoaded', function () {
     var m = el('div', 'msg user');
     var b = el('div', 'bubble'); b.textContent = text;
     m.appendChild(b); chat.appendChild(m);
-    m.scrollIntoView({ block: 'end', behavior: 'smooth' });
+    m.scrollIntoView({ block: 'end', behavior: Q.reduced() ? 'auto' : 'smooth' });
   }
 
   function addTyping() {
@@ -388,7 +478,7 @@ addEventListener('DOMContentLoaded', function () {
     b.appendChild(role);
     var t = el('div', 'typing'); t.appendChild(el('i')); t.appendChild(el('i')); t.appendChild(el('i'));
     b.appendChild(t); m.appendChild(b); chat.appendChild(m);
-    m.scrollIntoView({ block: 'end', behavior: 'smooth' });
+    m.scrollIntoView({ block: 'end', behavior: Q.reduced() ? 'auto' : 'smooth' });
   }
   function removeTyping() { var t = document.getElementById('typingMsg'); if (t) t.remove(); }
 
@@ -404,18 +494,20 @@ addEventListener('DOMContentLoaded', function () {
 
     if (d.reply) b.appendChild(el('p', null, d.reply));
 
-    // шаги
+    // шаги — степпер с бейджами срочности
     var steps = Array.isArray(d.steps) ? d.steps : [];
     if (steps.length) {
+      b.appendChild(el('div', 'sec-h', Q.i18n.t('hStepsH')));
       var ol = el('ul', 'steps2');
       steps.forEach(function (s, i) {
         var li = el('li', 'st2');
+        var u = URG[s.urgency];
+        if (u) li.setAttribute('data-u', u.cls);
         li.appendChild(el('div', 'st2-n', String(s.order || (i + 1))));
         var sb = el('div', 'st2-b');
         var head = el('div', 'st2-head');
         head.appendChild(el('span', 'st2-t', s.title || ''));
-        var u = URG[s.urgency];
-        if (u) { var ub = el('span', 'u-badge ' + u.cls, Q.i18n.t(u.key)); head.appendChild(ub); }
+        if (u) head.appendChild(el('span', 'u-badge ' + u.cls, Q.i18n.t(u.key)));
         sb.appendChild(head);
         if (s.detail) sb.appendChild(el('div', 'st2-d', s.detail));
         if (s.done_hint) {
@@ -427,7 +519,7 @@ addEventListener('DOMContentLoaded', function () {
       b.appendChild(ol);
     }
 
-    // контакты
+    // контакты — крупные кнопки tel:
     var contacts = Array.isArray(d.contacts) ? d.contacts : [];
     if (contacts.length) {
       var cw = el('div', 'contacts');
@@ -437,7 +529,8 @@ addEventListener('DOMContentLoaded', function () {
         var dial = (c.phone || '').replace(/[^\d+]/g, '');
         var node = dial ? document.createElement('a') : el('div', 'con static');
         if (dial) { node.className = 'con'; node.href = 'tel:' + dial; }
-        node.appendChild(Q.icon('phone'));
+        var ic = el('span', 'con-ic'); ic.appendChild(Q.icon('phone'));
+        node.appendChild(ic);
         var cb = el('div', 'con-b');
         cb.appendChild(el('span', 'con-name', c.name || ''));
         if (c.phone) cb.appendChild(el('span', 'con-phone', c.phone));
@@ -450,14 +543,14 @@ addEventListener('DOMContentLoaded', function () {
     }
 
     if (d.degraded) {
-      var dg = el('div', 'st2-done'); dg.style.marginTop = '12px';
+      var dg = el('div', 'st2-done'); dg.style.marginTop = '14px';
       dg.appendChild(Q.icon('alert'));
       dg.appendChild(el('span', null, Q.i18n.t('degraded')));
       b.appendChild(dg);
     }
 
     m.appendChild(b); chat.appendChild(m);
-    m.scrollIntoView({ block: 'end', behavior: 'smooth' });
+    m.scrollIntoView({ block: 'end', behavior: Q.reduced() ? 'auto' : 'smooth' });
   }
 
   async function sendMessage(text, btn, lbl, labelKey) {
@@ -528,6 +621,7 @@ addEventListener('DOMContentLoaded', function () {
   var cityFallback = document.getElementById('cityFallback');
   var citySel = document.getElementById('citySel');
   var mapBusy = false;
+  var pinNodes = [], placeNodes = [];
 
   mapKinds.querySelectorAll('.chip').forEach(function (c) {
     c.addEventListener('click', function () {
@@ -542,29 +636,38 @@ addEventListener('DOMContentLoaded', function () {
     return n;
   }
 
+  // подсветка «пин ↔ строка списка»
+  function highlight(i, on) {
+    if (pinNodes[i]) pinNodes[i].classList.toggle('on', on);
+    if (placeNodes[i]) placeNodes[i].classList.toggle('on', on);
+  }
+
   // Мини-карта: пользователь в центре, пины отделений нормализованы в bounding box
   function drawMiniMap(uLat, uLon, places) {
-    // очистить всё, кроме <title>
     var title = minimap.querySelector('title');
     minimap.textContent = '';
     if (title) minimap.appendChild(title);
+    pinNodes = [];
 
-    var W = 320, H = 240, cx = 160, cy = 120, R = 96;
-    // фоновые кольца дальности
+    var W = 320, cx = 160, cy = 118, R = 96;
+    // кольца дальности + перекрестье
     [R, R * 0.66, R * 0.33].forEach(function (r) {
-      minimap.appendChild(svgEl('circle', { cx: cx, cy: cy, r: r, fill: 'none', stroke: '#1D2634', 'stroke-width': 1 }));
+      minimap.appendChild(svgEl('circle', { cx: cx, cy: cy, r: r, class: 'mm-ring' }));
     });
-    // перекрестье
-    minimap.appendChild(svgEl('line', { x1: cx - R, y1: cy, x2: cx + R, y2: cy, stroke: '#161e2b', 'stroke-width': 1 }));
-    minimap.appendChild(svgEl('line', { x1: cx, y1: cy - R, x2: cx, y2: cy + R, stroke: '#161e2b', 'stroke-width': 1 }));
+    minimap.appendChild(svgEl('line', { x1: cx - R, y1: cy, x2: cx + R, y2: cy, class: 'mm-cross' }));
+    minimap.appendChild(svgEl('line', { x1: cx, y1: cy - R, x2: cx, y2: cy + R, class: 'mm-cross' }));
+    var north = svgEl('text', { x: cx + 5, y: cy - R + 2, class: 'mm-n' });
+    north.textContent = 'N';
+    minimap.appendChild(north);
 
     var rad = Math.PI / 180;
     var cosLat = Math.cos(uLat * rad) || 1;
-    var maxAbs = 0.0001;
+    var maxAbs = 0.0001, maxKm = 0;
     var pts = places.map(function (p) {
       var dLat = (Number(p.lat) || uLat) - uLat;
       var dLon = ((Number(p.lon) || uLon) - uLon) * cosLat;
       maxAbs = Math.max(maxAbs, Math.abs(dLat), Math.abs(dLon));
+      if (p.distance_km != null) maxKm = Math.max(maxKm, Number(p.distance_km) || 0);
       return { dLat: dLat, dLon: dLon, p: p };
     });
     var scale = (R * 0.86) / maxAbs;
@@ -572,26 +675,44 @@ addEventListener('DOMContentLoaded', function () {
     pts.forEach(function (o, i) {
       var x = cx + o.dLon * scale;
       var y = cy - o.dLat * scale;
-      x = Math.max(16, Math.min(W - 16, x));
-      y = Math.max(16, Math.min(H - 16, y));
-      // луч от центра к пину
-      minimap.appendChild(svgEl('line', { x1: cx, y1: cy, x2: x, y2: y, stroke: '#263041', 'stroke-width': 1, 'stroke-dasharray': '3 3' }));
-      // пин
-      minimap.appendChild(svgEl('circle', { cx: x, cy: y, r: 12, fill: 'rgba(255,176,32,.16)', stroke: '#FFB020', 'stroke-width': 1.5 }));
-      var num = svgEl('text', { x: x, y: y + 4, 'text-anchor': 'middle', fill: '#FFB020', 'font-size': 11, 'font-weight': 800, 'font-family': 'ui-monospace,Consolas,monospace' });
+      x = Math.max(18, Math.min(W - 18, x));
+      y = Math.max(18, Math.min(cy + R + 12, y));
+      minimap.appendChild(svgEl('line', { x1: cx, y1: cy, x2: x, y2: y, class: 'mm-ray' }));
+      var pin = svgEl('circle', { cx: x, cy: y, r: 13, class: 'mm-pin', tabindex: '0', role: 'button' });
+      var label = svgEl('title');
+      label.textContent = (i + 1) + '. ' + (o.p.name || '');
+      pin.appendChild(label);
+      pin.addEventListener('pointerenter', function () { highlight(i, true); });
+      pin.addEventListener('pointerleave', function () { highlight(i, false); });
+      pin.addEventListener('focus', function () { highlight(i, true); });
+      pin.addEventListener('blur', function () { highlight(i, false); });
+      pin.addEventListener('click', function () {
+        if (placeNodes[i]) placeNodes[i].scrollIntoView({ block: 'nearest', behavior: Q.reduced() ? 'auto' : 'smooth' });
+      });
+      minimap.appendChild(pin);
+      pinNodes[i] = pin;
+      var num = svgEl('text', { x: x, y: y + 4, 'text-anchor': 'middle', class: 'mm-num' });
       num.textContent = String(i + 1);
       minimap.appendChild(num);
     });
 
     // позиция пользователя — по центру, поверх
-    minimap.appendChild(svgEl('circle', { cx: cx, cy: cy, r: 13, fill: 'rgba(56,224,200,.18)', stroke: '#38E0C8', 'stroke-width': 2 }));
-    minimap.appendChild(svgEl('circle', { cx: cx, cy: cy, r: 4.5, fill: '#38E0C8' }));
+    minimap.appendChild(svgEl('circle', { cx: cx, cy: cy, r: 13, class: 'mm-me' }));
+    minimap.appendChild(svgEl('circle', { cx: cx, cy: cy, r: 4.5, class: 'mm-me-dot' }));
+
+    // масштаб внешнего кольца
+    if (maxKm > 0) {
+      var sc = svgEl('text', { x: cx, y: cy + R + 30, 'text-anchor': 'middle', class: 'mm-scale' });
+      sc.textContent = '≈ ' + (Math.round(maxKm * 10) / 10) + ' ' + Q.i18n.t('hKm');
+      minimap.appendChild(sc);
+    }
 
     minimapWrap.classList.add('show');
   }
 
   function renderPlaces(list, uLat, uLon) {
     placesBox.textContent = '';
+    placeNodes = [];
     if (!list.length) { Q.toast(Q.i18n.t('hNoPlaces'), 'warn'); minimapWrap.classList.remove('show'); return; }
     drawMiniMap(uLat, uLon, list);
     list.forEach(function (p, i) {
@@ -614,7 +735,10 @@ addEventListener('DOMContentLoaded', function () {
       }
       b.appendChild(meta);
       row.appendChild(b);
+      row.addEventListener('pointerenter', function () { highlight(i, true); });
+      row.addEventListener('pointerleave', function () { highlight(i, false); });
       placesBox.appendChild(row);
+      placeNodes[i] = row;
     });
   }
 
@@ -653,6 +777,8 @@ addEventListener('DOMContentLoaded', function () {
       fetchPlaces(parseFloat(parts[0]), parseFloat(parts[1]));
     }
   });
+
+  Q.reveal('[data-reveal]');
 });
 </script>
 </body>

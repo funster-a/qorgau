@@ -72,8 +72,18 @@ func refreshBlocklist() {
 
 	// Источник 2: домены из жалоб (analytics.ioc; домены там в открытом виде —
 	// это не ПДн, см. CLAUDE.md). value_hash для type='domain' содержит хост.
+	//
+	// ТОЛЬКО домены из вердиктов высокого риска. Проверка легитимного сайта
+	// (например kaspi.kz с вердиктом not_scam) тоже кладёт домен в ioc — без
+	// этого фильтра Shield заблокировал бы настоящий банк всем пользователям.
 	if db != nil {
-		if rows, err := db.Query(`SELECT DISTINCT value_hash FROM analytics.ioc WHERE type='domain'`); err == nil {
+		if rows, err := db.Query(`
+			SELECT DISTINCT i.value_hash
+			FROM analytics.ioc i
+			JOIN analytics.signal s ON s.id = i.signal_id
+			WHERE i.type = 'domain'
+			  AND s.risk_level = 'high'
+			  AND s.scheme_code <> 'not_scam'`); err == nil {
 			for rows.Next() {
 				var v string
 				if rows.Scan(&v) == nil {
