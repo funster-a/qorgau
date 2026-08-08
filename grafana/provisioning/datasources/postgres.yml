@@ -1,0 +1,19 @@
+apiVersion: 1
+
+datasources:
+  - name: Qorgau Postgres
+    uid: qorgau-pg
+    type: postgres
+    access: proxy
+    # Внутри docker-сети ходим на 5432, публикация на хосте (5433) тут ни при чём.
+    url: postgres:5432
+    user: qorgau
+    database: qorgau
+    isDefault: true
+    secureJsonData:
+      password: qorgau
+    jsonData:
+      sslmode: disable
+      postgresVersion: 1600
+      timescaledb: false
+    editable: true

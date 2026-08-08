@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Qorǵau — проверка на мошенничество</title>
+<style>
+  :root{--bg:#0b0f17;--card:#141a26;--mut:#8a97ad;--line:#243044;
+        --red:#ff4d5e;--yellow:#ffb020;--green:#22c98a;--txt:#e8edf6}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--txt)}
+  .wrap{max-width:640px;margin:0 auto;padding:32px 20px 64px}
+  h1{font-size:26px;margin:0 0 4px}
+  .sub{color:var(--mut);margin:0 0 20px;font-size:14px}
+  textarea{width:100%;min-height:120px;background:var(--card);color:var(--txt);
+           border:1px solid var(--line);border-radius:12px;padding:14px;font-size:15px;resize:vertical}
+  textarea:focus{outline:none;border-color:#3b82f6}
+  button{margin-top:12px;width:100%;padding:14px;border:0;border-radius:12px;
+         background:#3b82f6;color:#fff;font-size:16px;font-weight:600;cursor:pointer}
+  button:disabled{opacity:.6;cursor:default}
+  .ex{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+  .ex button{width:auto;padding:8px 12px;font-size:13px;font-weight:500;background:#1e2636;color:var(--mut)}
+  .hint{color:var(--mut);font-size:12px;text-align:center;margin-top:8px}
+
+  /* Баннер кампании: главный «вау»-элемент — платформа знает, что происходит прямо сейчас. */
+  .alert{display:none;margin:0 0 18px;padding:14px 16px;border-radius:12px;
+         background:linear-gradient(135deg,#2a1620,#331a24);border:1px solid #5c2333}
+  .alert .t{font-weight:700;color:#ffb4bd;font-size:14px;margin-bottom:6px}
+  .alert .b{color:#e7c9cf;font-size:13px;line-height:1.5}
+  .alert .b b{color:#fff}
+
+  .card{margin-top:20px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;display:none}
+  .gauge{display:flex;align-items:center;gap:16px}
+  .score{font-size:42px;font-weight:800;line-height:1}
+  .lvl{font-size:13px;text-transform:uppercase;letter-spacing:.5px;padding:4px 10px;border-radius:999px}
+  .bar{height:10px;background:#0e1420;border-radius:999px;overflow:hidden;margin:14px 0}
+  .bar > div{height:100%;border-radius:999px;transition:width .5s}
+  .scheme{font-size:18px;font-weight:700;margin:4px 0 2px}
+  .flags{display:flex;gap:6px;flex-wrap:wrap;margin:12px 0}
+  .flag{background:#2a1620;color:#ffb4bd;border:1px solid #48212c;border-radius:999px;padding:4px 10px;font-size:12px}
+  .expl{color:#d4dbe8;line-height:1.5;margin:8px 0}
+  .act{margin:6px 0 0;padding-left:18px}
+  .act li{margin:4px 0}
+  .iocs{margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
+  .iocs .h{font-size:12px;color:var(--mut);margin-bottom:6px}
+  .ioc{display:inline-block;background:#0e1420;border:1px solid var(--line);border-radius:8px;
+       padding:3px 8px;font-size:12px;margin:0 6px 6px 0;font-family:ui-monospace,Consolas,monospace}
+  .badge{font-size:11px;color:var(--mut);margin-top:10px}
+  .err{color:#ffb4bd;font-size:13px;margin-top:10px;display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🛡️ Qorǵau</h1>
+  <p class="sub">Вставьте подозрительную СМС или переписку — ИИ разберёт её за пару секунд.</p>
+
+  <div class="alert" id="alert">
+    <div class="t">🚨 Сейчас идёт волна мошенничества</div>
+    <div class="b" id="alertBody"></div>
+  </div>
+
+  <textarea id="txt" placeholder="Например: Служба безопасности банка. Назовите код из СМС, иначе спишутся деньги..."></textarea>
+  <div class="ex">
+    <button onclick="ex(0)">Пример: код от «банка»</button>
+    <button onclick="ex(1)">Пример: выигрыш по ссылке</button>
+    <button onclick="ex(2)">Пример: обычное сообщение</button>
+  </div>
+  <button id="go" onclick="run()">Проверить</button>
+  <div class="hint">Ctrl + Enter — проверить</div>
+  <div class="err" id="err"></div>
+
+  <div class="card" id="card">
+    <div class="gauge">
+      <div class="score" id="score">0</div>
+      <div>
+        <span class="lvl" id="lvl">—</span>
+        <div class="scheme" id="scheme">—</div>
+      </div>
+    </div>
+    <div class="bar"><div id="fill" style="width:0%"></div></div>
+    <div class="flags" id="flags"></div>
+    <p class="expl" id="expl"></p>
+    <ul class="act" id="act"></ul>
+    <div class="iocs" id="iocs" style="display:none">
+      <div class="h">Найденные индикаторы (обезличены)</div>
+      <div id="iocList"></div>
+    </div>
+    <div class="badge" id="badge"></div>
+  </div>
+</div>
+
+<script>
+// Страницу отдаёт сам API, поэтому по умолчанию тот же origin.
+// Если открыли файл напрямую (file://) — идём на локальный сервер.
+const API = location.protocol === 'file:' ? 'http://localhost:8080' : '';
+
+const EX = [
+  "Здравствуйте! Служба безопасности Kaspi. Зафиксирована подозрительная операция по вашей карте. Срочно назовите код из СМС, иначе деньги спишутся.",
+  "Поздравляем! Вам начислена компенсация 250 000 тг. Получите по ссылке: http://egov-vyplata.xyz",
+  "Привет, во сколько завтра встречаемся у метро?"
+];
+function ex(i){ document.getElementById('txt').value = EX[i]; }
+
+const COLOR = {high:'var(--red)', medium:'var(--yellow)', low:'var(--green)'};
+const LVL   = {high:'высокий риск', medium:'средний риск', low:'низкий риск'};
+
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey && e.key === 'Enter') run();
+});
+
+async function run(){
+  const txt = document.getElementById('txt').value.trim();
+  if(!txt) return;
+  const go = document.getElementById('go');
+  const err = document.getElementById('err');
+  err.style.display = 'none';
+  go.disabled = true; go.textContent = 'Анализирую…';
+  try{
+    const r = await fetch(API + '/analyze', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({text: txt, channel:'web'})
+    });
+    if(!r.ok) throw new Error('HTTP ' + r.status);
+    render(await r.json());
+    loadCampaigns();          // свежее обращение могло поднять кампанию
+  }catch(e){
+    err.textContent = 'Не удалось связаться с сервисом. Запущен ли API на :8080?';
+    err.style.display = 'block';
+  }
+  go.disabled = false; go.textContent = 'Проверить';
+}
+
+function render(d){
+  document.getElementById('card').style.display = 'block';
+  const c = COLOR[d.risk_level] || 'var(--mut)';
+
+  const score = document.getElementById('score');
+  score.textContent = d.risk_score;
+  score.style.color = c;
+
+  const lvl = document.getElementById('lvl');
+  lvl.textContent = LVL[d.risk_level] || d.risk_level;
+  lvl.style.background = c;
+  lvl.style.color = '#0b0f17';
+
+  document.getElementById('scheme').textContent = d.scheme_title || '';
+  const fill = document.getElementById('fill');
+  fill.style.width = d.risk_score + '%';
+  fill.style.background = c;
+
+  fillList('flags', d.flags, f => {
+    const s = document.createElement('span');
+    s.className = 'flag'; s.textContent = '🚩 ' + f;
+    return s;
+  });
+  document.getElementById('expl').textContent = d.explanation || '';
+  fillList('act', d.recommended_actions, a => {
+    const li = document.createElement('li'); li.textContent = a; return li;
+  });
+
+  const iocs = d.iocs || [];
+  document.getElementById('iocs').style.display = iocs.length ? 'block' : 'none';
+  fillList('iocList', iocs, i => {
+    const s = document.createElement('span');
+    s.className = 'ioc'; s.textContent = i.type + ': ' + i.value_masked;
+    return s;
+  });
+
+  document.getElementById('badge').textContent =
+    d.degraded ? 'базовый режим: ИИ временно недоступен, вердикт по правилам' : '';
+}
+
+// textContent вместо innerHTML: текст приходит от модели, вставлять его как разметку нельзя.
+function fillList(id, items, make){
+  const el = document.getElementById(id);
+  el.textContent = '';
+  (items || []).forEach(v => el.appendChild(make(v)));
+}
+
+async function loadCampaigns(){
+  try{
+    const r = await fetch(API + '/campaigns/active');
+    const list = await r.json();
+    const box = document.getElementById('alert');
+    if(!Array.isArray(list) || !list.length){ box.style.display = 'none'; return; }
+    const body = document.getElementById('alertBody');
+    body.textContent = '';
+    list.slice(0,3).forEach(c => {
+      const div = document.createElement('div');
+      const b = document.createElement('b');
+      b.textContent = c.title;
+      div.append(b, document.createTextNode(' — ' + c.peak + ' обращений за час'));
+      body.appendChild(div);
+    });
+    box.style.display = 'block';
+  }catch(e){ /* нет связи — просто не показываем баннер */ }
+}
+
+loadCampaigns();
+setInterval(loadCampaigns, 30000);
+</script>
+</body>
+</html>

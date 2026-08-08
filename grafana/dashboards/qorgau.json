@@ -1,0 +1,251 @@
+{
+  "uid": "qorgau-radar",
+  "title": "Qorǵau — национальный радар мошенничества",
+  "tags": ["qorgau", "antifraud"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "10s",
+  "editable": true,
+  "time": { "from": "now-24h", "to": "now" },
+  "templating": { "list": [] },
+  "annotations": { "list": [] },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Обращений за период",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+      "datasource": { "type": "postgres", "uid": "qorgau-pg" },
+      "fieldConfig": {
+        "defaults": { "unit": "short", "color": { "mode": "fixed", "fixedColor": "text" } },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "value",
+        "graphMode": "none",
+        "colorMode": "value"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT count(*) AS \"Обращений\" FROM analytics.signal WHERE $__timeFilter(created_at)",
+          "datasource": { "type": "postgres", "uid": "qorgau-pg" }
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Из них высокий риск",
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
+      "datasource": { "type": "postgres", "uid": "qorgau-pg" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "orange", "value": 30 },
+              { "color": "red", "value": 60 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "value",
+        "graphMode": "none",
+        "colorMode": "value"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COALESCE(100.0 * count(*) FILTER (WHERE risk_level = 'high') / NULLIF(count(*), 0), 0) AS \"Высокий риск\" FROM analytics.signal WHERE $__timeFilter(created_at)",
+          "datasource": { "type": "postgres", "uid": "qorgau-pg" }
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Активных кампаний",
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
+      "datasource": { "type": "postgres", "uid": "qorgau-pg" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 1 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "value",
+        "graphMode": "none",
+        "colorMode": "background"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT count(*) AS \"Кампании\" FROM analytics.campaign WHERE status = 'active'",
+          "datasource": { "type": "postgres", "uid": "qorgau-pg" }
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Вердиктов в базовом режиме",
+      "description": "Доля ответов, выданных эвристическим фолбэком при недоступности LLM.",
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
+      "datasource": { "type": "postgres", "uid": "qorgau-pg" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 20 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "value",
+        "graphMode": "none",
+        "colorMode": "value"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COALESCE(100.0 * count(*) FILTER (WHERE degraded) / NULLIF(count(*), 0), 0) AS \"Базовый режим\" FROM analytics.signal WHERE $__timeFilter(created_at)",
+          "datasource": { "type": "postgres", "uid": "qorgau-pg" }
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Динамика обращений по схемам (по часам)",
+      "gridPos": { "h": 10, "w": 16, "x": 0, "y": 4 },
+      "datasource": { "type": "postgres", "uid": "qorgau-pg" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 15,
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": { "mode": "normal", "group": "A" }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "displayMode": "table", "placement": "right", "calcs": ["sum"], "showLegend": true },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT date_trunc('hour', s.created_at) AS time, sc.title_ru AS metric, count(*) AS value FROM analytics.signal s JOIN analytics.scheme sc ON sc.code = s.scheme_code WHERE $__timeFilter(s.created_at) AND s.scheme_code <> 'not_scam' GROUP BY 1, 2 ORDER BY 1",
+          "datasource": { "type": "postgres", "uid": "qorgau-pg" }
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "bargauge",
+      "title": "Топ схем мошенничества",
+      "gridPos": { "h": 10, "w": 8, "x": 16, "y": 4 },
+      "datasource": { "type": "postgres", "uid": "qorgau-pg" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": { "mode": "continuous-GrYlRd" },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] }
+        },
+        "overrides": []
+      },
+      "options": {
+        "displayMode": "gradient",
+        "orientation": "horizontal",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "showUnfilled": true
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT sc.title_ru AS metric, count(*) AS value FROM analytics.signal s JOIN analytics.scheme sc ON sc.code = s.scheme_code WHERE $__timeFilter(s.created_at) AND s.scheme_code <> 'not_scam' GROUP BY 1 ORDER BY 2 DESC LIMIT 8",
+          "datasource": { "type": "postgres", "uid": "qorgau-pg" }
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "type": "table",
+      "title": "Активные кампании (обнаруженные аномалии)",
+      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 14 },
+      "datasource": { "type": "postgres", "uid": "qorgau-pg" },
+      "fieldConfig": { "defaults": { "custom": { "align": "auto" } }, "overrides": [] },
+      "options": { "showHeader": true },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT c.started_at AS \"Начало\", sc.title_ru AS \"Схема\", c.peak_value AS \"Пик за час\", c.status AS \"Статус\" FROM analytics.campaign c JOIN analytics.scheme sc ON sc.code = c.scheme_code ORDER BY c.started_at DESC LIMIT 20",
+          "datasource": { "type": "postgres", "uid": "qorgau-pg" }
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "type": "table",
+      "title": "Индикаторы (маскированные) — топ повторяющихся",
+      "description": "Сырой текст сюда не попадает: в analytics хранятся только обезличенные признаки.",
+      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 14 },
+      "datasource": { "type": "postgres", "uid": "qorgau-pg" },
+      "fieldConfig": { "defaults": { "custom": { "align": "auto" } }, "overrides": [] },
+      "options": { "showHeader": true },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT i.type AS \"Тип\", i.value_hash AS \"Значение\", count(*) AS \"Встреч\" FROM analytics.ioc i JOIN analytics.signal s ON s.id = i.signal_id WHERE $__timeFilter(s.created_at) GROUP BY 1, 2 ORDER BY 3 DESC LIMIT 15",
+          "datasource": { "type": "postgres", "uid": "qorgau-pg" }
+        }
+      ]
+    }
+  ]
+}

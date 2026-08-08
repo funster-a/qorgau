@@ -1,0 +1,32 @@
+# Секреты: ключи Groq и токен бота живут только локально.
+.env
+.env.local
+
+# Сборка Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+/api/api
+/bot/bot
+/api/tmp/
+/bot/tmp/
+
+# Тесты и профилирование
+*.test
+*.out
+coverage.*
+
+# Локальные данные и логи
+*.log
+/data/
+/dump/
+
+# IDE / ОС
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+desktop.ini
