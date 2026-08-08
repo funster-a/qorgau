@@ -15,7 +15,9 @@ import (
 	"time"
 )
 
-const trainerMaxTurns = 8
+// Короткий сценарий: за 4 хода жюри видит суть, а не сидит 8 реплик.
+// Плюс кнопка «завершить» на фронте (req.Finish) обрывает в любой момент.
+const trainerMaxTurns = 4
 
 type trainerScenario struct {
 	code      string
@@ -202,6 +204,7 @@ func handleTrainerReply(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		SessionID string `json:"session_id"`
 		Message   string `json:"message"`
+		Finish    bool   `json:"finish"` // кнопка «завершить и получить разбор» на фронте
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "bad json", http.StatusBadRequest)
@@ -230,7 +233,8 @@ func handleTrainerReply(w http.ResponseWriter, r *http.Request) {
 		s.Penalty += m["_penalty"].(int)
 	}
 	turn := s.Turn
-	finished := turn >= trainerMaxTurns
+	// finish=true — мгновенный разбор по кнопке (для быстрого демо, без всех ходов).
+	finished := req.Finish || turn >= trainerMaxTurns
 	trMu.Unlock()
 
 	degraded := false
